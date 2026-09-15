@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fest&Chill — Billetterie d'événements</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#071619;--deep:#0D2126;--surface:#123037;
+  --purple:#0EA5A0;--violet:#0B7A76;--glow:#5EEAD4;
+  --gold:#FF8A3D;--green:#34D399;--red:#FF5A5F;
+  --white:#F7FBFA;--muted:#7C9A9A;--text:#DCEEEC;
+  --card:rgba(14,165,160,.08);--border:rgba(94,234,212,.14);
+  --fd:'Bricolage Grotesque',sans-serif;--fb:'Manrope',sans-serif;
+  --r:14px;
+}
+body{font-family:var(--fb);background:var(--ink);color:var(--text);min-height:100vh;overflow-x:hidden;display:flex;flex-direction:column}
+a{color:inherit;text-decoration:none}
+
+nav{padding:18px 5%;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--border)}
+.logo{font-family:var(--fd);font-weight:800;font-size:1.3rem;color:var(--white)}
+.logo span{color:var(--glow)}
+
+main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 5%;position:relative;overflow:hidden}
+main::before{content:'';position:absolute;top:-220px;left:50%;transform:translateX(-50%);width:900px;height:600px;background:radial-gradient(circle,rgba(14,165,160,.25),transparent 65%);pointer-events:none}
+
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:100px;padding:7px 16px;font-size:.82rem;font-weight:700;color:var(--glow);margin-bottom:20px;animation:popIn .5s cubic-bezier(.2,1.4,.4,1) both}
+h1{font-family:var(--fd);font-weight:800;font-size:clamp(2rem,5.5vw,3.2rem);line-height:1.1;letter-spacing:-.02em;text-align:center;margin-bottom:14px;animation:fadeUp .6s .05s cubic-bezier(.16,1,.3,1) both}
+h1 .accent{color:var(--glow)}
+.sub{font-size:1.05rem;color:var(--muted);max-width:520px;text-align:center;line-height:1.6;margin-bottom:44px;animation:fadeUp .6s .12s cubic-bezier(.16,1,.3,1) both}
+
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:760px;width:100%;animation:fadeUp .6s .18s cubic-bezier(.16,1,.3,1) both}
+.choice-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:34px 28px;text-align:left;cursor:pointer;transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s,border-color .3s;position:relative;overflow:hidden}
+.choice-card:hover{transform:translateY(-6px);box-shadow:0 20px 45px rgba(14,165,160,.18);border-color:rgba(94,234,212,.4)}
+.choice-icon{width:54px;height:54px;border-radius:14px;background:var(--card);display:flex;align-items:center;justify-content:center;margin-bottom:18px;color:var(--glow)}
+.choice-title{font-family:var(--fd);font-weight:800;font-size:1.25rem;margin-bottom:8px}
+.choice-sub{font-size:.88rem;color:var(--muted);line-height:1.55;margin-bottom:20px}
+.choice-cta{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;font-weight:700;color:var(--glow)}
+.choice-cta svg{width:1.1em;height:1.1em}
+
+footer{padding:22px 5%;text-align:center;color:var(--muted);font-size:.8rem;border-top:1px solid var(--border)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn{0%{opacity:0;transform:scale(.9)}100%{opacity:1;transform:scale(1)}}
+
+@media(max-width:640px){
+  .choices{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<nav><a href="festchill-welcome.html" class="logo">Fest<span>&</span>Chill</a></nav>
+
+<main>
+  <div class="hero-badge">✨ Billetterie 100% béninoise</div>
+  <h1>Bienvenue sur <span class="accent">Fest&Chill</span></h1>
+  <div class="sub">Achète des tickets pour les meilleurs événements du Bénin, ou vends les tiens en quelques minutes. Dis-nous qui tu es pour commencer.</div>
+
+  <div class="choices">
+    <a class="choice-card" href="festchill-explore.html">
+      <div class="choice-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.2A1.7 1.7 0 0 1 5.7 6.5h2.1l1-1.7h6.4l1 1.7h2.1A1.7 1.7 0 0 1 20 8.2v9.1a1.7 1.7 0 0 1-1.7 1.7H5.7A1.7 1.7 0 0 1 4 17.3Z"/><circle cx="12" cy="12.4" r="3.4"/></svg></div>
+      <div class="choice-title">Je suis client</div>
+      <div class="choice-sub">Découvre tous les événements publiés sur Fest&Chill par catégorie, et achète ton ticket en quelques secondes.</div>
+      <span class="choice-cta">Voir les événements <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg></span>
+    </a>
+
+    <a class="choice-card" href="festchill-landing.html">
+      <div class="choice-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2.2"/><line x1="3.5" y1="10" x2="20.5" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg></div>
+      <div class="choice-title">Je suis organisateur</div>
+      <div class="choice-sub">Crée ton événement, configure tes catégories de tickets et vends par Mobile Money. Espace organisateur complet.</div>
+      <span class="choice-cta">Créer mon compte <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg></span>
+    </a>
+  </div>
+</main>
+
+<footer>© 2026 Fest&Chill — Billetterie d'événements au Bénin</footer>
+
+</body>
+</html>

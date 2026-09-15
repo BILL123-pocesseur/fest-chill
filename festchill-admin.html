@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>(function(){
+  var t=localStorage.getItem('fc-theme')||'dark';
+  var light=t==='light'||(t==='auto'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches);
+  if(light)document.documentElement.setAttribute('data-theme','light');
+  var fcLang = localStorage.getItem('fc-lang')||'fr';
+  document.documentElement.lang = fcLang;
+  document.documentElement.dir = (fcLang === 'ar') ? 'rtl' : 'ltr';
+  var hex = localStorage.getItem('fc-accent');
+  if(hex){
+    function hexToRgb(h){h=h.replace('#','');if(h.length===3)h=h.split('').map(function(c){return c+c}).join('');var n=parseInt(h,16);return{r:(n>>16)&255,g:(n>>8)&255,b:n&255}}
+    function mix(a,b,amt){return{r:Math.round(a.r+(b.r-a.r)*amt),g:Math.round(a.g+(b.g-a.g)*amt),b:Math.round(a.b+(b.b-a.b)*amt)}}
+    function toHex(c){return '#'+[c.r,c.g,c.b].map(function(v){return Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0')}).join('').toUpperCase()}
+    var rgb=hexToRgb(hex);
+    var violet=mix(rgb,{r:0,g:0,b:0},0.28);
+    var glow=light?mix(rgb,{r:0,g:0,b:0},0.18):mix(rgb,{r:255,g:255,b:255},0.32);
+    var s=document.documentElement.style;
+    s.setProperty('--purple',hex);s.setProperty('--violet',toHex(violet));s.setProperty('--glow',toHex(glow));
+    s.setProperty('--accent-rgb',rgb.r+','+rgb.g+','+rgb.b);
+  }
+})();</script>
+<title>Admin — Fest&Chill</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#071619;--deep:#0D2126;--surface:#123037;
+  --purple:#0EA5A0;--violet:#0B7A76;--glow:#5EEAD4;
+  --gold:#FF8A3D;--green:#34D399;--red:#FF5A5F;
+  --white:#F7FBFA;--muted:#7C9A9A;--text:#DCEEEC;
+  --sand:#FFD9A8;--card:rgba(14,165,160,.08);--border:rgba(94,234,212,.14);
+  --topbar-bg:rgba(13,10,30,.9);--accent-rgb:14,165,160;
+  --fd:'Bricolage Grotesque',sans-serif;--fb:'Manrope',sans-serif;--fm:'IBM Plex Mono',monospace;
+  --r:12px;--sidebar:240px;
+  /* Couleurs fixes pour le bandeau illustré (fc-hero) : ce bandeau a un fond
+     sombre codé en dur qui ne change PAS avec le thème clair/sombre. Le texte
+     posé dessus doit donc rester clair, quel que soit le thème actif. */
+  --hero-text:#F7FBFA;--hero-pill-bg:rgba(5,15,18,.55);--hero-pill-border:rgba(255,255,255,.16);
+}
+:root[data-theme="light"]{
+  --ink:#F3F8F7;--deep:#FFFFFF;--surface:#FFFFFF;
+  --purple:#0EA5A0;--violet:#0B7A76;--glow:#0B7A76;
+  --gold:#C9660D;--green:#0F9D58;--red:#DC2626;
+  --white:#0B2226;--muted:#5B7373;--text:#16302E;
+  --sand:#FFE3BE;--card:rgba(14,165,160,.06);--border:rgba(11,38,42,.12);
+  --topbar-bg:rgba(255,255,255,.82);--accent-rgb:14,165,160;
+}
+body{font-family:var(--fb);background:var(--ink);color:var(--text);display:flex;min-height:100vh}
+.sidebar{width:var(--sidebar);background:var(--deep);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;z-index:50}
+.sidebar-logo{padding:22px 20px;border-bottom:1px solid var(--border)}
+.sidebar-logo a{font-family:var(--fd);font-weight:800;font-size:1.1rem;color:var(--white);text-decoration:none}
+.sidebar-logo span{color:var(--glow)}
+.admin-badge{display:inline-block;background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);border-radius:100px;font-size:.65rem;font-weight:700;padding:2px 8px;margin-left:6px;text-transform:uppercase;letter-spacing:.5px}
+.sidebar-nav{padding:16px 12px;flex:1}
+.nav-label{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;padding:10px 8px 4px}
+.s-link{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:.875rem;font-weight:500;margin-bottom:2px;transition:all .15s}
+.s-link:hover{background:var(--card);color:var(--white)}
+.s-link.active{background:rgba(var(--accent-rgb),.2);color:var(--glow);border:1px solid rgba(var(--accent-rgb),.2)}
+.s-link .ic{width:18px;text-align:center}
+.sidebar-footer{padding:14px 12px;border-top:1px solid var(--border)}
+.avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--red),var(--gold));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;color:var(--white);flex-shrink:0}
+.user-pill{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px}
+.user-name{font-size:.82rem;font-weight:600;color:var(--white)}
+.user-role{font-size:.72rem;color:var(--red)}
+.main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column}
+/* Arabe (RTL) : la sidebar passe à droite, le contenu se décale en miroir. */
+html[dir="rtl"] .sidebar{left:auto;right:0;border-right:none;border-left:1px solid var(--border)}
+html[dir="rtl"] .main{margin-left:0;margin-right:var(--sidebar)}
+html[dir="rtl"] body{direction:rtl}
+.topbar{padding:14px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--topbar-bg);backdrop-filter:blur(12px);position:sticky;top:0;z-index:40}
+.topbar-title{font-family:var(--fd);font-weight:700;font-size:1.05rem}
+.page{padding:28px}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;position:relative;overflow:hidden}
+.stat-card::after{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;opacity:.12}
+.stat-card.s1::after{background:var(--purple)}
+.stat-card.s2::after{background:var(--gold)}
+.stat-card.s3::after{background:var(--green)}
+.stat-card.s4::after{background:var(--red)}
+.stat-lbl{font-size:.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px}
+.stat-num{font-family:var(--fm);font-size:1.7rem;font-weight:700;line-height:1;margin-bottom:5px}
+.stat-sub{font-size:.76rem;color:var(--muted)}
+.stat-sub.up{color:var(--green)}
+.stat-sub.down{color:var(--red)}
+
+/* CHART */
+.chart-wrap{padding:16px 20px;height:130px;display:flex;align-items:flex-end;gap:5px}
+.bar-w{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.bar-b{width:100%;border-radius:3px 3px 0 0;cursor:pointer;min-height:3px}
+.bar-lbl{font-size:.6rem;color:var(--muted)}
+
+/* TWO COL */
+.two-col{display:grid;grid-template-columns:1fr 360px;gap:20px;margin-bottom:20px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px}
+
+/* SECTION CARD */
+.section-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:16px}
+.section-head{padding:15px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.section-head-title{font-family:var(--fd);font-weight:700;font-size:.9rem}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse}
+th{background:rgba(var(--accent-rgb),.07);color:var(--muted);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;padding:10px 14px;text-align:left}
+td{padding:12px 14px;font-size:.83rem;border-top:1px solid var(--border)}
+tr:hover td{background:rgba(255,255,255,.02)}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:100px;font-size:.68rem;font-weight:700}
+.b-green{background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.25)}
+.b-gold{background:rgba(245,158,11,.12);color:var(--gold);border:1px solid rgba(245,158,11,.25)}
+.b-purple{background:rgba(var(--accent-rgb),.12);color:var(--glow);border:1px solid rgba(var(--accent-rgb),.25)}
+.b-gray{background:rgba(156,163,175,.1);color:var(--muted);border:1px solid rgba(156,163,175,.2)}
+.b-red{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+
+/* ALERT */
+.alert{display:flex;align-items:flex-start;gap:12px;padding:14px 18px;border-radius:10px;margin-bottom:10px;font-size:.84rem}
+.alert.warning{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25)}
+.alert.danger{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25)}
+.alert.info{background:rgba(var(--accent-rgb),.08);border:1px solid rgba(var(--accent-rgb),.25)}
+.alert-icon{font-size:1.1rem;flex-shrink:0}
+.alert-text{flex:1}
+.alert-title{font-weight:700;margin-bottom:2px}
+.alert-sub{color:var(--muted);font-size:.8rem}
+
+/* COMMISSION CARD */
+.comm-card{background:linear-gradient(135deg,rgba(var(--accent-rgb),.15),rgba(var(--accent-rgb),.1));border:1px solid rgba(var(--accent-rgb),.3);border-radius:var(--r);padding:22px;text-align:center}
+.comm-amount{font-family:var(--fd);font-size:2.2rem;font-weight:800;color:var(--gold);margin-bottom:4px}
+.comm-label{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:16px}
+
+/* USER LIST */
+.user-row{display:flex;align-items:center;gap:12px;padding:12px 18px;border-top:1px solid var(--border)}
+.u-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--glow));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.75rem;color:var(--white);flex-shrink:0}
+.u-info{flex:1;min-width:0}
+.u-name{font-size:.85rem;font-weight:600;color:var(--white)}
+.u-sub{font-size:.73rem;color:var(--muted)}
+.u-actions{display:flex;gap:6px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:7px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:var(--fb);border:none;transition:all .18s;text-decoration:none}
+.btn-primary{background:var(--purple);color:var(--white)}
+.btn-primary:hover{background:var(--violet)}
+.btn-ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--glow);color:var(--white)}
+.btn-danger{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+.btn-danger:hover{background:rgba(239,68,68,.2)}
+.btn-success{background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.25)}
+.btn-sm{padding:5px 10px;font-size:.75rem;border-radius:5px}
+
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid rgba(16,185,129,.4);border-radius:10px;padding:14px 20px;display:flex;align-items:center;gap:10px;font-size:.88rem;font-weight:500;z-index:999;transform:translateY(60px);opacity:0;transition:all .3s;box-shadow:0 20px 40px rgba(0,0,0,.4)}
+.toast.show{transform:none;opacity:1}
+
+@media(max-width:1100px){.two-col{grid-template-columns:1fr}}
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%)}
+  .main{margin-left:0}
+  .stats-row,.three-col{grid-template-columns:repeat(2,1fr)}
+}
+
+
+/* ============================================================
+   FEST&CHILL — v3 DESIGN SYSTEM
+   Palette: deep teal night + golden-hour amber + coral energy.
+   No purple. Illustrated sunset-festival motif as signature.
+   ============================================================ */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shimmerMove{0%{background-position:-160% 0}100%{background-position:160% 0}}
+@keyframes livedot{0%,100%{box-shadow:0 0 0 0 rgba(255,90,95,.5)}70%{box-shadow:0 0 0 8px rgba(255,90,95,0)}}
+@keyframes sunDrift{0%,100%{transform:translate(0,0)}50%{transform:translate(-1.2%,-1%)}}
+@keyframes twinkle{0%,100%{opacity:.55}50%{opacity:1}}
+@keyframes grainshift{0%,100%{transform:translate(0,0)}50%{transform:translate(-2%,-1%)}}
+@keyframes popIn{0%{opacity:0;transform:scale(.9)}100%{opacity:1;transform:scale(1)}}
+
+html{scroll-behavior:smooth}
+body{position:relative}
+body::before{content:'';position:fixed;inset:-10%;z-index:0;pointer-events:none;opacity:.5;
+  background-image:radial-gradient(circle at 16% 10%,rgba(14,165,160,.14),transparent 42%),
+                    radial-gradient(circle at 90% 85%,rgba(255,138,61,.08),transparent 42%);
+}
+body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.03;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grainshift 9s steps(2) infinite;
+}
+
+/* entrance choreography */
+.page>*,#app>*{opacity:1;animation:fadeUp .6s cubic-bezier(.16,1,.3,1) both}
+.page>*:nth-child(1),#app>*:nth-child(1){animation-delay:.02s}
+.page>*:nth-child(2),#app>*:nth-child(2){animation-delay:.08s}
+.page>*:nth-child(3),#app>*:nth-child(3){animation-delay:.14s}
+.page>*:nth-child(4),#app>*:nth-child(4){animation-delay:.2s}
+.page>*:nth-child(5),#app>*:nth-child(5){animation-delay:.26s}
+.page>*:nth-child(6),#app>*:nth-child(6){animation-delay:.32s}
+.stats-row .stat-card:nth-child(1){animation-delay:.05s}
+.stats-row .stat-card:nth-child(2){animation-delay:.11s}
+.stats-row .stat-card:nth-child(3){animation-delay:.17s}
+.stats-row .stat-card:nth-child(4){animation-delay:.23s}
+
+/* card lift */
+.stat-card,.section-card,.share-card,.qr-card,.prog-card,.info-section,.ticket-detail-card{
+  transition:transform .35s cubic-bezier(.16,1,.3,1),box-shadow .35s,border-color .35s;
+}
+.stat-card:hover{transform:translateY(-5px);box-shadow:0 18px 36px rgba(14,165,160,.16);border-color:rgba(94,234,212,.4)}
+.section-card:hover,.share-card:hover,.info-section:hover{border-color:rgba(94,234,212,.25)}
+
+/* buttons */
+.btn{position:relative;overflow:hidden;letter-spacing:.01em}
+.btn-primary{background:linear-gradient(135deg,var(--purple),var(--violet))}
+.btn-primary::before{content:'';position:absolute;top:0;left:-120%;width:55%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-20deg);transition:left .55s}
+.btn-primary:hover:not(:disabled)::before{left:130%}
+.btn-primary:hover:not(:disabled){box-shadow:0 12px 26px rgba(14,165,160,.35);transform:translateY(-2px)}
+.btn-primary:active:not(:disabled){transform:translateY(0) scale(.98)}
+.btn-ghost:hover{transform:translateY(-1px)}
+
+/* progress */
+.prog-fill,.pc-fill{position:relative;overflow:hidden;background-size:250% 100%}
+.prog-fill::after,.pc-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);animation:shimmerMove 2.6s linear infinite}
+
+/* status pill — clean, professional (no tilt/stamp gimmick) */
+.pill-status{
+  font-family:var(--fm);text-transform:uppercase;letter-spacing:.08em;font-weight:600;font-size:.72rem;
+  border:1.5px solid currentColor;border-radius:100px;padding:5px 13px 5px 10px;
+  display:inline-flex;align-items:center;gap:7px;
+}
+.pill-status .livedot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:livedot 1.8s infinite}
+
+input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(14,165,160,.2)}
+.avatar{transition:transform .3s}
+.sidebar-footer:hover .avatar{transform:scale(1.06)}
+.s-link{transition:all .2s cubic-bezier(.34,1.56,.64,1)}
+.s-link:hover{transform:translateX(3px)}
+tr{transition:background .2s}
+
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:var(--ink)}
+::-webkit-scrollbar-thumb{background:var(--card);border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:var(--purple)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ===== illustrated hero (shared across pages) ===== */
+.fc-hero{position:relative;overflow:hidden;border-radius:18px;min-height:300px;display:flex;flex-direction:column;justify-content:flex-end;box-shadow:0 24px 55px rgba(0,0,0,.35)}
+.illus-hero{position:absolute;inset:0;width:100%;height:100%;z-index:0}
+.illus-sun{animation:sunDrift 10s ease-in-out infinite}
+.illus-lights circle{animation:twinkle 2.6s ease-in-out infinite}
+.illus-lights circle:nth-child(odd){animation-delay:-1.3s}
+.fc-hero-content{position:relative;z-index:1;padding:34px 5% 28px;display:flex;flex-direction:column;gap:14px}
+.fc-hero-topbar{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-start;padding:20px 5% 0}
+.fc-chip{opacity:1;background:var(--hero-pill-bg);backdrop-filter:blur(10px);border:1px solid var(--hero-pill-border);border-radius:100px;padding:7px 16px;font-size:.8rem;font-weight:700;display:flex;align-items:center;gap:8px;animation:popIn .5s .1s cubic-bezier(.2,1.4,.4,1) both;color:var(--hero-text)}
+.fc-hero-title{font-family:var(--fd);font-weight:800;font-size:clamp(1.7rem,4vw,2.7rem);line-height:1.06;letter-spacing:-.01em;text-shadow:0 4px 24px rgba(0,0,0,.4);color:var(--hero-text)}
+.fc-hero-meta{display:flex;flex-wrap:wrap;gap:10px}
+.fc-meta-pill{background:var(--hero-pill-bg);backdrop-filter:blur(8px);border:1px solid var(--hero-pill-border);border-radius:100px;padding:6px 14px;font-size:.82rem;display:flex;align-items:center;gap:7px;color:var(--hero-text)}
+
+
+/* ===== icon system ===== */
+.icn{width:1.15em;height:1.15em;display:inline-block;vertical-align:-0.22em;flex-shrink:0}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;vertical-align:middle;flex-shrink:0}
+.s-link .ic{display:inline-flex;align-items:center;justify-content:center;width:18px;flex-shrink:0}
+.s-link .ic .icn{width:18px;height:18px;vertical-align:0}
+.btn .icn,.badge .icn,.pill-status .icn,.stamp .icn{vertical-align:-0.18em}
+.topbar-title .icn,.section-head-title .icn,.info-title .icn{width:1.05em;height:1.05em;vertical-align:-0.15em;margin-right:2px}
+.result-icon .icn{width:1em;height:1em}
+
+
+.illus{width:100%;height:auto;display:block}
+
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <a href="festchill-landing.html">Fest<span>&</span>Chill<span class="admin-badge">Admin</span></a>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Vue d'ensemble</div>
+    <a href="#" class="s-link active"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="20" x2="5" y2="11"/><line x1="12" y1="20" x2="12" y2="5"/><line x1="19" y1="20" x2="19" y2="14"/></svg></span> <span data-i18n="nav.dashboard_admin">Dashboard Admin</span></a>
+    <a href="#" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.2" r="3.2"/><path d="M3 19a6 6 0 0 1 12 0"/><path d="M15.5 5.5a3.2 3.2 0 0 1 0 6.2"/><path d="M17 13a6 6 0 0 1 4 5.6"/></svg></span> <span data-i18n="nav.organizers">Organisateurs</span></a>
+    <a href="#" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2.2"/><line x1="3.5" y1="10" x2="20.5" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg></span> <span data-i18n="nav.all_events">Tous les événements</span></a>
+    <a href="#" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.5a2 2 0 0 0 0 4V16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.5a2 2 0 0 0 0-4Z"/><line x1="10" y1="6" x2="10" y2="18" stroke-dasharray="2 2.4"/></svg></span> <span data-i18n="nav.all_tickets">Tous les tickets</span></a>
+    <div class="nav-label" data-i18n="nav.group_finance">Finances</div>
+    <a href="#" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M17 11.5h2.5a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5H17a2 2 0 0 1 0-4Z"/><line x1="3" y1="8.7" x2="21" y2="8.7"/></svg></span> <span data-i18n="nav.commissions">Commissions</span></a>
+    <a href="#" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="19" height="11" rx="2"/><circle cx="12" cy="12" r="3"/><line x1="6" y1="9.3" x2="6" y2="9.3"/><line x1="18" y1="14.7" x2="18" y2="14.7"/></svg></span> <span data-i18n="nav.payouts">Reversements</span></a>
+    <a href="#" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 16 10 10 14 14 20 6"/><polyline points="14.5 6 20 6 20 11.5"/></svg></span> <span data-i18n="nav.platform_revenue">Revenus plateforme</span></a>
+    <div class="nav-label">Gestion</div>
+    <a href="#" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15a6 6 0 0 1 12 0v2H6Z"/><line x1="4" y1="20" x2="20" y2="20"/><line x1="12" y1="6" x2="12" y2="3.5"/><line x1="7" y1="7.5" x2="5.5" y2="6"/><line x1="17" y1="7.5" x2="18.5" y2="6"/></svg></span> Alertes <span style="background:var(--red);color:var(--white);border-radius:100px;padding:1px 7px;font-size:.65rem;font-weight:700;margin-left:auto">3</span></a>
+    <a href="#" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 1 3.5 6.6L4 20l1.3-3.6A7.96 7.96 0 0 1 4 12Z"/></svg></span> <span data-i18n="nav.support">Support client</span></a>
+    <a href="#" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2.06 2.06 0 1 1-2.92 2.92l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56v.17a2.06 2.06 0 1 1-4.12 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2.06 2.06 0 1 1-2.92-2.92l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03h-.17a2.06 2.06 0 1 1 0-4.12h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2.06 2.06 0 1 1 2.92-2.92l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1.03-1.56v-.17a2.06 2.06 0 1 1 4.12 0v.09a1.7 1.7 0 0 0 1.03 1.56h.08a1.7 1.7 0 0 0 1.87-.34l.06-.06a2.06 2.06 0 1 1 2.92 2.92l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.03h.17a2.06 2.06 0 1 1 0 4.12h-.09a1.7 1.7 0 0 0-1.56 1.03Z"/></svg></span> <span data-i18n="nav.config">Configuration</span></a>
+    <div class="nav-label">Accès</div>
+    <a href="festchill-dashboard.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9.5a1 1 0 0 0 1 1h4v-6h2v6h4a1 1 0 0 0 1-1V10"/></svg></span> <span data-i18n="nav.organizer_view">Vue organisateur</span></a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-pill">
+      <div class="avatar" id="side-avatar">–</div>
+      <div><div class="user-name" id="side-name">Chargement…</div><div class="user-role">Super Admin</div></div>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2.06 2.06 0 1 1-2.92 2.92l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56v.17a2.06 2.06 0 1 1-4.12 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2.06 2.06 0 1 1-2.92-2.92l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03h-.17a2.06 2.06 0 1 1 0-4.12h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2.06 2.06 0 1 1 2.92-2.92l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1.03-1.56v-.17a2.06 2.06 0 1 1 4.12 0v.09a1.7 1.7 0 0 0 1.03 1.56h.08a1.7 1.7 0 0 0 1.87-.34l.06-.06a2.06 2.06 0 1 1 2.92 2.92l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.03h.17a2.06 2.06 0 1 1 0 4.12h-.09a1.7 1.7 0 0 0-1.56 1.03Z"/></svg> <span data-i18n="topbar.admin">Administration Fest&Chill</span></div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <span style="font-size:.8rem;color:var(--muted)" id="last-update">—</span>
+      <button class="btn btn-ghost btn-sm" onclick="loadAll()"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 13.66-5.66L20 8.5"/><polyline points="20 4 20 8.5 15.5 8.5"/><path d="M20 12a8 8 0 0 1-13.66 5.66L4 15.5"/><polyline points="4 20 4 15.5 8.5 15.5"/></svg> Actualiser</button>
+    </div>
+  </div>
+
+  <div class="page">
+    <!-- ALERTS -->
+    <div style="margin-bottom:20px">
+      <div class="section-card" style="margin-bottom:14px;display:flex;align-items:center;gap:16px;padding:16px 20px;border-color:rgba(255,90,95,.25);background:rgba(255,90,95,.04)">
+        <div style="width:52px;flex-shrink:0"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
+  <path d="M120 32 168 48v38c0 34-22 55-48 62-26-7-48-28-48-62V48Z" fill="#0D2126" stroke="#0EA5A0" stroke-width="2.5"/>
+  <path d="M120 32 168 48v38c0 34-22 55-48 62Z" fill="#0EA5A0" opacity=".08"/>
+  <circle cx="120" cy="94" r="15" fill="none" stroke="#5EEAD4" stroke-width="2.5"/>
+  <path d="M112 94h16M120 86v16" stroke="#5EEAD4" stroke-width="2.5" stroke-linecap="round" opacity="0"/>
+  <path d="M113 94.5 118 100 128 88" fill="none" stroke="#5EEAD4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="46" cy="60" r="3" fill="#FFD9A8"/>
+  <circle cx="198" cy="70" r="3.5" fill="#FF8A3D"/>
+  <circle cx="200" cy="130" r="2.5" fill="#5EEAD4"/>
+</svg></div>
+        <div>
+          <div style="font-weight:700;font-size:.9rem;margin-bottom:2px">Surveillance en temps réel</div>
+          <div style="font-size:.78rem;color:var(--muted)">Chaque QR code, retrait et compte est vérifié automatiquement. Voici ce qui demande ton attention aujourd'hui.</div>
+        </div>
+      </div>
+      <div id="alerts-zone"></div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card s1">
+        <div class="stat-lbl" data-i18n="admin.stat_organizers">Organisateurs actifs</div>
+        <div class="stat-num" style="color:var(--glow)" id="stat-organizers">—</div>
+        <div class="stat-sub" id="stat-organizers-sub">—</div>
+      </div>
+      <div class="stat-card s2">
+        <div class="stat-lbl" data-i18n="admin.stat_revenue">Revenus plateforme</div>
+        <div class="stat-num" style="color:var(--gold)" id="stat-revenue">—</div>
+        <div class="stat-sub" id="stat-revenue-sub" data-i18n="admin.commission_cumulated">Commission cumulée</div>
+      </div>
+      <div class="stat-card s3">
+        <div class="stat-lbl" data-i18n="nav.tickets_sold">Tickets vendus</div>
+        <div class="stat-num" style="color:var(--green)" id="stat-tickets">—</div>
+        <div class="stat-sub" data-i18n="dashboard.all_categories_cap">Toutes catégories</div>
+      </div>
+      <div class="stat-card s4">
+        <div class="stat-lbl" data-i18n="admin.stat_events">Événements en cours</div>
+        <div class="stat-num" style="color:var(--white)" id="stat-events">—</div>
+        <div class="stat-sub" id="stat-events-sub">—</div>
+      </div>
+    </div>
+
+    <!-- THREE COL -->
+    <div class="three-col">
+      <div class="comm-card">
+        <div class="comm-label" data-i18n="admin.commissions_cumulated">Commissions cumulées</div>
+        <div class="comm-amount" id="comm-total">—</div>
+        <div style="font-size:.78rem;color:var(--muted)" id="comm-rate-txt">—</div>
+      </div>
+      <div class="comm-card" style="background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(5,150,105,.08));border-color:rgba(16,185,129,.25)">
+        <div class="comm-label" style="color:var(--green)" data-i18n="admin.gross_revenue">Chiffre d'affaires brut</div>
+        <div class="comm-amount" style="color:var(--green)" id="comm-gross">—</div>
+        <div style="font-size:.78rem;color:var(--muted)" id="comm-orders-count">—</div>
+      </div>
+      <div class="comm-card" style="background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(217,119,6,.06));border-color:rgba(245,158,11,.25)">
+        <div class="comm-label" style="color:var(--gold)" data-i18n="admin.total_paid_out">Total reversé aux org.</div>
+        <div class="comm-amount" style="color:var(--gold)" id="comm-withdrawn">—</div>
+        <div style="font-size:.78rem;color:var(--muted)" id="comm-withdraw-count">—</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <!-- LEFT -->
+      <div>
+        <!-- CHART -->
+        <div class="section-card" style="margin-bottom:16px">
+          <div class="section-head">
+            <span class="section-head-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 16 10 10 14 14 20 6"/><polyline points="14.5 6 20 6 20 11.5"/></svg> <span data-i18n="admin.revenue_30d">Revenus plateforme (30j)</span></span>
+            <span style="font-size:.78rem;color:var(--gold);font-weight:700">+23% ce mois</span>
+          </div>
+          <div style="display:flex;gap:16px;align-items:center;padding:0 20px 4px">
+            <div style="width:56px;flex-shrink:0"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
+  <line x1="40" y1="140" x2="210" y2="140" stroke="#1E4750" stroke-width="2"/>
+  <rect x="55" y="104" width="20" height="36" rx="3" fill="#123037" stroke="#0EA5A0" stroke-width="2"/>
+  <rect x="88" y="80" width="20" height="60" rx="3" fill="#123037" stroke="#0EA5A0" stroke-width="2"/>
+  <rect x="121" y="58" width="20" height="82" rx="3" fill="#0EA5A0" opacity=".25" stroke="#0EA5A0" stroke-width="2"/>
+  <rect x="154" y="94" width="20" height="46" rx="3" fill="#123037" stroke="#0EA5A0" stroke-width="2"/>
+  <polyline points="60 100 98 74 131 50 164 84" fill="none" stroke="#FF8A3D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="131" cy="50" r="4" fill="#FF8A3D"/>
+  <circle cx="164" cy="84" r="3" fill="#FF8A3D"/>
+  <circle cx="98" cy="74" r="3" fill="#FF8A3D"/>
+  <circle cx="60" cy="100" r="3" fill="#FF8A3D"/>
+</svg></div>
+            <div style="font-size:.78rem;color:var(--muted)">La commission de la plateforme (10% par ticket) progresse avec le volume de ventes des organisateurs.</div>
+          </div>
+          <div class="chart-wrap" id="admin-chart"></div>
+        </div>
+
+        <!-- EVENTS TABLE -->
+        <div class="section-card" style="margin-bottom:16px">
+          <div class="section-head">
+            <span class="section-head-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2.2"/><line x1="3.5" y1="10" x2="20.5" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg> <span data-i18n="admin.active_events">Événements actifs</span></span>
+            <div style="display:flex;gap:8px">
+              <input type="text" placeholder="Rechercher..." data-i18n-placeholder="common.search" style="padding:5px 10px;border-radius:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:.78rem;outline:none;width:160px">
+              <button class="btn btn-ghost btn-sm" onclick="showToast(fcT('admin.export_csv_ready'),FCI['download'])"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11.5"/><polyline points="7.5 11 12 15.5 16.5 11"/><path d="M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7"/></svg> <span data-i18n="common.export">Export</span></button>
+            </div>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr><th data-i18n="common.event">Événement</th><th data-i18n="admin.organizer">Organisateur</th><th data-i18n="admin.tickets">Tickets</th><th data-i18n="admin.revenue">Revenus</th><th data-i18n="admin.commission">Commission</th><th data-i18n="common.status">Statut</th><th></th></tr>
+              </thead>
+              <tbody id="events-tbody"><tr><td colspan="7" style="text-align:center;color:var(--muted)" data-i18n="common.loading">Chargement…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TRANSACTIONS RECENTES -->
+        <div class="section-card">
+          <div class="section-head" style="gap:10px">
+            <span class="section-head-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5.5" width="19" height="13" rx="2.2"/><line x1="2.5" y1="9.8" x2="21.5" y2="9.8"/><line x1="6" y1="14.5" x2="10" y2="14.5"/></svg> <span data-i18n="admin.recent_transactions">Transactions récentes</span></span>
+            <div style="width:30px;flex-shrink:0;margin-left:auto"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
+  <path d="M96 100a24 24 0 0 1 48 0c0 16 5.2 21.6 7.6 24H88.4c2.4-2.4 7.6-8 7.6-24Z" fill="#0D2126" stroke="#FF8A3D" stroke-width="2.5"/>
+  <path d="M112.5 130a7.5 7.5 0 0 0 15 0" fill="none" stroke="#FF8A3D" stroke-width="2.5"/>
+  <path d="M150 78a34 34 0 0 1 0 40" fill="none" stroke="#5EEAD4" stroke-width="2.2" stroke-linecap="round" opacity=".65"/>
+  <path d="M160 66a50 50 0 0 1 0 64" fill="none" stroke="#5EEAD4" stroke-width="2.2" stroke-linecap="round" opacity=".35"/>
+  <rect x="46" y="56" width="26" height="34" rx="4" fill="#123037" stroke="#0EA5A0" stroke-width="2" transform="rotate(-8 59 73)"/>
+  <circle cx="196" cy="120" r="4" fill="#34D399"/>
+  <circle cx="60" cy="128" r="3" fill="#FFD9A8"/>
+</svg></div>
+            <button class="btn btn-ghost btn-sm" onclick="showToast(fcT('admin.export_full_ready'),FCI['download'])"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11.5"/><polyline points="7.5 11 12 15.5 16.5 11"/><path d="M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7"/></svg> <span data-i18n="common.export">Export</span></button>
+          </div>
+          <table>
+            <thead><tr><th>ID</th><th data-i18n="admin.organizer">Organisateur</th><th data-i18n="transactions.col_type">Type</th><th data-i18n="common.amount">Montant</th><th data-i18n="admin.operator">Opérateur</th><th data-i18n="common.status">Statut</th></tr></thead>
+            <tbody id="orders-tbody"><tr><td colspan="6" style="text-align:center;color:var(--muted)" data-i18n="common.loading">Chargement…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div>
+        <!-- TOP ORGANISATEURS -->
+        <div class="section-card" style="margin-bottom:16px">
+          <div class="section-head" style="padding:14px 18px;gap:10px">
+            <span class="section-head-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4.5h10v5a5 5 0 0 1-10 0Z"/><path d="M7 6H4.5A2.5 2.5 0 0 0 6 10.5"/><path d="M17 6h2.5A2.5 2.5 0 0 1 18 10.5"/><line x1="12" y1="14.5" x2="12" y2="18"/><line x1="8.5" y1="21" x2="15.5" y2="21"/><line x1="12" y1="18" x2="12" y2="21"/></svg> <span data-i18n="admin.top_organizers">Top organisateurs</span></span>
+            <div style="width:34px;flex-shrink:0;margin-left:auto"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="70" cy="88" r="30" fill="none" stroke="#0EA5A0" stroke-width="2.2" opacity=".5"/>
+  <circle cx="70" cy="88" r="30" fill="#0D2126"/>
+  <path d="M58 88 66 96 84 76" fill="none" stroke="#0EA5A0" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="170" cy="88" r="30" fill="none" stroke="#FF8A3D" stroke-width="2.2" opacity=".5"/>
+  <circle cx="170" cy="88" r="30" fill="#0D2126"/>
+  <text x="170" y="96" text-anchor="middle" font-family="monospace" font-size="20" fill="#FF8A3D" font-weight="700">%</text>
+  <line x1="100" y1="88" x2="140" y2="88" stroke="#1E4750" stroke-width="2" stroke-dasharray="3 4"/>
+</svg></div>
+          </div>
+          <div id="top-organizers"><div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem" data-i18n="common.loading">Chargement…</div></div>
+        </div>
+
+        <!-- TOUS LES ORGANISATEURS -->
+        <div class="section-card" style="margin-bottom:16px">
+          <div class="section-head" style="padding:14px 18px">
+            <span class="section-head-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.2" r="3.2"/><path d="M3 19a6 6 0 0 1 12 0"/><path d="M15.5 5.5a3.2 3.2 0 0 1 0 6.2"/><path d="M17 13a6 6 0 0 1 4 5.6"/></svg> <span data-i18n="admin.recent_organizers">Organisateurs récents</span></span>
+            <button class="btn btn-ghost btn-sm" id="organizers-count-btn" data-i18n="admin.see_all">Voir tous</button>
+          </div>
+          <div id="recent-organizers"><div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem" data-i18n="common.loading">Chargement…</div></div>
+        </div>
+
+        <!-- PLATFORM CONFIG -->
+        <div class="section-card">
+          <div class="section-head" style="padding:14px 18px">
+            <span class="section-head-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2.06 2.06 0 1 1-2.92 2.92l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56v.17a2.06 2.06 0 1 1-4.12 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2.06 2.06 0 1 1-2.92-2.92l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03h-.17a2.06 2.06 0 1 1 0-4.12h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2.06 2.06 0 1 1 2.92-2.92l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1.03-1.56v-.17a2.06 2.06 0 1 1 4.12 0v.09a1.7 1.7 0 0 0 1.03 1.56h.08a1.7 1.7 0 0 0 1.87-.34l.06-.06a2.06 2.06 0 1 1 2.92 2.92l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.03h.17a2.06 2.06 0 1 1 0 4.12h-.09a1.7 1.7 0 0 0-1.56 1.03Z"/></svg> <span data-i18n="admin.platform_config">Configuration plateforme</span></span>
+          </div>
+          <div style="padding:0 18px;display:flex;gap:14px;align-items:center">
+            <div style="width:48px;flex-shrink:0"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="120" cy="90" r="26" fill="#0D2126" stroke="#0EA5A0" stroke-width="2.5"/>
+  <circle cx="120" cy="90" r="9" fill="none" stroke="#5EEAD4" stroke-width="2.2"/>
+  <g stroke="#0EA5A0" stroke-width="2.5" stroke-linecap="round">
+    <line x1="120" y1="56" x2="120" y2="64"/><line x1="120" y1="116" x2="120" y2="124"/>
+    <line x1="86" y1="90" x2="94" y2="90"/><line x1="146" y1="90" x2="154" y2="90"/>
+    <line x1="96" y1="66" x2="101" y2="71"/><line x1="139" y1="109" x2="144" y2="114"/>
+    <line x1="144" y1="66" x2="139" y2="71"/><line x1="101" y1="109" x2="96" y2="114"/>
+  </g>
+  <rect x="44" y="118" width="60" height="8" rx="4" fill="#123037" stroke="#FF8A3D" stroke-width="1.8"/>
+  <circle cx="76" cy="122" r="6" fill="#FF8A3D"/>
+  <rect x="146" y="140" width="52" height="8" rx="4" fill="#123037" stroke="#34D399" stroke-width="1.8"/>
+  <circle cx="182" cy="144" r="6" fill="#34D399"/>
+</svg></div>
+            <div style="font-size:.75rem;color:var(--muted);padding-bottom:6px">Ajuste les paramètres globaux de la plateforme — ils s'appliquent à tous les organisateurs.</div>
+          </div>
+          <div style="padding:10px 18px 16px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div><div style="font-size:.85rem;font-weight:600">Commission sur ventes</div><div style="font-size:.75rem;color:var(--muted)">Taux actuel</div></div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <input type="number" id="cfg-commission" value="10" min="1" max="30" style="width:55px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--gold);font-weight:700;font-size:.9rem;text-align:center;outline:none">
+                <span style="font-size:.85rem;color:var(--muted)">%</span>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div><div style="font-size:.85rem;font-weight:600">Frais (moins 100 places)</div><div style="font-size:.75rem;color:var(--muted)">Par événement</div></div>
+              <input type="number" id="cfg-fee-small" style="width:90px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--glow);font-weight:700;font-size:.9rem;text-align:center;outline:none">
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div><div style="font-size:.85rem;font-weight:600">Frais (100–500 places)</div><div style="font-size:.75rem;color:var(--muted)">Par événement</div></div>
+              <input type="number" id="cfg-fee-medium" style="width:90px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--glow);font-weight:700;font-size:.9rem;text-align:center;outline:none">
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div><div style="font-size:.85rem;font-weight:600">Frais (500+ places)</div><div style="font-size:.75rem;color:var(--muted)">Par événement</div></div>
+              <input type="number" id="cfg-fee-large" style="width:90px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--glow);font-weight:700;font-size:.9rem;text-align:center;outline:none">
+            </div>
+            <button class="btn btn-primary" style="justify-content:center" onclick="saveConfig()">Sauvegarder les paramètres</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"><span id="toast-icon"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 10.8 15.3 16 9.5"/></svg></span><span id="toast-msg"></span></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase-client.js"></script>
+<script>
+const FCI = {
+  'check': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"20 6 9 17 4 12\"/></svg>",
+  'check-circle': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><polyline points=\"8 12.5 10.8 15.3 16 9.5\"/></svg>",
+  'x-circle': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><line x1=\"9\" y1=\"9\" x2=\"15\" y2=\"15\"/><line x1=\"15\" y1=\"9\" x2=\"9\" y2=\"15\"/></svg>",
+  'x': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"6\" y1=\"6\" x2=\"18\" y2=\"18\"/><line x1=\"18\" y1=\"6\" x2=\"6\" y2=\"18\"/></svg>",
+  'smartphone': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"7\" y=\"2.5\" width=\"10\" height=\"19\" rx=\"2.2\"/><line x1=\"11\" y1=\"18.3\" x2=\"13\" y2=\"18.3\"/></svg>",
+  'ticket': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 9.5V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.5a2 2 0 0 0 0 4V16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.5a2 2 0 0 0 0-4Z\"/><line x1=\"10\" y1=\"6\" x2=\"10\" y2=\"18\" stroke-dasharray=\"2 2.4\"/></svg>",
+  'star': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3.5 14.6 9.1 20.8 9.9 16.3 14.1 17.5 20.2 12 17.1 6.5 20.2 7.7 14.1 3.2 9.9 9.4 9.1Z\"/></svg>",
+  'download': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3.5v11.5\"/><polyline points=\"7.5 11 12 15.5 16.5 11\"/><path d=\"M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7\"/></svg>",
+  'upload': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 20.5V9\"/><polyline points=\"7.5 13 12 8.5 16.5 13\"/><path d=\"M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7\"/></svg>",
+  'cash': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"2.5\" y=\"6.5\" width=\"19\" height=\"11\" rx=\"2\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/><line x1=\"6\" y1=\"9.3\" x2=\"6\" y2=\"9.3\"/><line x1=\"18\" y1=\"14.7\" x2=\"18\" y2=\"14.7\"/></svg>",
+  'calendar': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3.5\" y=\"5\" width=\"17\" height=\"16\" rx=\"2.2\"/><line x1=\"3.5\" y1=\"10\" x2=\"20.5\" y2=\"10\"/><line x1=\"8\" y1=\"3\" x2=\"8\" y2=\"7\"/><line x1=\"16\" y1=\"3\" x2=\"16\" y2=\"7\"/></svg>",
+  'settings': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"3.2\"/><path d=\"M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2.06 2.06 0 1 1-2.92 2.92l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56v.17a2.06 2.06 0 1 1-4.12 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2.06 2.06 0 1 1-2.92-2.92l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03h-.17a2.06 2.06 0 1 1 0-4.12h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2.06 2.06 0 1 1 2.92-2.92l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1.03-1.56v-.17a2.06 2.06 0 1 1 4.12 0v.09a1.7 1.7 0 0 0 1.03 1.56h.08a1.7 1.7 0 0 0 1.87-.34l.06-.06a2.06 2.06 0 1 1 2.92 2.92l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.03h.17a2.06 2.06 0 1 1 0 4.12h-.09a1.7 1.7 0 0 0-1.56 1.03Z\"/></svg>",
+  'lock': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"4.5\" y=\"10.5\" width=\"15\" height=\"10\" rx=\"2.2\"/><path d=\"M7.5 10.5V7.2a4.5 4.5 0 0 1 9 0v3.3\"/></svg>",
+  'wallet': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 7.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z\"/><path d=\"M17 11.5h2.5a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5H17a2 2 0 0 1 0-4Z\"/><line x1=\"3\" y1=\"8.7\" x2=\"21\" y2=\"8.7\"/></svg>",
+  'plus': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"12\" y1=\"5\" x2=\"12\" y2=\"19\"/><line x1=\"5\" y1=\"12\" x2=\"19\" y2=\"12\"/></svg>",
+  'camera': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 8.2A1.7 1.7 0 0 1 5.7 6.5h2.1l1-1.7h6.4l1 1.7h2.1A1.7 1.7 0 0 1 20 8.2v9.1a1.7 1.7 0 0 1-1.7 1.7H5.7A1.7 1.7 0 0 1 4 17.3Z\"/><circle cx=\"12\" cy=\"12.4\" r=\"3.4\"/></svg>",
+  'bar-chart': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"5\" y1=\"20\" x2=\"5\" y2=\"11\"/><line x1=\"12\" y1=\"20\" x2=\"12\" y2=\"5\"/><line x1=\"19\" y1=\"20\" x2=\"19\" y2=\"14\"/></svg>",
+  'alert-triangle': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 4 21.5 20H2.5Z\" stroke-linejoin=\"round\"/><line x1=\"12\" y1=\"10\" x2=\"12\" y2=\"14.5\"/><line x1=\"12\" y1=\"17.3\" x2=\"12\" y2=\"17.3\"/></svg>",
+  'clipboard': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"5.5\" y=\"5\" width=\"13\" height=\"16\" rx=\"2\"/><rect x=\"9\" y=\"3\" width=\"6\" height=\"3.4\" rx=\"1\"/></svg>",
+  'home': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 11.5 12 4l8 7.5\"/><path d=\"M6 10v9.5a1 1 0 0 0 1 1h4v-6h2v6h4a1 1 0 0 0 1-1V10\"/></svg>",
+  'trending-up': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"4 16 10 10 14 14 20 6\"/><polyline points=\"14.5 6 20 6 20 11.5\"/></svg>",
+  'refresh': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 12a8 8 0 0 1 13.66-5.66L20 8.5\"/><polyline points=\"20 4 20 8.5 15.5 8.5\"/><path d=\"M20 12a8 8 0 0 1-13.66 5.66L4 15.5\"/><polyline points=\"4 20 4 15.5 8.5 15.5\"/></svg>",
+  'music': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M9 18.3a2.7 2.7 0 1 1-2.7-2.7A2.7 2.7 0 0 1 9 18.3Z\"/><path d=\"M19 16.3a2.7 2.7 0 1 1-2.7-2.7 2.7 2.7 0 0 1 2.7 2.7Z\"/><path d=\"M9 18.3V6.5l10-2v11.8\"/></svg>",
+  'siren': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 15a6 6 0 0 1 12 0v2H6Z\"/><line x1=\"4\" y1=\"20\" x2=\"20\" y2=\"20\"/><line x1=\"12\" y1=\"6\" x2=\"12\" y2=\"3.5\"/><line x1=\"7\" y1=\"7.5\" x2=\"5.5\" y2=\"6\"/><line x1=\"17\" y1=\"7.5\" x2=\"18.5\" y2=\"6\"/></svg>",
+  'message-circle': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 12a8 8 0 1 1 3.5 6.6L4 20l1.3-3.6A7.96 7.96 0 0 1 4 12Z\"/></svg>",
+  'search': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"10.5\" cy=\"10.5\" r=\"6.5\"/><line x1=\"15.3\" y1=\"15.3\" x2=\"20.5\" y2=\"20.5\"/></svg>",
+  'edit': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M14 5.5 18.5 10 8 20.5H3.5V16Z\"/><line x1=\"12\" y1=\"7.5\" x2=\"16.5\" y2=\"12\"/></svg>",
+  'user': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"8\" r=\"3.6\"/><path d=\"M4.5 20a7.5 7.5 0 0 1 15 0\"/></svg>",
+  'users': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"9\" cy=\"8.2\" r=\"3.2\"/><path d=\"M3 19a6 6 0 0 1 12 0\"/><path d=\"M15.5 5.5a3.2 3.2 0 0 1 0 6.2\"/><path d=\"M17 13a6 6 0 0 1 4 5.6\"/></svg>",
+  'file': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6.5 3.5h7l4 4V20a1 1 0 0 1-1 1h-10a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z\"/><polyline points=\"13.5 3.5 13.5 7.5 17.5 7.5\"/></svg>",
+  'map-pin': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 21s7-6.4 7-11.6A7 7 0 0 0 5 9.4C5 14.6 12 21 12 21Z\"/><circle cx=\"12\" cy=\"9.4\" r=\"2.4\"/></svg>",
+  'printer': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"5\" y=\"8.5\" width=\"14\" height=\"7.5\" rx=\"1.5\"/><path d=\"M7.5 8.5V4h9v4.5\"/><path d=\"M7.5 15.5v4.5h9v-4.5\"/></svg>",
+  'bell': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 10.5a6 6 0 0 1 12 0c0 4 1.3 5.4 1.9 6H4.1c.6-.6 1.9-2 1.9-6Z\"/><path d=\"M10.2 19.5a1.9 1.9 0 0 0 3.6 0\"/></svg>",
+  'palette': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><circle cx=\"8.2\" cy=\"10\" r=\"1.15\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"12\" cy=\"7.5\" r=\"1.15\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"16\" cy=\"10\" r=\"1.15\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"9.5\" cy=\"14.7\" r=\"1.15\" fill=\"currentColor\" stroke=\"none\"/><path d=\"M15 15.2a2.2 2.2 0 0 0 2.2 2.2c1.6 0 2.8-.9 2.8-2.6A9 9 0 1 0 12 21\"/></svg>",
+  'sun': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"4.3\"/><line x1=\"12\" y1=\"2.5\" x2=\"12\" y2=\"4.5\"/><line x1=\"12\" y1=\"19.5\" x2=\"12\" y2=\"21.5\"/><line x1=\"4.2\" y1=\"4.2\" x2=\"5.6\" y2=\"5.6\"/><line x1=\"18.4\" y1=\"18.4\" x2=\"19.8\" y2=\"19.8\"/><line x1=\"2.5\" y1=\"12\" x2=\"4.5\" y2=\"12\"/><line x1=\"19.5\" y1=\"12\" x2=\"21.5\" y2=\"12\"/><line x1=\"4.2\" y1=\"19.8\" x2=\"5.6\" y2=\"18.4\"/><line x1=\"18.4\" y1=\"5.6\" x2=\"19.8\" y2=\"4.2\"/></svg>",
+  'moon': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 14.3A8.5 8.5 0 1 1 9.7 4a6.7 6.7 0 0 0 10.3 10.3Z\"/></svg>",
+  'credit-card': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"2.5\" y=\"5.5\" width=\"19\" height=\"13\" rx=\"2.2\"/><line x1=\"2.5\" y1=\"9.8\" x2=\"21.5\" y2=\"9.8\"/><line x1=\"6\" y1=\"14.5\" x2=\"10\" y2=\"14.5\"/></svg>",
+  'trophy': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M7 4.5h10v5a5 5 0 0 1-10 0Z\"/><path d=\"M7 6H4.5A2.5 2.5 0 0 0 6 10.5\"/><path d=\"M17 6h2.5A2.5 2.5 0 0 1 18 10.5\"/><line x1=\"12\" y1=\"14.5\" x2=\"12\" y2=\"18\"/><line x1=\"8.5\" y1=\"21\" x2=\"15.5\" y2=\"21\"/><line x1=\"12\" y1=\"18\" x2=\"12\" y2=\"21\"/></svg>",
+  'medal': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"14.5\" r=\"5.2\"/><path d=\"M12 11.5 13 14.2h2.8l-2.3 1.7.9 2.7-2.4-1.7-2.4 1.7.9-2.7-2.3-1.7H11Z\" fill=\"currentColor\" stroke=\"none\"/><path d=\"M9 8.5 6 3h3l2.2 4.3\"/><path d=\"M15 8.5 18 3h-3l-2.2 4.3\"/></svg>",
+  'party': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 20 14.5 4.8c.5-.7 1.6-.4 1.7.4l1.6 12a1 1 0 0 1-1.3 1.1L4 20Z\"/><line x1=\"8\" y1=\"4\" x2=\"9\" y2=\"5.6\"/><line x1=\"3\" y1=\"9\" x2=\"4.8\" y2=\"9.6\"/><line x1=\"18\" y1=\"2.5\" x2=\"18\" y2=\"4.2\"/></svg>",
+  'arrow-left': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"19\" y1=\"12\" x2=\"5\" y2=\"12\"/><polyline points=\"10.5 6 5 12 10.5 18\"/></svg>",
+  'arrow-up': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"12\" y1=\"19\" x2=\"12\" y2=\"5\"/><polyline points=\"6 10.5 12 5 18 10.5\"/></svg>",
+  'arrow-down': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"12\" y1=\"5\" x2=\"12\" y2=\"19\"/><polyline points=\"6 13.5 12 19 18 13.5\"/></svg>",
+  'link': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M9.5 14.5 14.5 9.5\"/><path d=\"M11 6.3 13 4.3a3.9 3.9 0 0 1 5.5 5.5l-2 2\"/><path d=\"M13 17.7 11 19.7a3.9 3.9 0 0 1-5.5-5.5l2-2\"/></svg>",
+  'thumbs-up': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M7 11v9H4.5A1.5 1.5 0 0 1 3 18.5v-6A1.5 1.5 0 0 1 4.5 11Z\"/><path d=\"M7 11l4-7.5a2 2 0 0 1 3.6 1.7L13.3 9H18a2 2 0 0 1 2 2.4l-1.4 7A2 2 0 0 1 16.6 20H9.5A2.5 2.5 0 0 1 7 17.5\"/></svg>",
+  'ban': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><line x1=\"6\" y1=\"18\" x2=\"18\" y2=\"6\"/></svg>",
+  'tent': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 4 21 19H3Z\"/><path d=\"M12 4v15\"/><path d=\"M8 19 12 11l4 8\"/></svg>",
+  'building': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"5\" y=\"3.5\" width=\"14\" height=\"17\" rx=\"1\"/><line x1=\"8.5\" y1=\"7.5\" x2=\"8.5\" y2=\"7.5\"/><line x1=\"12\" y1=\"7.5\" x2=\"12\" y2=\"7.5\"/><line x1=\"15.5\" y1=\"7.5\" x2=\"15.5\" y2=\"7.5\"/><line x1=\"8.5\" y1=\"11\" x2=\"8.5\" y2=\"11\"/><line x1=\"12\" y1=\"11\" x2=\"12\" y2=\"11\"/><line x1=\"15.5\" y1=\"11\" x2=\"15.5\" y2=\"11\"/><line x1=\"8.5\" y1=\"14.5\" x2=\"8.5\" y2=\"14.5\"/><line x1=\"15.5\" y1=\"14.5\" x2=\"15.5\" y2=\"14.5\"/><rect x=\"10\" y=\"16\" width=\"4\" height=\"4.5\"/></svg>",
+  'church': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"12\" y1=\"2.5\" x2=\"12\" y2=\"6.5\"/><line x1=\"10\" y1=\"4.2\" x2=\"14\" y2=\"4.2\"/><path d=\"M12 6.5 20 12.5v8H4v-8Z\"/><rect x=\"10\" y=\"15\" width=\"4\" height=\"5.5\"/></svg>",
+  'graduation-cap': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M2.5 9.5 12 5l9.5 4.5L12 14Z\"/><path d=\"M6.5 11.7v4.3c0 1.4 2.5 2.8 5.5 2.8s5.5-1.4 5.5-2.8v-4.3\"/><line x1=\"21.5\" y1=\"9.5\" x2=\"21.5\" y2=\"15.5\"/></svg>",
+  'briefcase': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"7.5\" width=\"18\" height=\"12\" rx=\"2\"/><path d=\"M8.5 7.5V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1.5\"/><line x1=\"3\" y1=\"12.5\" x2=\"21\" y2=\"12.5\"/></svg>",
+  'undo': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M8 8.5H4.5V5\"/><path d=\"M4.5 8.5A8 8 0 1 1 6 16\"/></svg>",
+  'key': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"8\" cy=\"15\" r=\"4.2\"/><path d=\"M11 12 19 4\"/><path d=\"M15.5 7.5 18 10\"/><path d=\"M18.5 4.5 21 7\"/></svg>",
+  'mail': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"5.5\" width=\"18\" height=\"13\" rx=\"2\"/><polyline points=\"3.5 6.5 12 13 20.5 6.5\"/></svg>",
+  'laptop': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"4.5\" y=\"5\" width=\"15\" height=\"10\" rx=\"1.3\"/><path d=\"M2.5 19.5h19l-2-3h-15Z\"/></svg>",
+  'help-circle': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M9.3 9.3a2.7 2.7 0 1 1 3.9 2.4c-.9.5-1.2 1-1.2 2\"/><line x1=\"12\" y1=\"16.8\" x2=\"12\" y2=\"16.8\"/></svg>",
+  'trash': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"4.5\" y1=\"7\" x2=\"19.5\" y2=\"7\"/><path d=\"M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2\"/><path d=\"M6.5 7 7.3 19a2 2 0 0 0 2 1.9h5.4a2 2 0 0 0 2-1.9L17.5 7\"/></svg>",
+  'scan': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8\"/><path d=\"M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8\"/><path d=\"M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16\"/><path d=\"M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16\"/><line x1=\"4\" y1=\"12\" x2=\"20\" y2=\"12\"/></svg>",
+  'external-link': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M18 13.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5.5\"/><polyline points=\"15 3 21 3 21 9\"/><line x1=\"10\" y1=\"14\" x2=\"21\" y2=\"3\"/></svg>",
+  'chevron-right': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"9 5.5 15.5 12 9 18.5\"/></svg>",
+  'eye': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z\"/><circle cx=\"12\" cy=\"12\" r=\"2.8\"/></svg>",
+  'shield': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3 20 6.5v5.7c0 5-3.4 8.3-8 9.8-4.6-1.5-8-4.8-8-9.8V6.5Z\"/><polyline points=\"8.5 12 11 14.5 15.5 9.5\"/></svg>",
+  'info': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><line x1=\"12\" y1=\"11\" x2=\"12\" y2=\"16.5\"/><line x1=\"12\" y1=\"7.5\" x2=\"12\" y2=\"7.5\"/></svg>",
+  'filter': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polygon points=\"3.5 4.5 20.5 4.5 14 12.5 14 19 10 21 10 12.5\"/></svg>",
+  'logout': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M15 4.5H7a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h8\"/><line x1=\"10\" y1=\"12\" x2=\"21\" y2=\"12\"/><polyline points=\"17 8 21 12 17 16\"/></svg>",
+  'pause': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"6\" y=\"4.5\" width=\"4\" height=\"15\" rx=\"1\"/><rect x=\"14\" y=\"4.5\" width=\"4\" height=\"15\" rx=\"1\"/></svg>",
+  'clock': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><polyline points=\"12 7 12 12 16 14\"/></svg>",
+  'play': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M8 5.5 19 12 8 18.5Z\" stroke-linejoin=\"round\"/></svg>",
+  'stop': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"6\" y=\"6\" width=\"12\" height=\"12\" rx=\"2\"/></svg>",
+  'qr': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3.5\" y=\"3.5\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"13.5\" y=\"3.5\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"3.5\" y=\"13.5\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"6\" y=\"6\" width=\"2\" height=\"2\" fill=\"currentColor\" stroke=\"none\"/><rect x=\"16\" y=\"6\" width=\"2\" height=\"2\" fill=\"currentColor\" stroke=\"none\"/><rect x=\"6\" y=\"16\" width=\"2\" height=\"2\" fill=\"currentColor\" stroke=\"none\"/><rect x=\"14\" y=\"14\" width=\"3\" height=\"3\"/><rect x=\"18.5\" y=\"14\" width=\"2\" height=\"2\" fill=\"currentColor\" stroke=\"none\"/><rect x=\"14\" y=\"18.5\" width=\"2\" height=\"2\" fill=\"currentColor\" stroke=\"none\"/><rect x=\"18.5\" y=\"18.5\" width=\"2\" height=\"2\" fill=\"currentColor\" stroke=\"none\"/></svg>",
+  'dot-red': '<span class="dot" style="background:var(--red)"></span>',
+  'dot-green': '<span class="dot" style="background:var(--green)"></span>',
+  'dot-gold': '<span class="dot" style="background:var(--gold)"></span>',
+  'dot-teal': '<span class="dot" style="background:var(--purple)"></span>',
+};
+
+// Count-up animation — only touches leading text node, preserves nested spans (e.g. "FCFA")
+function fcCountUp(el){
+  const node = [...el.childNodes].find(n=>n.nodeType===3 && n.textContent.trim());
+  const target_el = node ? el : null;
+  const raw = node ? node.textContent : el.textContent.trim();
+  const m = raw.match(/([\d.,\s]+)/);
+  if(!m) return;
+  const target = parseFloat(m[1].replace(/[,\s]/g,''));
+  if(isNaN(target)) return;
+  const before = raw.slice(0, m.index), after = raw.slice(m.index + m[1].length);
+  let cur = 0;
+  const step = Math.max(target/32,0.5);
+  const iv = setInterval(()=>{
+    cur += step;
+    const val = cur>=target ? (Number.isInteger(target)?target:Math.round(target*10)/10) : Math.round(cur);
+    const text = before + val.toLocaleString('fr-FR') + after;
+    if(node) node.textContent = text; else el.textContent = text;
+    if(cur>=target) clearInterval(iv);
+  },20);
+}
+let adminProfile = null;
+
+async function boot(){
+  adminProfile = await fcRequireAuth({ adminOnly: true });
+  if (!adminProfile) return;
+  fcMountSidebar(adminProfile);
+  document.getElementById('side-name').textContent = adminProfile.full_name || fcT('admin.title');
+  await loadAll();
+}
+
+async function loadAll(){
+  document.getElementById('last-update').textContent = fcT('admin.last_update') + ' : ' + fcFormatTime();
+  await Promise.all([loadStats(), loadEvents(), loadOrders(), loadOrganizers(), loadConfig(), loadAlerts(), loadChart()]);
+  document.querySelectorAll('.stat-num').forEach(fcCountUp);
+}
+
+async function loadStats(){
+  const { count: organizersCount } = await supa.from('profiles').select('id',{count:'exact',head:true}).eq('role','organizer');
+  const { count: eventsCount } = await supa.from('events').select('id',{count:'exact',head:true}).eq('status','published');
+  const { count: ticketsCount } = await supa.from('tickets').select('id',{count:'exact',head:true}).neq('status','cancelled');
+  const { data: paidOrders } = await supa.from('orders').select('amount').eq('payment_status','paid');
+  const { data: withdrawals } = await supa.from('withdrawals').select('amount,status');
+  const { data: cfg } = await supa.from('platform_config').select('*').eq('id',1).single();
+
+  const gross = (paidOrders||[]).reduce((s,o)=>s+o.amount,0);
+  const rate = cfg?.commission_rate ?? 10;
+  const commission = Math.round(gross * rate / 100);
+  const withdrawn = (withdrawals||[]).filter(w=>w.status==='confirmed').reduce((s,w)=>s+w.amount,0);
+
+  document.getElementById('stat-organizers').textContent = organizersCount ?? 0;
+  document.getElementById('stat-organizers-sub').textContent = fcT('admin.total_registered');
+  document.getElementById('stat-revenue').textContent = fcFormatFCFA(commission).replace(' FCFA','');
+  document.getElementById('stat-tickets').textContent = (ticketsCount ?? 0).toLocaleString('fr-FR');
+  document.getElementById('stat-events').textContent = eventsCount ?? 0;
+  document.getElementById('stat-events-sub').textContent = fcT('admin.currently_selling');
+
+  document.getElementById('comm-total').textContent = fcFormatFCFA(commission);
+  document.getElementById('comm-rate-txt').textContent = fcT('admin.rate_label') + ' : ' + rate + '%';
+  document.getElementById('comm-gross').textContent = fcFormatFCFA(gross);
+  document.getElementById('comm-orders-count').textContent = (paidOrders||[]).length + ' ' + fcT('admin.paid_orders');
+  document.getElementById('comm-withdrawn').textContent = fcFormatFCFA(withdrawn);
+  document.getElementById('comm-withdraw-count').textContent = (withdrawals||[]).filter(w=>w.status==='confirmed').length + ' ' + fcT('admin.confirmed_withdrawals');
+}
+
+async function loadEvents(){
+  const { data: events, error } = await supa
+    .from('events')
+    .select('id, title, event_date, location, status, profiles(full_name), ticket_categories(quota, sold, price)')
+    .order('event_date', { ascending: false })
+    .limit(20);
+
+  const { data: cfg } = await supa.from('platform_config').select('commission_rate').eq('id',1).single();
+  const rate = cfg?.commission_rate ?? 10;
+
+  const tbody = document.getElementById('events-tbody');
+  if (error || !events || !events.length){
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted)">${fcT('dashboard.no_events').replace('<br>','')}</td></tr>`;
+    return;
+  }
+
+  const statusBadge = { published: '<span class="badge b-green">'+fcT('status.published')+'</span>', draft: '<span class="badge b-purple">'+fcT('status.draft')+'</span>', suspended: '<span class="badge b-red">'+fcT('status.suspended')+'</span>', ended: '<span class="badge b-gray">'+fcT('status.ended')+'</span>' };
+
+  tbody.innerHTML = events.map(e => {
+    const quota = (e.ticket_categories||[]).reduce((s,c)=>s+c.quota,0);
+    const sold = (e.ticket_categories||[]).reduce((s,c)=>s+c.sold,0);
+    const revenue = (e.ticket_categories||[]).reduce((s,c)=>s+c.sold*c.price,0);
+    const commission = Math.round(revenue*rate/100);
+    return `<tr>
+      <td><div style="font-weight:600;color:var(--white)">${e.title}</div><div style="font-size:.72rem;color:var(--muted)">${fcFormatDate(e.event_date)} · ${e.location||''}</div></td>
+      <td>${e.profiles?.full_name || '—'}</td>
+      <td><span style="font-weight:700">${sold}</span>/${quota}</td>
+      <td style="color:var(--gold);font-weight:700">${fcFormatFCFA(revenue)}</td>
+      <td style="color:var(--green);font-weight:700">${fcFormatFCFA(commission)}</td>
+      <td>${statusBadge[e.status] || e.status}</td>
+      <td>${e.status==='published'
+          ? `<button class="btn btn-danger btn-sm" onclick="suspendEvent('${e.id}')">${fcT('admin.suspend')}</button>`
+          : e.status==='suspended'
+          ? `<button class="btn btn-success btn-sm" onclick="republishEvent('${e.id}')">${fcT('admin.republish')}</button>`
+          : ''}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function suspendEvent(id){
+  await supa.from('events').update({ status: 'suspended' }).eq('id', id);
+  showToast(fcT('admin.event_suspended'), FCI['pause']);
+  loadEvents();
+}
+async function republishEvent(id){
+  await supa.from('events').update({ status: 'published' }).eq('id', id);
+  showToast(fcT('admin.event_republished'), FCI['check-circle']);
+  loadEvents();
+}
+
+async function loadOrders(){
+  const { data: orders, error } = await supa
+    .from('orders')
+    .select('id, amount, payment_operator, payment_status, events(title, profiles(full_name))')
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  const tbody = document.getElementById('orders-tbody');
+  if (error || !orders || !orders.length){
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted)">${fcT('admin.no_orders_yet')}</td></tr>`;
+    return;
+  }
+  const statusBadge = { paid: '<span class="badge b-green">'+fcT('status.paid')+'</span>', pending: '<span class="badge b-gold">'+fcT('status.pending')+'</span>', failed: '<span class="badge b-red">'+fcT('status.failed')+'</span>' };
+  tbody.innerHTML = orders.map(o => `<tr>
+    <td style="color:var(--muted);font-size:.72rem">${o.id.slice(0,8)}</td>
+    <td>${o.events?.profiles?.full_name || '—'}</td>
+    <td>${fcT('wallet.ticket_sale')}</td>
+    <td style="color:var(--green);font-weight:700">+${fcFormatFCFA(o.amount)}</td>
+    <td>${o.payment_operator ? o.payment_operator.toUpperCase() : '—'}</td>
+    <td>${statusBadge[o.payment_status] || o.payment_status}</td>
+  </tr>`).join('');
+}
+
+async function loadOrganizers(){
+  const { data: organizers, error } = await supa
+    .from('profiles')
+    .select('id, full_name, is_verified, status, created_at, events(id, ticket_categories(sold, price))')
+    .eq('role','organizer')
+    .order('created_at', { ascending: false });
+
+  const top = document.getElementById('top-organizers');
+  const recent = document.getElementById('recent-organizers');
+  const btn = document.getElementById('organizers-count-btn');
+  if (btn) btn.textContent = fcT('admin.see_all') + ' (' + (organizers?.length||0) + ')';
+
+  if (error || !organizers || !organizers.length){
+    top.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem">${fcT('admin.no_organizers_yet')}</div>`;
+    recent.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem">${fcT('admin.no_organizers_yet')}</div>`;
+    return;
+  }
+
+  const withRevenue = organizers.map(o => {
+    const events = o.events || [];
+    const revenue = events.reduce((s,e)=> s + (e.ticket_categories||[]).reduce((s2,c)=>s2+c.sold*c.price,0), 0);
+    return { ...o, eventCount: events.length, revenue };
+  }).sort((a,b)=>b.revenue-a.revenue);
+
+  top.innerHTML = withRevenue.slice(0,4).map((o,i) => `
+    <div class="user-row">
+      <div class="u-avatar">${(o.full_name||'??').slice(0,2).toUpperCase()}</div>
+      <div class="u-info"><div class="u-name">${o.full_name||fcT('admin.no_name')}</div><div class="u-sub">${o.eventCount} ${o.eventCount>1?fcT('admin.events_plural'):fcT('admin.event_singular')} · ${fcFormatFCFA(o.revenue)}</div></div>
+      ${i===0 ? `<span class="badge b-gold">${FCI['medal']}</span>` : `<span style="font-size:.8rem;color:var(--muted);font-weight:700">#${i+1}</span>`}
+    </div>`).join('');
+
+  const recentSorted = [...organizers].sort((a,b)=> new Date(b.created_at) - new Date(a.created_at)).slice(0,6);
+  recent.innerHTML = recentSorted.map(o => `
+    <div class="user-row">
+      <div class="u-avatar">${(o.full_name||'??').slice(0,2).toUpperCase()}</div>
+      <div class="u-info"><div class="u-name">${o.full_name||fcT('admin.no_name')}</div><div class="u-sub">${fcT('admin.registered_on')} ${fcFormatDate(o.created_at)} · ${o.is_verified?fcT('admin.verified'):fcT('admin.not_verified')}</div></div>
+      <div class="u-actions">
+        ${o.status==='suspended'
+          ? `<button class="btn btn-success btn-sm" onclick="setOrganizerStatus('${o.id}','active')">${fcT('admin.reactivate')}</button>`
+          : `${!o.is_verified ? `<button class="btn btn-success btn-sm" onclick="verifyOrganizer('${o.id}')">${FCI['check']}</button>` : '<span class="badge b-green">'+fcT('status.active')+'</span>'}
+             <button class="btn btn-danger btn-sm" onclick="setOrganizerStatus('${o.id}','suspended')">${FCI['x']}</button>`}
+      </div>
+    </div>`).join('');
+}
+
+async function verifyOrganizer(id){
+  await supa.from('profiles').update({ is_verified: true }).eq('id', id);
+  showToast(fcT('admin.account_verified'), FCI['check-circle']);
+  loadOrganizers();
+}
+async function setOrganizerStatus(id, status){
+  await supa.from('profiles').update({ status }).eq('id', id);
+  showToast(status==='suspended' ? fcT('admin.account_blocked') : fcT('admin.account_reactivated'), status==='suspended' ? FCI['lock'] : FCI['check-circle']);
+  loadOrganizers();
+}
+
+async function loadConfig(){
+  const { data: cfg } = await supa.from('platform_config').select('*').eq('id',1).single();
+  if (!cfg) return;
+  document.getElementById('cfg-commission').value = cfg.commission_rate;
+  document.getElementById('cfg-fee-small').value = cfg.fee_small;
+  document.getElementById('cfg-fee-medium').value = cfg.fee_medium;
+  document.getElementById('cfg-fee-large').value = cfg.fee_large;
+}
+
+async function saveConfig(){
+  const { error } = await supa.from('platform_config').update({
+    commission_rate: parseFloat(document.getElementById('cfg-commission').value),
+    fee_small: parseInt(document.getElementById('cfg-fee-small').value),
+    fee_medium: parseInt(document.getElementById('cfg-fee-medium').value),
+    fee_large: parseInt(document.getElementById('cfg-fee-large').value),
+  }).eq('id',1);
+  if (error){ showToast('Erreur : ' + error.message, FCI['x-circle']); return; }
+  showToast(fcT('admin.config_saved'), FCI['check-circle']);
+  loadStats();
+}
+
+async function loadAlerts(){
+  const zone = document.getElementById('alerts-zone');
+  const alerts = [];
+  const { data: pendingWithdrawals } = await supa.from('withdrawals').select('id, amount, created_at, profiles(full_name)').eq('status','pending');
+  (pendingWithdrawals||[]).forEach(w => {
+    alerts.push(`<div class="alert warning"><span class="alert-icon">${FCI['alert-triangle']}</span><div class="alert-text"><div class="alert-title">${fcT('admin.pending_withdrawal')} — ${w.profiles?.full_name||fcT('admin.default_organizer')}</div><div class="alert-sub">${fcT('admin.withdrawal_request_of')} ${fcFormatFCFA(w.amount)}</div></div></div>`);
+  });
+  const { data: unverified } = await supa.from('profiles').select('id, full_name').eq('role','organizer').eq('is_verified', false).limit(3);
+  (unverified||[]).forEach(u => {
+    alerts.push(`<div class="alert info"><span class="alert-icon">${FCI['info']}</span><div class="alert-text"><div class="alert-title">${fcT('admin.new_unverified_organizer')}</div><div class="alert-sub">${u.full_name||fcT('admin.no_name')} — ${fcT('admin.pending_verification')}</div></div><button class="btn btn-primary btn-sm" onclick="verifyOrganizer('${u.id}')">${fcT('admin.verify')}</button></div>`);
+  });
+  zone.innerHTML = alerts.length ? alerts.join('') : '';
+}
+
+async function loadChart(){
+  const { data: paidOrders } = await supa.from('orders').select('amount, created_at').eq('payment_status','paid');
+  const { data: cfg } = await supa.from('platform_config').select('commission_rate').eq('id',1).single();
+  const rate = cfg?.commission_rate ?? 10;
+
+  const days = [...Array(30)].map((_,i)=>{
+    const d = new Date(); d.setDate(d.getDate() - (29-i)); d.setHours(0,0,0,0); return d;
+  });
+  const data = days.map(d => {
+    const next = new Date(d); next.setDate(next.getDate()+1);
+    const grossDay = (paidOrders||[]).filter(o => { const t = new Date(o.created_at); return t >= d && t < next; }).reduce((s,o)=>s+o.amount,0);
+    return Math.round(grossDay * rate / 100);
+  });
+  const max = Math.max(1, ...data);
+  const chart = document.getElementById('admin-chart');
+  chart.innerHTML = '';
+  data.forEach((v,i)=>{
+    const w = document.createElement('div');
+    w.className = 'bar-w';
+    const b = document.createElement('div');
+    b.className = 'bar-b';
+    const h = Math.max(3, v/max*100);
+    b.style.cssText = `height:${h}px;background:linear-gradient(180deg,#F59E0B,#D97706);border-radius:3px 3px 0 0`;
+    b.title = v.toLocaleString('fr-FR')+' FCFA';
+    b.addEventListener('mouseenter',()=>b.style.opacity='.8');
+    b.addEventListener('mouseleave',()=>b.style.opacity='1');
+    const l = document.createElement('div');
+    l.className = 'bar-lbl';
+    l.textContent = (i%7===0) ? days[i].getDate() : '';
+    w.appendChild(b);w.appendChild(l);
+    chart.appendChild(w);
+  });
+}
+
+boot();
+
+function showToast(msg,icon=FCI['check-circle']){
+  const t=document.getElementById('toast');
+  document.getElementById('toast-msg').textContent=msg;
+  document.getElementById('toast-icon').innerHTML=icon;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+</script>
+</body>
+</html>

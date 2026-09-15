@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>(function(){
+  var t=localStorage.getItem('fc-theme')||'dark';
+  var light=t==='light'||(t==='auto'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches);
+  if(light)document.documentElement.setAttribute('data-theme','light');
+  var fcLang = localStorage.getItem('fc-lang')||'fr';
+  document.documentElement.lang = fcLang;
+  document.documentElement.dir = (fcLang === 'ar') ? 'rtl' : 'ltr';
+  var hex = localStorage.getItem('fc-accent');
+  if(hex){
+    function hexToRgb(h){h=h.replace('#','');if(h.length===3)h=h.split('').map(function(c){return c+c}).join('');var n=parseInt(h,16);return{r:(n>>16)&255,g:(n>>8)&255,b:n&255}}
+    function mix(a,b,amt){return{r:Math.round(a.r+(b.r-a.r)*amt),g:Math.round(a.g+(b.g-a.g)*amt),b:Math.round(a.b+(b.b-a.b)*amt)}}
+    function toHex(c){return '#'+[c.r,c.g,c.b].map(function(v){return Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0')}).join('').toUpperCase()}
+    var rgb=hexToRgb(hex);
+    var violet=mix(rgb,{r:0,g:0,b:0},0.28);
+    var glow=light?mix(rgb,{r:0,g:0,b:0},0.18):mix(rgb,{r:255,g:255,b:255},0.32);
+    var s=document.documentElement.style;
+    s.setProperty('--purple',hex);s.setProperty('--violet',toHex(violet));s.setProperty('--glow',toHex(glow));
+    s.setProperty('--accent-rgb',rgb.r+','+rgb.g+','+rgb.b);
+  }
+})();</script>
+<title>Concert Afrobeat — Gestion · Fest&Chill</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#071619;--deep:#0D2126;--surface:#123037;
+  --purple:#0EA5A0;--violet:#0B7A76;--glow:#5EEAD4;
+  --gold:#FF8A3D;--green:#34D399;--red:#FF5A5F;
+  --white:#F7FBFA;--muted:#7C9A9A;--text:#DCEEEC;
+  --sand:#FFD9A8;--card:rgba(14,165,160,.08);--border:rgba(94,234,212,.14);
+  --topbar-bg:rgba(13,10,30,.9);--accent-rgb:14,165,160;
+  --fd:'Bricolage Grotesque',sans-serif;--fb:'Manrope',sans-serif;--fm:'IBM Plex Mono',monospace;
+  --r:12px;--sidebar:240px;
+  /* Couleurs fixes pour le bandeau illustré (fc-hero) : ce bandeau a un fond
+     sombre codé en dur qui ne change PAS avec le thème clair/sombre. Le texte
+     posé dessus doit donc rester clair, quel que soit le thème actif. */
+  --hero-text:#F7FBFA;--hero-pill-bg:rgba(5,15,18,.55);--hero-pill-border:rgba(255,255,255,.16);
+}
+:root[data-theme="light"]{
+  --ink:#F3F8F7;--deep:#FFFFFF;--surface:#FFFFFF;
+  --purple:#0EA5A0;--violet:#0B7A76;--glow:#0B7A76;
+  --gold:#C9660D;--green:#0F9D58;--red:#DC2626;
+  --white:#0B2226;--muted:#5B7373;--text:#16302E;
+  --sand:#FFE3BE;--card:rgba(14,165,160,.06);--border:rgba(11,38,42,.12);
+  --topbar-bg:rgba(255,255,255,.82);--accent-rgb:14,165,160;
+}
+body{font-family:var(--fb);background:var(--ink);color:var(--text);display:flex;min-height:100vh}
+.sidebar{width:var(--sidebar);background:var(--deep);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;z-index:50}
+/* Arabe (RTL) : la sidebar passe à droite, le contenu se décale en miroir. */
+html[dir="rtl"] .sidebar{left:auto;right:0;border-right:none;border-left:1px solid var(--border)}
+html[dir="rtl"] .main{margin-left:0;margin-right:var(--sidebar)}
+html[dir="rtl"] body{direction:rtl}
+.sidebar-logo{padding:22px 20px;border-bottom:1px solid var(--border)}
+.sidebar-logo a{font-family:var(--fd);font-weight:800;font-size:1.25rem;color:var(--white);text-decoration:none}
+.sidebar-logo span{color:var(--glow)}
+.sidebar-nav{padding:16px 12px;flex:1}
+.nav-label{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;padding:10px 8px 4px}
+.s-link{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:.875rem;font-weight:500;margin-bottom:2px;transition:all .15s}
+.s-link:hover{background:var(--card);color:var(--white)}
+.s-link.active{background:rgba(var(--accent-rgb),.2);color:var(--glow);border:1px solid rgba(var(--accent-rgb),.2)}
+.s-link .ic{width:18px;text-align:center}
+.sidebar-footer{padding:14px 12px;border-top:1px solid var(--border)}
+.avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--glow));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;color:var(--white);flex-shrink:0}
+.user-pill{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px}
+.user-name{font-size:.82rem;font-weight:600;color:var(--white)}
+.user-role{font-size:.72rem;color:var(--muted)}
+.main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column}
+.topbar{padding:14px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--topbar-bg);backdrop-filter:blur(12px);position:sticky;top:0;z-index:40}
+.topbar-title{font-family:var(--fd);font-weight:700;font-size:1.05rem}
+.page{padding:28px}
+
+/* EVENT HERO — illustrated golden-hour festival scene */
+.event-banner{margin-bottom:24px;min-height:280px}
+.ev-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;position:relative;z-index:1}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;position:relative;overflow:hidden}
+.stat-card::after{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;opacity:.12}
+.stat-card.s1::after{background:var(--purple)}
+.stat-card.s2::after{background:var(--gold)}
+.stat-card.s3::after{background:var(--green)}
+.stat-card.s4::after{background:var(--glow)}
+.stat-lbl{font-size:.73rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px}
+.stat-num{font-family:var(--fm);font-size:1.7rem;font-weight:700;line-height:1;margin-bottom:6px}
+.stat-sub{font-size:.78rem;color:var(--muted)}
+
+/* PROGRESS */
+.prog-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;margin-bottom:20px}
+.prog-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.prog-title{font-family:var(--fd);font-weight:700;font-size:.95rem}
+.prog-bar{height:10px;background:rgba(255,255,255,.06);border-radius:100px;overflow:hidden;margin-bottom:10px}
+.prog-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--purple),var(--glow));transition:width .8s ease}
+.prog-cats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.prog-cat{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:12px}
+.pc-name{font-size:.75rem;color:var(--muted);margin-bottom:6px;font-weight:600}
+.pc-bar{height:4px;background:rgba(255,255,255,.06);border-radius:100px;overflow:hidden;margin-bottom:6px}
+.pc-fill{height:100%;border-radius:100px}
+.pc-nums{font-size:.78rem;color:var(--text);font-weight:600}
+
+/* SHARE */
+.share-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;margin-bottom:20px}
+.share-link{display:flex;gap:10px;margin-top:14px}
+.share-link input{flex:1;padding:10px 14px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--glow);font-family:var(--fb);font-size:.85rem;outline:none}
+.share-btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.share-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font-family:var(--fb);font-size:.8rem;font-weight:600;transition:all .15s}
+.share-btn:hover{border-color:var(--glow);background:var(--card);color:var(--white)}
+
+/* TWO COL */
+.two-col{display:grid;grid-template-columns:1fr 340px;gap:20px}
+
+/* TABLE */
+.section-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:16px}
+.pending-order-row{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid rgba(245,158,11,.15)}
+.pending-order-row:last-child{border-bottom:none}
+.pending-order-info{flex:1;min-width:0}
+.pending-order-info .po-title{font-size:.85rem;font-weight:700}
+.pending-order-info .po-sub{font-size:.75rem;color:var(--muted);margin-top:2px}
+.section-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.section-head-title{font-family:var(--fd);font-weight:700;font-size:.9rem}
+table{width:100%;border-collapse:collapse}
+th{background:rgba(var(--accent-rgb),.07);color:var(--muted);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;padding:10px 16px;text-align:left}
+td{padding:12px 16px;font-size:.84rem;border-top:1px solid var(--border)}
+tr:hover td{background:rgba(255,255,255,.02)}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:100px;font-size:.7rem;font-weight:700}
+.b-green{background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.25)}
+.b-gold{background:rgba(245,158,11,.12);color:var(--gold);border:1px solid rgba(245,158,11,.25)}
+.b-purple{background:rgba(var(--accent-rgb),.12);color:var(--glow);border:1px solid rgba(var(--accent-rgb),.25)}
+.b-gray{background:rgba(156,163,175,.1);color:var(--muted);border:1px solid rgba(156,163,175,.2)}
+
+/* QR CARD */
+.qr-card{background:var(--deep);border:1px solid var(--border);border-radius:var(--r);padding:22px;text-align:center;margin-bottom:16px}
+.qr-box{width:140px;height:140px;background:var(--white);border-radius:10px;margin:16px auto;display:flex;align-items:center;justify-content:center;font-size:5rem}
+.qr-hint{font-size:.78rem;color:var(--muted);line-height:1.5}
+
+/* ACTIVITY */
+.activity-item{display:flex;align-items:flex-start;gap:10px;padding:11px 20px;border-top:1px solid var(--border)}
+.a-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.a-text{font-size:.82rem;line-height:1.5}
+.a-time{font-size:.71rem;color:var(--muted);margin-top:1px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;font-family:var(--fb);border:none;transition:all .18s;text-decoration:none}
+.btn-primary{background:var(--purple);color:var(--white)}
+.btn-primary:hover{background:var(--violet);transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--glow);color:var(--white)}
+.btn-danger{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+.btn-danger:hover{background:rgba(239,68,68,.2)}
+.btn-sm{padding:6px 12px;font-size:.78rem;border-radius:6px}
+.btn-success{background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.25)}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid rgba(16,185,129,.4);border-radius:10px;padding:14px 20px;display:flex;align-items:center;gap:10px;font-size:.88rem;font-weight:500;z-index:999;transform:translateY(60px);opacity:0;transition:all .3s;box-shadow:0 20px 40px rgba(0,0,0,.4)}
+.toast.show{transform:none;opacity:1}
+
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%)}
+  .main{margin-left:0}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .two-col{grid-template-columns:1fr}
+  .prog-cats{grid-template-columns:1fr 1fr}
+}
+
+
+/* ============================================================
+   FEST&CHILL — v3 DESIGN SYSTEM
+   Palette: deep teal night + golden-hour amber + coral energy.
+   No purple. Illustrated sunset-festival motif as signature.
+   ============================================================ */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shimmerMove{0%{background-position:-160% 0}100%{background-position:160% 0}}
+@keyframes livedot{0%,100%{box-shadow:0 0 0 0 rgba(255,90,95,.5)}70%{box-shadow:0 0 0 8px rgba(255,90,95,0)}}
+@keyframes sunDrift{0%,100%{transform:translate(0,0)}50%{transform:translate(-1.2%,-1%)}}
+@keyframes twinkle{0%,100%{opacity:.55}50%{opacity:1}}
+@keyframes grainshift{0%,100%{transform:translate(0,0)}50%{transform:translate(-2%,-1%)}}
+@keyframes popIn{0%{opacity:0;transform:scale(.9)}100%{opacity:1;transform:scale(1)}}
+
+html{scroll-behavior:smooth}
+body{position:relative}
+body::before{content:'';position:fixed;inset:-10%;z-index:0;pointer-events:none;opacity:.5;
+  background-image:radial-gradient(circle at 16% 10%,rgba(14,165,160,.14),transparent 42%),
+                    radial-gradient(circle at 90% 85%,rgba(255,138,61,.08),transparent 42%);
+}
+body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.03;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grainshift 9s steps(2) infinite;
+}
+
+/* entrance choreography */
+.page>*,#app>*{opacity:1;animation:fadeUp .6s cubic-bezier(.16,1,.3,1) both}
+.page>*:nth-child(1),#app>*:nth-child(1){animation-delay:.02s}
+.page>*:nth-child(2),#app>*:nth-child(2){animation-delay:.08s}
+.page>*:nth-child(3),#app>*:nth-child(3){animation-delay:.14s}
+.page>*:nth-child(4),#app>*:nth-child(4){animation-delay:.2s}
+.page>*:nth-child(5),#app>*:nth-child(5){animation-delay:.26s}
+.page>*:nth-child(6),#app>*:nth-child(6){animation-delay:.32s}
+.stats-row .stat-card:nth-child(1){animation-delay:.05s}
+.stats-row .stat-card:nth-child(2){animation-delay:.11s}
+.stats-row .stat-card:nth-child(3){animation-delay:.17s}
+.stats-row .stat-card:nth-child(4){animation-delay:.23s}
+
+/* card lift */
+.stat-card,.section-card,.share-card,.qr-card,.prog-card,.info-section,.ticket-detail-card{
+  transition:transform .35s cubic-bezier(.16,1,.3,1),box-shadow .35s,border-color .35s;
+}
+.stat-card:hover{transform:translateY(-5px);box-shadow:0 18px 36px rgba(14,165,160,.16);border-color:rgba(94,234,212,.4)}
+.section-card:hover,.share-card:hover,.info-section:hover{border-color:rgba(94,234,212,.25)}
+
+/* buttons */
+.btn{position:relative;overflow:hidden;letter-spacing:.01em}
+.btn-primary{background:linear-gradient(135deg,var(--purple),var(--violet))}
+.btn-primary::before{content:'';position:absolute;top:0;left:-120%;width:55%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-20deg);transition:left .55s}
+.btn-primary:hover:not(:disabled)::before{left:130%}
+.btn-primary:hover:not(:disabled){box-shadow:0 12px 26px rgba(14,165,160,.35);transform:translateY(-2px)}
+.btn-primary:active:not(:disabled){transform:translateY(0) scale(.98)}
+.btn-ghost:hover{transform:translateY(-1px)}
+
+/* progress */
+.prog-fill,.pc-fill{position:relative;overflow:hidden;background-size:250% 100%}
+.prog-fill::after,.pc-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);animation:shimmerMove 2.6s linear infinite}
+
+/* status pill — clean, professional (no tilt/stamp gimmick) */
+.pill-status{
+  font-family:var(--fm);text-transform:uppercase;letter-spacing:.08em;font-weight:600;font-size:.72rem;
+  border:1.5px solid currentColor;border-radius:100px;padding:5px 13px 5px 10px;
+  display:inline-flex;align-items:center;gap:7px;
+}
+.pill-status .livedot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:livedot 1.8s infinite}
+
+input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(14,165,160,.2)}
+.avatar{transition:transform .3s}
+.sidebar-footer:hover .avatar{transform:scale(1.06)}
+.s-link{transition:all .2s cubic-bezier(.34,1.56,.64,1)}
+.s-link:hover{transform:translateX(3px)}
+tr{transition:background .2s}
+
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:var(--ink)}
+::-webkit-scrollbar-thumb{background:var(--card);border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:var(--purple)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ===== illustrated hero (shared across pages) ===== */
+.fc-hero{position:relative;overflow:hidden;border-radius:18px;min-height:300px;display:flex;flex-direction:column;justify-content:flex-end;box-shadow:0 24px 55px rgba(0,0,0,.35)}
+.illus-hero{position:absolute;inset:0;width:100%;height:100%;z-index:0}
+.illus-sun{animation:sunDrift 10s ease-in-out infinite}
+.illus-lights circle{animation:twinkle 2.6s ease-in-out infinite}
+.illus-lights circle:nth-child(odd){animation-delay:-1.3s}
+.fc-hero-content{position:relative;z-index:1;padding:34px 5% 28px;display:flex;flex-direction:column;gap:14px}
+.fc-hero-topbar{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-start;padding:20px 5% 0}
+.fc-chip{opacity:1;background:var(--hero-pill-bg);backdrop-filter:blur(10px);border:1px solid var(--hero-pill-border);border-radius:100px;padding:7px 16px;font-size:.8rem;font-weight:700;display:flex;align-items:center;gap:8px;animation:popIn .5s .1s cubic-bezier(.2,1.4,.4,1) both;color:var(--hero-text)}
+.fc-hero-title{font-family:var(--fd);font-weight:800;font-size:clamp(1.7rem,4vw,2.7rem);line-height:1.06;letter-spacing:-.01em;text-shadow:0 4px 24px rgba(0,0,0,.4);color:var(--hero-text)}
+.fc-hero-meta{display:flex;flex-wrap:wrap;gap:10px}
+.fc-meta-pill{background:var(--hero-pill-bg);backdrop-filter:blur(8px);border:1px solid var(--hero-pill-border);border-radius:100px;padding:6px 14px;font-size:.82rem;display:flex;align-items:center;gap:7px;color:var(--hero-text)}
+
+
+/* ===== icon system ===== */
+.icn{width:1.15em;height:1.15em;display:inline-block;vertical-align:-0.22em;flex-shrink:0}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;vertical-align:middle;flex-shrink:0}
+.s-link .ic{display:inline-flex;align-items:center;justify-content:center;width:18px;flex-shrink:0}
+.s-link .ic .icn{width:18px;height:18px;vertical-align:0}
+.btn .icn,.badge .icn,.pill-status .icn,.stamp .icn{vertical-align:-0.18em}
+.topbar-title .icn,.section-head-title .icn,.info-title .icn{width:1.05em;height:1.05em;vertical-align:-0.15em;margin-right:2px}
+.result-icon .icn{width:1em;height:1em}
+
+
+.illus{width:100%;height:auto;display:block}
+
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo"><a href="festchill-landing.html">Fest<span>&</span>Chill</a></div>
+  <nav class="sidebar-nav">
+    <div class="nav-label" data-i18n="nav.group_main">Principal</div>
+    <a href="festchill-dashboard.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9.5a1 1 0 0 0 1 1h4v-6h2v6h4a1 1 0 0 0 1-1V10"/></svg></span> <span data-i18n="nav.dashboard">Dashboard</span></a>
+    <a href="festchill-create-event.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> <span data-i18n="nav.create_event">Créer un événement</span></a>
+    <a href="festchill-events.html" class="s-link active"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2.2"/><line x1="3.5" y1="10" x2="20.5" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg></span> <span data-i18n="nav.my_events">Mes événements</span></a>
+    <a href="festchill-tickets.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.5a2 2 0 0 0 0 4V16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.5a2 2 0 0 0 0-4Z"/><line x1="10" y1="6" x2="10" y2="18" stroke-dasharray="2 2.4"/></svg></span> <span data-i18n="nav.tickets_sold">Tickets vendus</span></a>
+    <div class="nav-label" data-i18n="nav.group_finance">Finances</div>
+    <a href="festchill-wallet.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M17 11.5h2.5a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5H17a2 2 0 0 1 0-4Z"/><line x1="3" y1="8.7" x2="21" y2="8.7"/></svg></span> <span data-i18n="nav.wallet">Portefeuille</span></a>
+    <a href="festchill-transactions.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="20" x2="5" y2="11"/><line x1="12" y1="20" x2="12" y2="5"/><line x1="19" y1="20" x2="19" y2="14"/></svg></span> <span data-i18n="nav.transactions">Transactions</span></a>
+    <div class="nav-label" data-i18n="nav.group_tools">Outils</div>
+    <a href="festchill-scanner.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.2A1.7 1.7 0 0 1 5.7 6.5h2.1l1-1.7h6.4l1 1.7h2.1A1.7 1.7 0 0 1 20 8.2v9.1a1.7 1.7 0 0 1-1.7 1.7H5.7A1.7 1.7 0 0 1 4 17.3Z"/><circle cx="12" cy="12.4" r="3.4"/></svg></span> <span data-i18n="nav.scanner">Scanner QR</span></a>
+    <a href="festchill-settings.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2.06 2.06 0 1 1-2.92 2.92l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56v.17a2.06 2.06 0 1 1-4.12 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2.06 2.06 0 1 1-2.92-2.92l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03h-.17a2.06 2.06 0 1 1 0-4.12h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2.06 2.06 0 1 1 2.92-2.92l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1.03-1.56v-.17a2.06 2.06 0 1 1 4.12 0v.09a1.7 1.7 0 0 0 1.03 1.56h.08a1.7 1.7 0 0 0 1.87-.34l.06-.06a2.06 2.06 0 1 1 2.92 2.92l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.03h.17a2.06 2.06 0 1 1 0 4.12h-.09a1.7 1.7 0 0 0-1.56 1.03Z"/></svg></span> <span data-i18n="nav.settings">Paramètres</span></a>
+    <div class="nav-label" data-i18n="nav.group_admin">Admin</div>
+    <a href="festchill-admin.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 4.5 6.3v5.4c0 4.7 3.2 8.6 7.5 9.8 4.3-1.2 7.5-5.1 7.5-9.8V6.3Z"/><path d="M9.2 12.2l1.9 1.9 3.7-3.9"/></svg></span> <span data-i18n="nav.admin">Administration</span></a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-pill">
+      <div class="avatar" id="side-avatar">–</div>
+      <div><div class="user-name" id="side-name">Chargement…</div><div class="user-role">Organisateur</div></div>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:12px">
+      <a href="festchill-dashboard.html" style="color:var(--muted);text-decoration:none;font-size:.9rem"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="10.5 6 5 12 10.5 18"/></svg> Retour</a>
+      <span style="color:var(--border)">|</span>
+      <div class="topbar-title" data-i18n="topbar.event_detail">Gestion de l'événement</div>
+    </div>
+    <a href="festchill-scanner.html" class="btn btn-primary btn-sm"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.2A1.7 1.7 0 0 1 5.7 6.5h2.1l1-1.7h6.4l1 1.7h2.1A1.7 1.7 0 0 1 20 8.2v9.1a1.7 1.7 0 0 1-1.7 1.7H5.7A1.7 1.7 0 0 1 4 17.3Z"/><circle cx="12" cy="12.4" r="3.4"/></svg> Scanner à l'entrée</a>
+  </div>
+
+  <div class="page">
+    <!-- BANNER — illustrated golden-hour festival scene -->
+    <div class="event-banner fc-hero">
+      <svg class="illus-hero" viewBox="0 0 1600 400" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <linearGradient id="fcSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#123A42"/>
+      <stop offset="42%" stop-color="#0F262B"/>
+      <stop offset="80%" stop-color="#0B1E23"/>
+      <stop offset="100%" stop-color="#050F12"/>
+    </linearGradient>
+    <linearGradient id="fcHorizon" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFB238" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#FFB238" stop-opacity=".24"/>
+    </linearGradient>
+    <radialGradient id="fcSunGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFE3AD" stop-opacity="0.95"/>
+      <stop offset="45%" stop-color="#FFB238" stop-opacity="0.42"/>
+      <stop offset="100%" stop-color="#FFB238" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="fcFade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#050F12" stop-opacity="0.85"/>
+      <stop offset="46%" stop-color="#050F12" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#050F12" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="400" fill="url(#fcSky)"/>
+  <rect y="190" width="1600" height="210" fill="url(#fcHorizon)"/>
+  <circle class="illus-sun" cx="1180" cy="120" r="200" fill="url(#fcSunGlow)"/>
+  <circle class="illus-sun" cx="1180" cy="120" r="56" fill="#FFC85C"/>
+  <g class="illus-confetti">
+    <circle cx="507" cy="323" r="3" fill="#FFD98E" opacity="0.35"/>
+    <circle cx="1256" cy="262" r="3" fill="#FFB238" opacity="0.25"/>
+    <circle cx="1260" cy="26" r="2" fill="#5EEAD4" opacity="0.45"/>
+    <circle cx="499" cy="118" r="3" fill="#5EEAD4" opacity="0.45"/>
+    <circle cx="1145" cy="263" r="2" fill="#FFB238" opacity="0.25"/>
+    <circle cx="494" cy="345" r="2" fill="#FFB238" opacity="0.35"/>
+    <circle cx="1538" cy="27" r="3" fill="#FFD98E" opacity="0.25"/>
+    <circle cx="1572" cy="322" r="2" fill="#5EEAD4" opacity="0.25"/>
+    <circle cx="571" cy="262" r="3" fill="#FFB238" opacity="0.35"/>
+    <circle cx="1482" cy="238" r="2" fill="#FFB238" opacity="0.45"/>
+    <circle cx="930" cy="88" r="2" fill="#FFD98E" opacity="0.25"/>
+    <circle cx="298" cy="273" r="2" fill="#5EEAD4" opacity="0.45"/>
+    <circle cx="913" cy="340" r="2" fill="#5EEAD4" opacity="0.45"/>
+    <circle cx="810" cy="313" r="2" fill="#FFB238" opacity="0.45"/>
+    <circle cx="854" cy="319" r="2" fill="#5EEAD4" opacity="0.45"/>
+    <circle cx="78" cy="163" r="3" fill="#FFB238" opacity="0.45"/>
+    <circle cx="354" cy="377" r="2" fill="#FFB238" opacity="0.45"/>
+    <circle cx="1185" cy="73" r="3" fill="#FFB238" opacity="0.25"/>
+    <circle cx="1316" cy="313" r="2" fill="#5EEAD4" opacity="0.25"/>
+    <circle cx="149" cy="266" r="3" fill="#5EEAD4" opacity="0.25"/>
+    <circle cx="724" cy="54" r="2" fill="#FFD98E" opacity="0.25"/>
+    <circle cx="621" cy="238" r="2" fill="#FFD98E" opacity="0.25"/>
+    <circle cx="1259" cy="334" r="2" fill="#5EEAD4" opacity="0.45"/>
+    <circle cx="1220" cy="189" r="3" fill="#5EEAD4" opacity="0.45"/>
+    <circle cx="503" cy="38" r="2" fill="#FFD98E" opacity="0.25"/>
+    <circle cx="241" cy="327" r="3" fill="#FFD98E" opacity="0.25"/>
+  </g>
+  <g class="illus-lights">
+    <circle cx="30" cy="77" r="10" fill="#FFD98E" opacity=".3"/>
+    <circle cx="120" cy="71" r="10" fill="#FFD98E" opacity=".3"/>
+    <circle cx="210" cy="64" r="10" fill="#FFD98E" opacity=".3"/>
+    <circle cx="300" cy="58" r="10" fill="#FFD98E" opacity=".3"/>
+    <circle cx="390" cy="53" r="10" fill="#FFD98E" opacity=".3"/>
+    <circle cx="480" cy="47" r="10" fill="#FFD98E" opacity=".3"/>
+    <circle cx="570" cy="43" r="10" fill="#FFD98E" opacity=".3"/>
+    <circle cx="660" cy="38" r="10" fill="#FFD98E" opacity=".3"/>
+    <circle cx="750" cy="35" r="10" fill="#FFD98E" opacity=".3"/>
+    <circle cx="840" cy="34" r="10" fill="#FFD98E" opacity=".3"/>
+    <circle cx="930" cy="38" r="10" fill="#FFD98E" opacity=".3"/>
+    <circle cx="1020" cy="42" r="10" fill="#FFD98E" opacity=".3"/>
+    <circle cx="1110" cy="47" r="10" fill="#FFD98E" opacity=".3"/>
+    <circle cx="1200" cy="52" r="10" fill="#FFD98E" opacity=".3"/>
+    <circle cx="1290" cy="58" r="10" fill="#FFD98E" opacity=".3"/>
+    <circle cx="1380" cy="64" r="10" fill="#FFD98E" opacity=".3"/>
+    <circle cx="1470" cy="70" r="10" fill="#FFD98E" opacity=".3"/>
+    <circle cx="1560" cy="77" r="10" fill="#FFD98E" opacity=".3"/>
+    <circle cx="30" cy="77" r="4.4" fill="#FFD98E"/>
+    <circle cx="120" cy="71" r="4.4" fill="#FFD98E"/>
+    <circle cx="210" cy="64" r="4.4" fill="#FFD98E"/>
+    <circle cx="300" cy="58" r="4.4" fill="#FFD98E"/>
+    <circle cx="390" cy="53" r="4.4" fill="#FFD98E"/>
+    <circle cx="480" cy="47" r="4.4" fill="#FFD98E"/>
+    <circle cx="570" cy="43" r="4.4" fill="#FFD98E"/>
+    <circle cx="660" cy="38" r="4.4" fill="#FFD98E"/>
+    <circle cx="750" cy="35" r="4.4" fill="#FFD98E"/>
+    <circle cx="840" cy="34" r="4.4" fill="#FFD98E"/>
+    <circle cx="930" cy="38" r="4.4" fill="#FFD98E"/>
+    <circle cx="1020" cy="42" r="4.4" fill="#FFD98E"/>
+    <circle cx="1110" cy="47" r="4.4" fill="#FFD98E"/>
+    <circle cx="1200" cy="52" r="4.4" fill="#FFD98E"/>
+    <circle cx="1290" cy="58" r="4.4" fill="#FFD98E"/>
+    <circle cx="1380" cy="64" r="4.4" fill="#FFD98E"/>
+    <circle cx="1470" cy="70" r="4.4" fill="#FFD98E"/>
+    <circle cx="1560" cy="77" r="4.4" fill="#FFD98E"/>
+  </g>
+  <rect x="636" y="252" width="330" height="11" fill="#193944"/>
+  <rect x="656" y="190" width="8" height="64" fill="#2A5560"/>
+  <rect x="936" y="190" width="8" height="64" fill="#2A5560"/>
+  <rect x="656" y="190" width="288" height="7" fill="#2A5560"/>
+  <rect x="594" y="210" width="36" height="54" rx="3" fill="#193944"/>
+  <rect x="970" y="210" width="36" height="54" rx="3" fill="#193944"/>
+  <g class="illus-crowd-back" fill="#0B1E23" stroke="#0B1E23">
+    <ellipse cx="10" cy="294.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="10" cy="274" r="11" opacity="0.85"/>
+    <ellipse cx="51" cy="293.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="51" cy="273" r="11" opacity="0.85"/>
+    <ellipse cx="79" cy="294.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="79" cy="274" r="11" opacity="0.85"/>
+    <ellipse cx="107" cy="293.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="107" cy="273" r="11" opacity="0.85"/>
+    <ellipse cx="149" cy="290.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="149" cy="270" r="11" opacity="0.85"/>
+    <ellipse cx="174" cy="288.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="174" cy="268" r="11" opacity="0.85"/>
+    <ellipse cx="208" cy="289.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="208" cy="269" r="11" opacity="0.85"/>
+    <ellipse cx="252" cy="291.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="252" cy="271" r="11" opacity="0.85"/>
+    <line x1="252" y1="285.3" x2="270.7" y2="251.2" stroke-width="5.5" stroke-linecap="round" opacity="0.85"/>
+    <ellipse cx="282" cy="291.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="282" cy="271" r="11" opacity="0.85"/>
+    <ellipse cx="319" cy="283.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="319" cy="263" r="11" opacity="0.85"/>
+    <ellipse cx="356" cy="289.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="356" cy="269" r="11" opacity="0.85"/>
+    <line x1="356" y1="283.3" x2="337.3" y2="249.2" stroke-width="5.5" stroke-linecap="round" opacity="0.85"/>
+    <ellipse cx="380" cy="295.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="380" cy="275" r="11" opacity="0.85"/>
+    <ellipse cx="411" cy="293.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="411" cy="273" r="11" opacity="0.85"/>
+    <ellipse cx="452" cy="290.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="452" cy="270" r="11" opacity="0.85"/>
+    <ellipse cx="487" cy="284.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="487" cy="264" r="11" opacity="0.85"/>
+    <ellipse cx="520" cy="281.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="520" cy="261" r="11" opacity="0.85"/>
+    <ellipse cx="554" cy="291.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="554" cy="271" r="11" opacity="0.85"/>
+    <ellipse cx="589" cy="295.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="589" cy="275" r="11" opacity="0.85"/>
+    <ellipse cx="626" cy="285.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="626" cy="265" r="11" opacity="0.85"/>
+    <ellipse cx="652" cy="289.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="652" cy="269" r="11" opacity="0.85"/>
+    <ellipse cx="684" cy="290.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="684" cy="270" r="11" opacity="0.85"/>
+    <ellipse cx="723" cy="282.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="723" cy="262" r="11" opacity="0.85"/>
+    <ellipse cx="757" cy="282.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="757" cy="262" r="11" opacity="0.85"/>
+    <ellipse cx="798" cy="291.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="798" cy="271" r="11" opacity="0.85"/>
+    <line x1="798" y1="285.3" x2="779.3" y2="251.2" stroke-width="5.5" stroke-linecap="round" opacity="0.85"/>
+    <ellipse cx="833" cy="295.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="833" cy="275" r="11" opacity="0.85"/>
+    <line x1="833" y1="289.3" x2="851.7" y2="255.2" stroke-width="5.5" stroke-linecap="round" opacity="0.85"/>
+    <ellipse cx="864" cy="287.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="864" cy="267" r="11" opacity="0.85"/>
+    <ellipse cx="896" cy="291.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="896" cy="271" r="11" opacity="0.85"/>
+    <ellipse cx="931" cy="285.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="931" cy="265" r="11" opacity="0.85"/>
+    <ellipse cx="959" cy="286.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="959" cy="266" r="11" opacity="0.85"/>
+    <line x1="959" y1="280.3" x2="977.7" y2="246.2" stroke-width="5.5" stroke-linecap="round" opacity="0.85"/>
+    <ellipse cx="1001" cy="295.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="1001" cy="275" r="11" opacity="0.85"/>
+    <line x1="1001" y1="289.3" x2="982.3" y2="255.2" stroke-width="5.5" stroke-linecap="round" opacity="0.85"/>
+    <ellipse cx="1034" cy="282.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="1034" cy="262" r="11" opacity="0.85"/>
+    <line x1="1034" y1="276.3" x2="1052.7" y2="242.2" stroke-width="5.5" stroke-linecap="round" opacity="0.85"/>
+    <ellipse cx="1069" cy="288.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="1069" cy="268" r="11" opacity="0.85"/>
+    <ellipse cx="1099" cy="284.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="1099" cy="264" r="11" opacity="0.85"/>
+    <ellipse cx="1128" cy="292.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="1128" cy="272" r="11" opacity="0.85"/>
+    <ellipse cx="1165" cy="291.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="1165" cy="271" r="11" opacity="0.85"/>
+    <ellipse cx="1199" cy="287.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="1199" cy="267" r="11" opacity="0.85"/>
+    <ellipse cx="1227" cy="285.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="1227" cy="265" r="11" opacity="0.85"/>
+    <ellipse cx="1273" cy="290.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="1273" cy="270" r="11" opacity="0.85"/>
+    <ellipse cx="1309" cy="281.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="1309" cy="261" r="11" opacity="0.85"/>
+    <ellipse cx="1335" cy="294.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="1335" cy="274" r="11" opacity="0.85"/>
+    <ellipse cx="1372" cy="282.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="1372" cy="262" r="11" opacity="0.85"/>
+    <line x1="1372" y1="276.3" x2="1353.3" y2="242.2" stroke-width="5.5" stroke-linecap="round" opacity="0.85"/>
+    <ellipse cx="1400" cy="288.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="1400" cy="268" r="11" opacity="0.85"/>
+    <ellipse cx="1443" cy="290.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="1443" cy="270" r="11" opacity="0.85"/>
+    <ellipse cx="1469" cy="287.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="1469" cy="267" r="11" opacity="0.85"/>
+    <line x1="1469" y1="281.3" x2="1450.3" y2="247.2" stroke-width="5.5" stroke-linecap="round" opacity="0.85"/>
+    <ellipse cx="1502" cy="290.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="1502" cy="270" r="11" opacity="0.85"/>
+    <ellipse cx="1533" cy="290.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="1533" cy="270" r="11" opacity="0.85"/>
+    <ellipse cx="1576" cy="288.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="1576" cy="268" r="11" opacity="0.85"/>
+    <ellipse cx="1610" cy="288.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
+    <circle cx="1610" cy="268" r="11" opacity="0.85"/>
+  </g>
+  <g class="illus-crowd-mid" fill="#081619" stroke="#081619">
+    <ellipse cx="5" cy="328.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="5" cy="302" r="14" opacity="0.92"/>
+    <ellipse cx="52" cy="317.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="52" cy="291" r="14" opacity="0.92"/>
+    <ellipse cx="84" cy="328.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="84" cy="302" r="14" opacity="0.92"/>
+    <ellipse cx="131" cy="318.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="131" cy="292" r="14" opacity="0.92"/>
+    <line x1="131" y1="310.2" x2="107.2" y2="266.8" stroke-width="7.0" stroke-linecap="round" opacity="0.92"/>
+    <ellipse cx="169" cy="321.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="169" cy="295" r="14" opacity="0.92"/>
+    <ellipse cx="207" cy="316.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="207" cy="290" r="14" opacity="0.92"/>
+    <ellipse cx="238" cy="316.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="238" cy="290" r="14" opacity="0.92"/>
+    <line x1="238" y1="308.2" x2="261.8" y2="264.8" stroke-width="7.0" stroke-linecap="round" opacity="0.92"/>
+    <ellipse cx="279" cy="326.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="279" cy="300" r="14" opacity="0.92"/>
+    <ellipse cx="319" cy="321.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="319" cy="295" r="14" opacity="0.92"/>
+    <ellipse cx="363" cy="322.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="363" cy="296" r="14" opacity="0.92"/>
+    <ellipse cx="395" cy="329.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="395" cy="303" r="14" opacity="0.92"/>
+    <ellipse cx="433" cy="317.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="433" cy="291" r="14" opacity="0.92"/>
+    <line x1="433" y1="309.2" x2="409.2" y2="265.8" stroke-width="7.0" stroke-linecap="round" opacity="0.92"/>
+    <ellipse cx="475" cy="318.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="475" cy="292" r="14" opacity="0.92"/>
+    <ellipse cx="513" cy="326.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="513" cy="300" r="14" opacity="0.92"/>
+    <line x1="513" y1="318.2" x2="536.8" y2="274.8" stroke-width="7.0" stroke-linecap="round" opacity="0.92"/>
+    <ellipse cx="555" cy="322.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="555" cy="296" r="14" opacity="0.92"/>
+    <line x1="555" y1="314.2" x2="531.2" y2="270.8" stroke-width="7.0" stroke-linecap="round" opacity="0.92"/>
+    <ellipse cx="590" cy="319.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="590" cy="293" r="14" opacity="0.92"/>
+    <ellipse cx="636" cy="317.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="636" cy="291" r="14" opacity="0.92"/>
+    <line x1="636" y1="309.2" x2="612.2" y2="265.8" stroke-width="7.0" stroke-linecap="round" opacity="0.92"/>
+    <ellipse cx="680" cy="322.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="680" cy="296" r="14" opacity="0.92"/>
+    <ellipse cx="715" cy="326.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="715" cy="300" r="14" opacity="0.92"/>
+    <ellipse cx="753" cy="317.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="753" cy="291" r="14" opacity="0.92"/>
+    <ellipse cx="797" cy="315.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="797" cy="289" r="14" opacity="0.92"/>
+    <ellipse cx="827" cy="326.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="827" cy="300" r="14" opacity="0.92"/>
+    <ellipse cx="861" cy="315.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="861" cy="289" r="14" opacity="0.92"/>
+    <ellipse cx="901" cy="322.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="901" cy="296" r="14" opacity="0.92"/>
+    <line x1="901" y1="314.2" x2="924.8" y2="270.8" stroke-width="7.0" stroke-linecap="round" opacity="0.92"/>
+    <ellipse cx="944" cy="317.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="944" cy="291" r="14" opacity="0.92"/>
+    <ellipse cx="979" cy="322.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="979" cy="296" r="14" opacity="0.92"/>
+    <ellipse cx="1028" cy="315.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="1028" cy="289" r="14" opacity="0.92"/>
+    <ellipse cx="1067" cy="326.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="1067" cy="300" r="14" opacity="0.92"/>
+    <ellipse cx="1107" cy="329.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="1107" cy="303" r="14" opacity="0.92"/>
+    <ellipse cx="1135" cy="325.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="1135" cy="299" r="14" opacity="0.92"/>
+    <ellipse cx="1174" cy="328.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="1174" cy="302" r="14" opacity="0.92"/>
+    <ellipse cx="1224" cy="315.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="1224" cy="289" r="14" opacity="0.92"/>
+    <ellipse cx="1260" cy="315.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="1260" cy="289" r="14" opacity="0.92"/>
+    <ellipse cx="1296" cy="321.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="1296" cy="295" r="14" opacity="0.92"/>
+    <ellipse cx="1338" cy="316.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="1338" cy="290" r="14" opacity="0.92"/>
+    <line x1="1338" y1="308.2" x2="1314.2" y2="264.8" stroke-width="7.0" stroke-linecap="round" opacity="0.92"/>
+    <ellipse cx="1372" cy="329.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="1372" cy="303" r="14" opacity="0.92"/>
+    <ellipse cx="1412" cy="321.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="1412" cy="295" r="14" opacity="0.92"/>
+    <ellipse cx="1457" cy="324.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="1457" cy="298" r="14" opacity="0.92"/>
+    <ellipse cx="1492" cy="328.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="1492" cy="302" r="14" opacity="0.92"/>
+    <ellipse cx="1532" cy="327.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="1532" cy="301" r="14" opacity="0.92"/>
+    <ellipse cx="1567" cy="324.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="1567" cy="298" r="14" opacity="0.92"/>
+    <line x1="1567" y1="316.2" x2="1543.2" y2="272.8" stroke-width="7.0" stroke-linecap="round" opacity="0.92"/>
+    <ellipse cx="1605" cy="326.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
+    <circle cx="1605" cy="300" r="14" opacity="0.92"/>
+    <line x1="1605" y1="318.2" x2="1628.8" y2="274.8" stroke-width="7.0" stroke-linecap="round" opacity="0.92"/>
+  </g>
+  <g class="illus-crowd-front" fill="#050F12" stroke="#050F12">
+    <ellipse cx="9" cy="359.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="9" cy="325" r="18" opacity="1"/>
+    <line x1="9" y1="348.4" x2="-21.599999999999998" y2="292.6" stroke-width="9.0" stroke-linecap="round" opacity="1"/>
+    <ellipse cx="57" cy="375.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="57" cy="341" r="18" opacity="1"/>
+    <line x1="57" y1="364.4" x2="87.6" y2="308.6" stroke-width="9.0" stroke-linecap="round" opacity="1"/>
+    <ellipse cx="115" cy="374.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="115" cy="340" r="18" opacity="1"/>
+    <ellipse cx="161" cy="371.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="161" cy="337" r="18" opacity="1"/>
+    <ellipse cx="207" cy="372.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="207" cy="338" r="18" opacity="1"/>
+    <ellipse cx="257" cy="365.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="257" cy="331" r="18" opacity="1"/>
+    <ellipse cx="319" cy="369.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="319" cy="335" r="18" opacity="1"/>
+    <line x1="319" y1="358.4" x2="288.4" y2="302.6" stroke-width="9.0" stroke-linecap="round" opacity="1"/>
+    <ellipse cx="366" cy="370.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="366" cy="336" r="18" opacity="1"/>
+    <ellipse cx="402" cy="361.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="402" cy="327" r="18" opacity="1"/>
+    <ellipse cx="459" cy="364.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="459" cy="330" r="18" opacity="1"/>
+    <line x1="459" y1="353.4" x2="489.6" y2="297.6" stroke-width="9.0" stroke-linecap="round" opacity="1"/>
+    <ellipse cx="509" cy="365.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="509" cy="331" r="18" opacity="1"/>
+    <ellipse cx="563" cy="375.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="563" cy="341" r="18" opacity="1"/>
+    <ellipse cx="611" cy="373.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="611" cy="339" r="18" opacity="1"/>
+    <line x1="611" y1="362.4" x2="580.4" y2="306.6" stroke-width="9.0" stroke-linecap="round" opacity="1"/>
+    <ellipse cx="659" cy="360.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="659" cy="326" r="18" opacity="1"/>
+    <ellipse cx="709" cy="377.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="709" cy="343" r="18" opacity="1"/>
+    <line x1="709" y1="366.4" x2="678.4" y2="310.6" stroke-width="9.0" stroke-linecap="round" opacity="1"/>
+    <ellipse cx="755" cy="371.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="755" cy="337" r="18" opacity="1"/>
+    <ellipse cx="801" cy="367.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="801" cy="333" r="18" opacity="1"/>
+    <line x1="801" y1="356.4" x2="770.4" y2="300.6" stroke-width="9.0" stroke-linecap="round" opacity="1"/>
+    <ellipse cx="852" cy="362.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="852" cy="328" r="18" opacity="1"/>
+    <ellipse cx="918" cy="370.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="918" cy="336" r="18" opacity="1"/>
+    <ellipse cx="957" cy="365.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="957" cy="331" r="18" opacity="1"/>
+    <ellipse cx="1009" cy="364.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="1009" cy="330" r="18" opacity="1"/>
+    <ellipse cx="1066" cy="376.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="1066" cy="342" r="18" opacity="1"/>
+    <ellipse cx="1106" cy="366.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="1106" cy="332" r="18" opacity="1"/>
+    <line x1="1106" y1="355.4" x2="1136.6" y2="299.6" stroke-width="9.0" stroke-linecap="round" opacity="1"/>
+    <ellipse cx="1168" cy="375.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="1168" cy="341" r="18" opacity="1"/>
+    <ellipse cx="1206" cy="371.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="1206" cy="337" r="18" opacity="1"/>
+    <ellipse cx="1258" cy="361.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="1258" cy="327" r="18" opacity="1"/>
+    <ellipse cx="1313" cy="363.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="1313" cy="329" r="18" opacity="1"/>
+    <ellipse cx="1357" cy="359.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="1357" cy="325" r="18" opacity="1"/>
+    <line x1="1357" y1="348.4" x2="1387.6" y2="292.6" stroke-width="9.0" stroke-linecap="round" opacity="1"/>
+    <ellipse cx="1415" cy="369.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="1415" cy="335" r="18" opacity="1"/>
+    <ellipse cx="1457" cy="362.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="1457" cy="328" r="18" opacity="1"/>
+    <ellipse cx="1504" cy="365.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="1504" cy="331" r="18" opacity="1"/>
+    <line x1="1504" y1="354.4" x2="1534.6" y2="298.6" stroke-width="9.0" stroke-linecap="round" opacity="1"/>
+    <ellipse cx="1553" cy="368.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="1553" cy="334" r="18" opacity="1"/>
+    <ellipse cx="1611" cy="367.2" rx="20.7" ry="27.0" opacity="1"/>
+    <circle cx="1611" cy="333" r="18" opacity="1"/>
+  </g>
+  <rect width="1600" height="400" fill="url(#fcFade)"/>
+</svg>
+      <div class="fc-hero-topbar">
+        <div class="fc-chip" id="ev-type"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18.3a2.7 2.7 0 1 1-2.7-2.7A2.7 2.7 0 0 1 9 18.3Z"/><path d="M19 16.3a2.7 2.7 0 1 1-2.7-2.7 2.7 2.7 0 0 1 2.7 2.7Z"/><path d="M9 18.3V6.5l10-2v11.8"/></svg> <span id="ev-type-text">Événement</span></div>
+        <div class="pill-status" id="ev-status-badge" style="color:var(--green);background:rgba(7,22,25,.55);backdrop-filter:blur(10px)"><span class="livedot"></span><span id="ev-status-text">—</span></div>
+      </div>
+      <div class="fc-hero-content" style="flex-direction:row;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px">
+        <div>
+          <div class="fc-hero-title" id="ev-title">—</div>
+          <div class="fc-hero-meta" style="margin-top:12px">
+            <span class="fc-meta-pill"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2.2"/><line x1="3.5" y1="10" x2="20.5" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg> <span id="ev-date">—</span></span>
+            <span class="fc-meta-pill"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg> <span id="ev-time">—</span></span>
+            <span class="fc-meta-pill"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.4 7-11.6A7 7 0 0 0 5 9.4C5 14.6 12 21 12 21Z"/><circle cx="12" cy="9.4" r="2.4"/></svg> <span id="ev-location">—</span></span>
+          </div>
+        </div>
+        <div class="ev-actions">
+          <button class="btn btn-ghost btn-sm" onclick="copyLink()"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5.5 18.5 10 8 20.5H3.5V16Z"/><line x1="12" y1="7.5" x2="16.5" y2="12"/></svg> Copier le lien</button>
+          <button class="btn btn-danger btn-sm" id="ev-suspend-btn" onclick="toggleSuspend()"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4.5" width="4" height="15" rx="1"/><rect x="14" y="4.5" width="4" height="15" rx="1"/></svg> Suspendre</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card s1">
+        <div class="stat-lbl">Tickets vendus</div>
+        <div class="stat-num" style="color:var(--glow)" id="stat-sold">—</div>
+        <div class="stat-sub" id="stat-sold-sub">—</div>
+      </div>
+      <div class="stat-card s2">
+        <div class="stat-lbl">Revenus générés</div>
+        <div class="stat-num" style="color:var(--gold)" id="stat-revenue">—</div>
+        <div class="stat-sub">FCFA encaissés</div>
+      </div>
+      <div class="stat-card s3">
+        <div class="stat-lbl">Places restantes</div>
+        <div class="stat-num" style="color:var(--green)" id="stat-remaining">—</div>
+        <div class="stat-sub">disponibles à la vente</div>
+      </div>
+      <div class="stat-card s4">
+        <div class="stat-lbl">Taux de remplissage</div>
+        <div class="stat-num" style="color:var(--white)" id="stat-fillrate">—</div>
+        <div class="stat-sub">tous types de tickets</div>
+      </div>
+    </div>
+
+    <!-- PROGRESS PAR CAT -->
+    <div class="prog-card" style="display:grid;grid-template-columns:64px 1fr;gap:18px;align-items:start">
+      <div style="width:64px"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
+  <line x1="40" y1="140" x2="210" y2="140" stroke="#1E4750" stroke-width="2"/>
+  <rect x="55" y="104" width="20" height="36" rx="3" fill="#123037" stroke="#0EA5A0" stroke-width="2"/>
+  <rect x="88" y="80" width="20" height="60" rx="3" fill="#123037" stroke="#0EA5A0" stroke-width="2"/>
+  <rect x="121" y="58" width="20" height="82" rx="3" fill="#0EA5A0" opacity=".25" stroke="#0EA5A0" stroke-width="2"/>
+  <rect x="154" y="94" width="20" height="46" rx="3" fill="#123037" stroke="#0EA5A0" stroke-width="2"/>
+  <polyline points="60 100 98 74 131 50 164 84" fill="none" stroke="#FF8A3D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="131" cy="50" r="4" fill="#FF8A3D"/>
+  <circle cx="164" cy="84" r="3" fill="#FF8A3D"/>
+  <circle cx="98" cy="74" r="3" fill="#FF8A3D"/>
+  <circle cx="60" cy="100" r="3" fill="#FF8A3D"/>
+</svg></div>
+      <div>
+      <div class="prog-header">
+        <span class="prog-title" data-i18n="event_detail.sales_progress">Progression des ventes</span>
+        <span style="font-size:.82rem;color:var(--glow);font-weight:700" id="prog-txt">— / — tickets</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted)">
+        <span>0</span><span id="prog-pct">0% vendu</span><span id="prog-total">—</span>
+      </div>
+      <div class="prog-cats" id="prog-cats"></div>
+      </div>
+    </div>
+
+    <!-- SHARE -->
+    <div class="share-card" style="display:grid;grid-template-columns:1fr 90px;gap:16px;align-items:center">
+      <div>
+      <div style="font-family:var(--fd);font-weight:700;font-size:.95rem;margin-bottom:4px"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 14.5 14.5 9.5"/><path d="M11 6.3 13 4.3a3.9 3.9 0 0 1 5.5 5.5l-2 2"/><path d="M13 17.7 11 19.7a3.9 3.9 0 0 1-5.5-5.5l2-2"/></svg> Partager l'événement</div>
+      <div style="font-size:.82rem;color:var(--muted)" data-i18n="event_detail.share_hint">Partage ce lien pour que les gens puissent acheter leurs tickets.</div>
+      <div class="share-link">
+        <a href="#" target="_blank" rel="noopener" id="share-link-input" style="flex:1;padding:10px 14px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--glow);font-family:var(--fb);font-size:.85rem;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">—</a>
+        <button class="btn btn-primary btn-sm" onclick="copyLink()" data-i18n="common.copy">Copier</button>
+      </div>
+      <div class="share-btns">
+        <button class="share-btn" onclick="shareTo('whatsapp')"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><line x1="11" y1="18.3" x2="13" y2="18.3"/></svg> WhatsApp</button>
+        <button class="share-btn" onclick="shareTo('facebook')"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg> Facebook</button>
+        <button class="share-btn" onclick="copyLink()"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5" width="13" height="16" rx="2"/><rect x="9" y="3" width="6" height="3.4" rx="1"/></svg> Copier lien</button>
+      </div>
+      </div>
+      <div><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="90" cy="76" r="20" fill="#123037" stroke="#0EA5A0" stroke-width="2.2"/>
+  <path d="M62 132a28 28 0 0 1 56 0" fill="none" stroke="#0EA5A0" stroke-width="2.2"/>
+  <circle cx="158" cy="66" r="16" fill="#123037" stroke="#FF8A3D" stroke-width="2.2"/>
+  <path d="M136 118a24 24 0 0 1 44-8" fill="none" stroke="#FF8A3D" stroke-width="2.2"/>
+  <path d="M150 30h44a8 8 0 0 1 8 8v20a8 8 0 0 1-8 8h-8l-8 10v-10h-28a8 8 0 0 1-8-8V38a8 8 0 0 1 8-8Z" fill="#0D2126" stroke="#5EEAD4" stroke-width="2.2"/>
+  <line x1="166" y1="44" x2="192" y2="44" stroke="#5EEAD4" stroke-width="2" stroke-linecap="round"/>
+  <line x1="166" y1="52" x2="184" y2="52" stroke="#5EEAD4" stroke-width="2" stroke-linecap="round" opacity=".6"/>
+</svg></div>
+    </div>
+
+    <div class="two-col">
+      <!-- LEFT: TICKETS TABLE -->
+      <div>
+        <div class="section-card" id="pending-orders-card" style="display:none;border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.04)">
+          <div class="section-head" style="border-color:rgba(245,158,11,.2)">
+            <span class="section-head-title" style="color:var(--gold)"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg> Paiements en attente de confirmation (<span id="pending-count">0</span>)</span>
+          </div>
+          <div id="pending-orders-list" style="padding:4px 0"></div>
+        </div>
+        <div class="section-card">
+          <div class="section-head">
+            <span class="section-head-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.5a2 2 0 0 0 0 4V16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.5a2 2 0 0 0 0-4Z"/><line x1="10" y1="6" x2="10" y2="18" stroke-dasharray="2 2.4"/></svg> Tickets vendus (136)</span>
+            <div style="display:flex;gap:8px">
+              <select style="padding:5px 10px;border-radius:6px;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:.75rem;outline:none">
+                <option>Tous</option><option>Normal</option><option>VIP</option>
+              </select>
+              <button class="btn btn-ghost btn-sm" onclick="showToast('Export CSV téléchargé !',FCI['download'])"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11.5"/><polyline points="7.5 11 12 15.5 16.5 11"/><path d="M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7"/></svg> Exporter</button>
+            </div>
+          </div>
+          <div style="max-height:420px;overflow-y:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="tickets.col_number">N° Ticket</th>
+                  <th data-i18n="tickets.col_category">Catégorie</th>
+                  <th data-i18n="tickets.col_buyer">Acheteur</th>
+                  <th data-i18n="common.amount">Montant</th>
+                  <th data-i18n="common.status">Statut</th>
+                  <th data-i18n="common.date">Date</th>
+                </tr>
+              </thead>
+              <tbody id="tickets-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div>
+        <!-- QR CODE PROMO -->
+        <div class="qr-card">
+          <div style="font-family:var(--fd);font-weight:700;font-size:.9rem">QR Code de l'événement</div>
+          <div style="font-size:.8rem;color:var(--muted);margin-top:4px">À afficher ou imprimer pour partager</div>
+          <div class="qr-box" id="ev-qr"><svg class="icn" width="88" height="88" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1"/><rect x="13.5" y="3.5" width="7" height="7" rx="1"/><rect x="3.5" y="13.5" width="7" height="7" rx="1"/><rect x="6" y="6" width="2" height="2" fill="currentColor" stroke="none"/><rect x="16" y="6" width="2" height="2" fill="currentColor" stroke="none"/><rect x="6" y="16" width="2" height="2" fill="currentColor" stroke="none"/><rect x="14" y="14" width="3" height="3"/><rect x="18.5" y="14" width="2" height="2" fill="currentColor" stroke="none"/><rect x="14" y="18.5" width="2" height="2" fill="currentColor" stroke="none"/><rect x="18.5" y="18.5" width="2" height="2" fill="currentColor" stroke="none"/></svg></div>
+          <div class="qr-hint">Tes fans scannent ce QR code pour accéder directement à la page d'achat.</div>
+          <div style="display:flex;gap:8px;margin-top:14px">
+            <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center" onclick="downloadQR()"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11.5"/><polyline points="7.5 11 12 15.5 16.5 11"/><path d="M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7"/></svg> Télécharger</button>
+            <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center" onclick="showToast('QR Code imprimé !',FCI['printer'])"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8.5" width="14" height="7.5" rx="1.5"/><path d="M7.5 8.5V4h9v4.5"/><path d="M7.5 15.5v4.5h9v-4.5"/></svg> Imprimer</button>
+          </div>
+        </div>
+
+        <!-- RECENT ACTIVITY -->
+        <div class="section-card">
+          <div class="section-head" style="padding:14px 18px;gap:12px">
+            <span class="section-head-title" data-i18n="event_detail.recent_activity">Activité récente</span>
+            <div style="width:38px;flex-shrink:0"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
+  <path d="M96 100a24 24 0 0 1 48 0c0 16 5.2 21.6 7.6 24H88.4c2.4-2.4 7.6-8 7.6-24Z" fill="#0D2126" stroke="#FF8A3D" stroke-width="2.5"/>
+  <path d="M112.5 130a7.5 7.5 0 0 0 15 0" fill="none" stroke="#FF8A3D" stroke-width="2.5"/>
+  <path d="M150 78a34 34 0 0 1 0 40" fill="none" stroke="#5EEAD4" stroke-width="2.2" stroke-linecap="round" opacity=".65"/>
+  <path d="M160 66a50 50 0 0 1 0 64" fill="none" stroke="#5EEAD4" stroke-width="2.2" stroke-linecap="round" opacity=".35"/>
+  <rect x="46" y="56" width="26" height="34" rx="4" fill="#123037" stroke="#0EA5A0" stroke-width="2" transform="rotate(-8 59 73)"/>
+  <circle cx="196" cy="120" r="4" fill="#34D399"/>
+  <circle cx="60" cy="128" r="3" fill="#FFD9A8"/>
+</svg></div>
+          </div>
+          <div id="activity-list"><div style="padding:20px;text-align:center;color:var(--muted);font-size:.82rem">Chargement…</div></div>
+        </div>
+
+        <!-- RETRAIT -->
+        <div class="section-card" style="border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.04)">
+          <div class="section-head" style="padding:14px 18px;border-color:rgba(245,158,11,.2)">
+            <span class="section-head-title" style="color:var(--gold)"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M17 11.5h2.5a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5H17a2 2 0 0 1 0-4Z"/><line x1="3" y1="8.7" x2="21" y2="8.7"/></svg> Revenus disponibles</span>
+          </div>
+          <div style="padding:18px;display:flex;gap:16px;align-items:center">
+            <div style="width:56px;flex-shrink:0"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
+  <rect x="88" y="26" width="64" height="120" rx="12" fill="#0D2126" stroke="#0EA5A0" stroke-width="2.5"/>
+  <rect x="96" y="42" width="48" height="80" rx="4" fill="#123037"/>
+  <circle cx="120" cy="132" r="6" fill="none" stroke="#0EA5A0" stroke-width="2"/>
+  <text x="120" y="90" text-anchor="middle" font-family="monospace" font-size="15" fill="#FFD9A8" font-weight="700">FCFA</text>
+  <path d="M56 58a20 20 0 0 1 0 28" fill="none" stroke="#5EEAD4" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
+  <path d="M46 50a30 30 0 0 1 0 44" fill="none" stroke="#5EEAD4" stroke-width="2.5" stroke-linecap="round" opacity=".4"/>
+  <circle cx="184" cy="72" r="14" fill="none" stroke="#FF8A3D" stroke-width="2.5"/>
+  <text x="184" y="77" text-anchor="middle" font-family="monospace" font-size="14" fill="#FF8A3D" font-weight="700">₣</text>
+  <circle cx="60" cy="130" r="3" fill="#FF8A3D"/>
+  <circle cx="196" cy="130" r="3" fill="#34D399"/>
+</svg></div>
+            <div style="flex:1">
+              <div style="font-family:var(--fd);font-size:1.6rem;font-weight:800;color:var(--gold);margin-bottom:4px" id="ev-net-revenue">— FCFA</div>
+              <div style="font-size:.78rem;color:var(--muted);margin-bottom:16px" id="ev-commission-note" data-i18n="event_detail.after_commission">Après commission Fest&Chill</div>
+              <a href="festchill-wallet.html" class="btn btn-primary" style="width:100%;justify-content:center">
+                Aller au portefeuille pour retirer
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"><span id="toast-icon"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 10.8 15.3 16 9.5"/></svg></span><span id="toast-msg"></span></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="qrcode.min.js"></script>
+<script src="supabase-client.js"></script>
+<script>
+const FCI = {
+  'check': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"20 6 9 17 4 12\"/></svg>",
+  'check-circle': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><polyline points=\"8 12.5 10.8 15.3 16 9.5\"/></svg>",
+  'x-circle': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><line x1=\"9\" y1=\"9\" x2=\"15\" y2=\"15\"/><line x1=\"15\" y1=\"9\" x2=\"9\" y2=\"15\"/></svg>",
+  'x': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"6\" y1=\"6\" x2=\"18\" y2=\"18\"/><line x1=\"18\" y1=\"6\" x2=\"6\" y2=\"18\"/></svg>",
+  'smartphone': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"7\" y=\"2.5\" width=\"10\" height=\"19\" rx=\"2.2\"/><line x1=\"11\" y1=\"18.3\" x2=\"13\" y2=\"18.3\"/></svg>",
+  'ticket': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 9.5V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.5a2 2 0 0 0 0 4V16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.5a2 2 0 0 0 0-4Z\"/><line x1=\"10\" y1=\"6\" x2=\"10\" y2=\"18\" stroke-dasharray=\"2 2.4\"/></svg>",
+  'star': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3.5 14.6 9.1 20.8 9.9 16.3 14.1 17.5 20.2 12 17.1 6.5 20.2 7.7 14.1 3.2 9.9 9.4 9.1Z\"/></svg>",
+  'download': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3.5v11.5\"/><polyline points=\"7.5 11 12 15.5 16.5 11\"/><path d=\"M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7\"/></svg>",
+  'upload': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 20.5V9\"/><polyline points=\"7.5 13 12 8.5 16.5 13\"/><path d=\"M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7\"/></svg>",
+  'cash': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"2.5\" y=\"6.5\" width=\"19\" height=\"11\" rx=\"2\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/><line x1=\"6\" y1=\"9.3\" x2=\"6\" y2=\"9.3\"/><line x1=\"18\" y1=\"14.7\" x2=\"18\" y2=\"14.7\"/></svg>",
+  'calendar': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3.5\" y=\"5\" width=\"17\" height=\"16\" rx=\"2.2\"/><line x1=\"3.5\" y1=\"10\" x2=\"20.5\" y2=\"10\"/><line x1=\"8\" y1=\"3\" x2=\"8\" y2=\"7\"/><line x1=\"16\" y1=\"3\" x2=\"16\" y2=\"7\"/></svg>",
+  'settings': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"3.2\"/><path d=\"M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2.06 2.06 0 1 1-2.92 2.92l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56v.17a2.06 2.06 0 1 1-4.12 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2.06 2.06 0 1 1-2.92-2.92l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03h-.17a2.06 2.06 0 1 1 0-4.12h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2.06 2.06 0 1 1 2.92-2.92l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1.03-1.56v-.17a2.06 2.06 0 1 1 4.12 0v.09a1.7 1.7 0 0 0 1.03 1.56h.08a1.7 1.7 0 0 0 1.87-.34l.06-.06a2.06 2.06 0 1 1 2.92 2.92l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.03h.17a2.06 2.06 0 1 1 0 4.12h-.09a1.7 1.7 0 0 0-1.56 1.03Z\"/></svg>",
+  'lock': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"4.5\" y=\"10.5\" width=\"15\" height=\"10\" rx=\"2.2\"/><path d=\"M7.5 10.5V7.2a4.5 4.5 0 0 1 9 0v3.3\"/></svg>",
+  'wallet': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 7.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z\"/><path d=\"M17 11.5h2.5a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5H17a2 2 0 0 1 0-4Z\"/><line x1=\"3\" y1=\"8.7\" x2=\"21\" y2=\"8.7\"/></svg>",
+  'plus': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"12\" y1=\"5\" x2=\"12\" y2=\"19\"/><line x1=\"5\" y1=\"12\" x2=\"19\" y2=\"12\"/></svg>",
+  'camera': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 8.2A1.7 1.7 0 0 1 5.7 6.5h2.1l1-1.7h6.4l1 1.7h2.1A1.7 1.7 0 0 1 20 8.2v9.1a1.7 1.7 0 0 1-1.7 1.7H5.7A1.7 1.7 0 0 1 4 17.3Z\"/><circle cx=\"12\" cy=\"12.4\" r=\"3.4\"/></svg>",
+  'bar-chart': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"5\" y1=\"20\" x2=\"5\" y2=\"11\"/><line x1=\"12\" y1=\"20\" x2=\"12\" y2=\"5\"/><line x1=\"19\" y1=\"20\" x2=\"19\" y2=\"14\"/></svg>",
+  'alert-triangle': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 4 21.5 20H2.5Z\" stroke-linejoin=\"round\"/><line x1=\"12\" y1=\"10\" x2=\"12\" y2=\"14.5\"/><line x1=\"12\" y1=\"17.3\" x2=\"12\" y2=\"17.3\"/></svg>",
+  'clipboard': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"5.5\" y=\"5\" width=\"13\" height=\"16\" rx=\"2\"/><rect x=\"9\" y=\"3\" width=\"6\" height=\"3.4\" rx=\"1\"/></svg>",
+  'home': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 11.5 12 4l8 7.5\"/><path d=\"M6 10v9.5a1 1 0 0 0 1 1h4v-6h2v6h4a1 1 0 0 0 1-1V10\"/></svg>",
+  'trending-up': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"4 16 10 10 14 14 20 6\"/><polyline points=\"14.5 6 20 6 20 11.5\"/></svg>",
+  'refresh': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 12a8 8 0 0 1 13.66-5.66L20 8.5\"/><polyline points=\"20 4 20 8.5 15.5 8.5\"/><path d=\"M20 12a8 8 0 0 1-13.66 5.66L4 15.5\"/><polyline points=\"4 20 4 15.5 8.5 15.5\"/></svg>",
+  'music': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M9 18.3a2.7 2.7 0 1 1-2.7-2.7A2.7 2.7 0 0 1 9 18.3Z\"/><path d=\"M19 16.3a2.7 2.7 0 1 1-2.7-2.7 2.7 2.7 0 0 1 2.7 2.7Z\"/><path d=\"M9 18.3V6.5l10-2v11.8\"/></svg>",
+  'siren': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 15a6 6 0 0 1 12 0v2H6Z\"/><line x1=\"4\" y1=\"20\" x2=\"20\" y2=\"20\"/><line x1=\"12\" y1=\"6\" x2=\"12\" y2=\"3.5\"/><line x1=\"7\" y1=\"7.5\" x2=\"5.5\" y2=\"6\"/><line x1=\"17\" y1=\"7.5\" x2=\"18.5\" y2=\"6\"/></svg>",
+  'message-circle': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 12a8 8 0 1 1 3.5 6.6L4 20l1.3-3.6A7.96 7.96 0 0 1 4 12Z\"/></svg>",
+  'search': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"10.5\" cy=\"10.5\" r=\"6.5\"/><line x1=\"15.3\" y1=\"15.3\" x2=\"20.5\" y2=\"20.5\"/></svg>",
+  'edit': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M14 5.5 18.5 10 8 20.5H3.5V16Z\"/><line x1=\"12\" y1=\"7.5\" x2=\"16.5\" y2=\"12\"/></svg>",
+  'user': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"8\" r=\"3.6\"/><path d=\"M4.5 20a7.5 7.5 0 0 1 15 0\"/></svg>",
+  'users': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"9\" cy=\"8.2\" r=\"3.2\"/><path d=\"M3 19a6 6 0 0 1 12 0\"/><path d=\"M15.5 5.5a3.2 3.2 0 0 1 0 6.2\"/><path d=\"M17 13a6 6 0 0 1 4 5.6\"/></svg>",
+  'file': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6.5 3.5h7l4 4V20a1 1 0 0 1-1 1h-10a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z\"/><polyline points=\"13.5 3.5 13.5 7.5 17.5 7.5\"/></svg>",
+  'map-pin': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 21s7-6.4 7-11.6A7 7 0 0 0 5 9.4C5 14.6 12 21 12 21Z\"/><circle cx=\"12\" cy=\"9.4\" r=\"2.4\"/></svg>",
+  'printer': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"5\" y=\"8.5\" width=\"14\" height=\"7.5\" rx=\"1.5\"/><path d=\"M7.5 8.5V4h9v4.5\"/><path d=\"M7.5 15.5v4.5h9v-4.5\"/></svg>",
+  'bell': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 10.5a6 6 0 0 1 12 0c0 4 1.3 5.4 1.9 6H4.1c.6-.6 1.9-2 1.9-6Z\"/><path d=\"M10.2 19.5a1.9 1.9 0 0 0 3.6 0\"/></svg>",
+  'palette': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><circle cx=\"8.2\" cy=\"10\" r=\"1.15\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"12\" cy=\"7.5\" r=\"1.15\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"16\" cy=\"10\" r=\"1.15\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"9.5\" cy=\"14.7\" r=\"1.15\" fill=\"currentColor\" stroke=\"none\"/><path d=\"M15 15.2a2.2 2.2 0 0 0 2.2 2.2c1.6 0 2.8-.9 2.8-2.6A9 9 0 1 0 12 21\"/></svg>",
+  'sun': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"4.3\"/><line x1=\"12\" y1=\"2.5\" x2=\"12\" y2=\"4.5\"/><line x1=\"12\" y1=\"19.5\" x2=\"12\" y2=\"21.5\"/><line x1=\"4.2\" y1=\"4.2\" x2=\"5.6\" y2=\"5.6\"/><line x1=\"18.4\" y1=\"18.4\" x2=\"19.8\" y2=\"19.8\"/><line x1=\"2.5\" y1=\"12\" x2=\"4.5\" y2=\"12\"/><line x1=\"19.5\" y1=\"12\" x2=\"21.5\" y2=\"12\"/><line x1=\"4.2\" y1=\"19.8\" x2=\"5.6\" y2=\"18.4\"/><line x1=\"18.4\" y1=\"5.6\" x2=\"19.8\" y2=\"4.2\"/></svg>",
+  'moon': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 14.3A8.5 8.5 0 1 1 9.7 4a6.7 6.7 0 0 0 10.3 10.3Z\"/></svg>",
+  'credit-card': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"2.5\" y=\"5.5\" width=\"19\" height=\"13\" rx=\"2.2\"/><line x1=\"2.5\" y1=\"9.8\" x2=\"21.5\" y2=\"9.8\"/><line x1=\"6\" y1=\"14.5\" x2=\"10\" y2=\"14.5\"/></svg>",
+  'trophy': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M7 4.5h10v5a5 5 0 0 1-10 0Z\"/><path d=\"M7 6H4.5A2.5 2.5 0 0 0 6 10.5\"/><path d=\"M17 6h2.5A2.5 2.5 0 0 1 18 10.5\"/><line x1=\"12\" y1=\"14.5\" x2=\"12\" y2=\"18\"/><line x1=\"8.5\" y1=\"21\" x2=\"15.5\" y2=\"21\"/><line x1=\"12\" y1=\"18\" x2=\"12\" y2=\"21\"/></svg>",
+  'medal': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"14.5\" r=\"5.2\"/><path d=\"M12 11.5 13 14.2h2.8l-2.3 1.7.9 2.7-2.4-1.7-2.4 1.7.9-2.7-2.3-1.7H11Z\" fill=\"currentColor\" stroke=\"none\"/><path d=\"M9 8.5 6 3h3l2.2 4.3\"/><path d=\"M15 8.5 18 3h-3l-2.2 4.3\"/></svg>",
+  'party': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 20 14.5 4.8c.5-.7 1.6-.4 1.7.4l1.6 12a1 1 0 0 1-1.3 1.1L4 20Z\"/><line x1=\"8\" y1=\"4\" x2=\"9\" y2=\"5.6\"/><line x1=\"3\" y1=\"9\" x2=\"4.8\" y2=\"9.6\"/><line x1=\"18\" y1=\"2.5\" x2=\"18\" y2=\"4.2\"/></svg>",
+  'arrow-left': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"19\" y1=\"12\" x2=\"5\" y2=\"12\"/><polyline points=\"10.5 6 5 12 10.5 18\"/></svg>",
+  'arrow-up': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"12\" y1=\"19\" x2=\"12\" y2=\"5\"/><polyline points=\"6 10.5 12 5 18 10.5\"/></svg>",
+  'arrow-down': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"12\" y1=\"5\" x2=\"12\" y2=\"19\"/><polyline points=\"6 13.5 12 19 18 13.5\"/></svg>",
+  'link': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M9.5 14.5 14.5 9.5\"/><path d=\"M11 6.3 13 4.3a3.9 3.9 0 0 1 5.5 5.5l-2 2\"/><path d=\"M13 17.7 11 19.7a3.9 3.9 0 0 1-5.5-5.5l2-2\"/></svg>",
+  'thumbs-up': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M7 11v9H4.5A1.5 1.5 0 0 1 3 18.5v-6A1.5 1.5 0 0 1 4.5 11Z\"/><path d=\"M7 11l4-7.5a2 2 0 0 1 3.6 1.7L13.3 9H18a2 2 0 0 1 2 2.4l-1.4 7A2 2 0 0 1 16.6 20H9.5A2.5 2.5 0 0 1 7 17.5\"/></svg>",
+  'ban': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><line x1=\"6\" y1=\"18\" x2=\"18\" y2=\"6\"/></svg>",
+  'tent': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 4 21 19H3Z\"/><path d=\"M12 4v15\"/><path d=\"M8 19 12 11l4 8\"/></svg>",
+  'building': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"5\" y=\"3.5\" width=\"14\" height=\"17\" rx=\"1\"/><line x1=\"8.5\" y1=\"7.5\" x2=\"8.5\" y2=\"7.5\"/><line x1=\"12\" y1=\"7.5\" x2=\"12\" y2=\"7.5\"/><line x1=\"15.5\" y1=\"7.5\" x2=\"15.5\" y2=\"7.5\"/><line x1=\"8.5\" y1=\"11\" x2=\"8.5\" y2=\"11\"/><line x1=\"12\" y1=\"11\" x2=\"12\" y2=\"11\"/><line x1=\"15.5\" y1=\"11\" x2=\"15.5\" y2=\"11\"/><line x1=\"8.5\" y1=\"14.5\" x2=\"8.5\" y2=\"14.5\"/><line x1=\"15.5\" y1=\"14.5\" x2=\"15.5\" y2=\"14.5\"/><rect x=\"10\" y=\"16\" width=\"4\" height=\"4.5\"/></svg>",
+  'church': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"12\" y1=\"2.5\" x2=\"12\" y2=\"6.5\"/><line x1=\"10\" y1=\"4.2\" x2=\"14\" y2=\"4.2\"/><path d=\"M12 6.5 20 12.5v8H4v-8Z\"/><rect x=\"10\" y=\"15\" width=\"4\" height=\"5.5\"/></svg>",
+  'graduation-cap': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M2.5 9.5 12 5l9.5 4.5L12 14Z\"/><path d=\"M6.5 11.7v4.3c0 1.4 2.5 2.8 5.5 2.8s5.5-1.4 5.5-2.8v-4.3\"/><line x1=\"21.5\" y1=\"9.5\" x2=\"21.5\" y2=\"15.5\"/></svg>",
+  'briefcase': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"7.5\" width=\"18\" height=\"12\" rx=\"2\"/><path d=\"M8.5 7.5V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1.5\"/><line x1=\"3\" y1=\"12.5\" x2=\"21\" y2=\"12.5\"/></svg>",
+  'undo': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M8 8.5H4.5V5\"/><path d=\"M4.5 8.5A8 8 0 1 1 6 16\"/></svg>",
+  'key': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"8\" cy=\"15\" r=\"4.2\"/><path d=\"M11 12 19 4\"/><path d=\"M15.5 7.5 18 10\"/><path d=\"M18.5 4.5 21 7\"/></svg>",
+  'mail': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"5.5\" width=\"18\" height=\"13\" rx=\"2\"/><polyline points=\"3.5 6.5 12 13 20.5 6.5\"/></svg>",
+  'laptop': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"4.5\" y=\"5\" width=\"15\" height=\"10\" rx=\"1.3\"/><path d=\"M2.5 19.5h19l-2-3h-15Z\"/></svg>",
+  'help-circle': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M9.3 9.3a2.7 2.7 0 1 1 3.9 2.4c-.9.5-1.2 1-1.2 2\"/><line x1=\"12\" y1=\"16.8\" x2=\"12\" y2=\"16.8\"/></svg>",
+  'trash': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"4.5\" y1=\"7\" x2=\"19.5\" y2=\"7\"/><path d=\"M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2\"/><path d=\"M6.5 7 7.3 19a2 2 0 0 0 2 1.9h5.4a2 2 0 0 0 2-1.9L17.5 7\"/></svg>",
+  'scan': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8\"/><path d=\"M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8\"/><path d=\"M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16\"/><path d=\"M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16\"/><line x1=\"4\" y1=\"12\" x2=\"20\" y2=\"12\"/></svg>",
+  'external-link': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M18 13.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5.5\"/><polyline points=\"15 3 21 3 21 9\"/><line x1=\"10\" y1=\"14\" x2=\"21\" y2=\"3\"/></svg>",
+  'chevron-right': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"9 5.5 15.5 12 9 18.5\"/></svg>",
+  'eye': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z\"/><circle cx=\"12\" cy=\"12\" r=\"2.8\"/></svg>",
+  'shield': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3 20 6.5v5.7c0 5-3.4 8.3-8 9.8-4.6-1.5-8-4.8-8-9.8V6.5Z\"/><polyline points=\"8.5 12 11 14.5 15.5 9.5\"/></svg>",
+  'info': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><line x1=\"12\" y1=\"11\" x2=\"12\" y2=\"16.5\"/><line x1=\"12\" y1=\"7.5\" x2=\"12\" y2=\"7.5\"/></svg>",
+  'filter': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polygon points=\"3.5 4.5 20.5 4.5 14 12.5 14 19 10 21 10 12.5\"/></svg>",
+  'logout': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M15 4.5H7a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h8\"/><line x1=\"10\" y1=\"12\" x2=\"21\" y2=\"12\"/><polyline points=\"17 8 21 12 17 16\"/></svg>",
+  'pause': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"6\" y=\"4.5\" width=\"4\" height=\"15\" rx=\"1\"/><rect x=\"14\" y=\"4.5\" width=\"4\" height=\"15\" rx=\"1\"/></svg>",
+  'clock': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><polyline points=\"12 7 12 12 16 14\"/></svg>",
+  'play': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M8 5.5 19 12 8 18.5Z\" stroke-linejoin=\"round\"/></svg>",
+  'stop': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"6\" y=\"6\" width=\"12\" height=\"12\" rx=\"2\"/></svg>",
+  'qr': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3.5\" y=\"3.5\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"13.5\" y=\"3.5\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"3.5\" y=\"13.5\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"6\" y=\"6\" width=\"2\" height=\"2\" fill=\"currentColor\" stroke=\"none\"/><rect x=\"16\" y=\"6\" width=\"2\" height=\"2\" fill=\"currentColor\" stroke=\"none\"/><rect x=\"6\" y=\"16\" width=\"2\" height=\"2\" fill=\"currentColor\" stroke=\"none\"/><rect x=\"14\" y=\"14\" width=\"3\" height=\"3\"/><rect x=\"18.5\" y=\"14\" width=\"2\" height=\"2\" fill=\"currentColor\" stroke=\"none\"/><rect x=\"14\" y=\"18.5\" width=\"2\" height=\"2\" fill=\"currentColor\" stroke=\"none\"/><rect x=\"18.5\" y=\"18.5\" width=\"2\" height=\"2\" fill=\"currentColor\" stroke=\"none\"/></svg>",
+  'dot-red': '<span class="dot" style="background:var(--red)"></span>',
+  'dot-green': '<span class="dot" style="background:var(--green)"></span>',
+  'dot-gold': '<span class="dot" style="background:var(--gold)"></span>',
+  'dot-teal': '<span class="dot" style="background:var(--purple)"></span>',
+};
+
+// Count-up animation — only touches leading text node, preserves nested spans (e.g. "FCFA")
+function fcCountUp(el){
+  const node = [...el.childNodes].find(n=>n.nodeType===3 && n.textContent.trim());
+  const target_el = node ? el : null;
+  const raw = node ? node.textContent : el.textContent.trim();
+  const m = raw.match(/([\d.,\s]+)/);
+  if(!m) return;
+  const target = parseFloat(m[1].replace(/[,\s]/g,''));
+  if(isNaN(target)) return;
+  const before = raw.slice(0, m.index), after = raw.slice(m.index + m[1].length);
+  let cur = 0;
+  const step = Math.max(target/32,0.5);
+  const iv = setInterval(()=>{
+    cur += step;
+    const val = cur>=target ? (Number.isInteger(target)?target:Math.round(target*10)/10) : Math.round(cur);
+    const text = before + val.toLocaleString('fr-FR') + after;
+    if(node) node.textContent = text; else el.textContent = text;
+    if(cur>=target) clearInterval(iv);
+  },20);
+}
+let profile = null;
+let currentEvent = null;
+const params = new URLSearchParams(location.search);
+const eventId = params.get('id');
+
+async function boot(){
+  profile = await fcRequireAuth();
+  if (!profile) return;
+  fcMountSidebar(profile);
+
+  if (!eventId){
+    document.querySelector('.page').innerHTML = '<div style="padding:60px;text-align:center;color:var(--muted)">Aucun événement sélectionné. Ouvre cette page depuis "Mes événements".</div>';
+    return;
+  }
+
+  const { data: event, error } = await supa
+    .from('events')
+    .select('*, ticket_categories(*)')
+    .eq('id', eventId)
+    .single();
+
+  if (error || !event){
+    document.querySelector('.page').innerHTML = '<div style="padding:60px;text-align:center;color:var(--muted)">Événement introuvable.</div>';
+    return;
+  }
+  currentEvent = event;
+  await render();
+}
+
+async function render(){
+  const e = currentEvent;
+  const cats = e.ticket_categories || [];
+  const quota = cats.reduce((s,c)=>s+c.quota,0);
+  const sold = cats.reduce((s,c)=>s+c.sold,0);
+  const revenue = cats.reduce((s,c)=>s+c.sold*c.price,0);
+  const remaining = quota - sold;
+  const fillRate = quota ? Math.round(sold/quota*100) : 0;
+
+  document.getElementById('ev-type-text').textContent = e.event_type || 'Événement';
+  document.getElementById('ev-title').innerHTML = e.title.replace(/\n/g,'<br>');
+  document.getElementById('ev-date').textContent = fcFormatDate(e.event_date, {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('ev-time').textContent = e.event_time || '—';
+  document.getElementById('ev-location').textContent = e.location || '—';
+
+  const statusMap = { published:['En vente','var(--green)'], draft:['Brouillon','var(--glow)'], suspended:['Suspendu','var(--red)'], ended:['Terminé','var(--muted)'] };
+  const [label, color] = statusMap[e.status] || ['—','var(--muted)'];
+  document.getElementById('ev-status-text').textContent = label;
+  document.getElementById('ev-status-badge').style.color = color;
+  document.getElementById('ev-suspend-btn').innerHTML = (e.status === 'suspended'
+    ? '<svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5.5 19 12 8 18.5Z" stroke-linejoin="round"/></svg> Republier'
+    : '<svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4.5" width="4" height="15" rx="1"/><rect x="14" y="4.5" width="4" height="15" rx="1"/></svg> Suspendre');
+
+  document.getElementById('stat-sold').textContent = sold;
+  document.getElementById('stat-sold-sub').textContent = 'sur ' + quota + ' disponibles';
+  document.getElementById('stat-revenue').textContent = fcFormatFCFA(revenue).replace(' FCFA','');
+  await loadNetRevenue(revenue);
+  document.getElementById('stat-remaining').textContent = remaining;
+  document.getElementById('stat-fillrate').textContent = fillRate + '%';
+
+  document.getElementById('prog-txt').textContent = `${sold} / ${quota} tickets`;
+  document.getElementById('prog-fill').style.width = fillRate + '%';
+  document.getElementById('prog-pct').textContent = fillRate + '% vendu';
+  document.getElementById('prog-total').textContent = quota;
+
+  const colors = ['var(--green)','var(--gold)','var(--glow)'];
+  document.getElementById('prog-cats').innerHTML = cats.map((c,i) => `
+    <div class="prog-cat">
+      <div class="pc-name">${c.name} · ${c.price.toLocaleString('fr-FR')} F</div>
+      <div class="pc-bar"><div class="pc-fill" style="width:${c.quota?Math.round(c.sold/c.quota*100):0}%;background:${colors[i%3]}"></div></div>
+      <div class="pc-nums">${c.sold} / ${c.quota} <span style="color:var(--muted);font-weight:400">${c.sold>=c.quota&&c.quota>0?'(épuisé)':'vendus'}</span></div>
+    </div>`).join('') || '<div style="color:var(--muted);font-size:.85rem">Aucune catégorie de ticket</div>';
+
+  const link = location.origin + location.pathname.replace('festchill-event-detail.html','festchill-buy-ticket.html') + '?event=' + e.slug;
+  const shareLinkEl = document.getElementById('share-link-input');
+  shareLinkEl.href = link;
+  shareLinkEl.textContent = link;
+
+  const qrEl = document.getElementById('ev-qr');
+  if (typeof QRCode === 'undefined'){
+    qrEl.innerHTML = `<div style="font-size:.72rem;color:var(--red);padding:8px;line-height:1.4">QR code indisponible<br><a href="#" onclick="render();return false;" style="color:var(--glow)">Réessayer</a></div>`;
+  } else {
+    try{
+      qrEl.innerHTML = '';
+      const canvas = document.createElement('canvas');
+      qrEl.appendChild(canvas);
+      await QRCode.toCanvas(canvas, link, { width: 140, margin: 1 });
+    }catch(err){
+      console.error('Erreur génération QR :', err);
+      qrEl.innerHTML = `<div style="font-size:.72rem;color:var(--red);padding:8px;line-height:1.4">Échec de génération du QR<br><a href="#" onclick="render();return false;" style="color:var(--glow)">Réessayer</a></div>`;
+    }
+  }
+
+  document.querySelectorAll('.stat-num').forEach(fcCountUp);
+  await loadTickets();
+  await loadPendingOrders();
+  await loadRecentActivity();
+}
+
+// Revenus nets réels de CET événement (après commission Fest&Chill), au lieu du montant fictif codé en dur.
+async function loadNetRevenue(grossRevenue){
+  let rate = 10;
+  try{
+    const { data: cfg } = await supa.from('platform_config').select('commission_rate').eq('id', 1).single();
+    if (cfg?.commission_rate != null) rate = cfg.commission_rate;
+  }catch(err){
+    console.error('Impossible de charger le taux de commission, valeur par défaut utilisée :', err);
+  }
+  const net = Math.max(0, Math.round(grossRevenue * (1 - rate / 100)));
+  document.getElementById('ev-net-revenue').textContent = fcFormatFCFA(net);
+  document.getElementById('ev-commission-note').textContent = `Après commission Fest&Chill (${rate}%)`;
+}
+
+async function loadTickets(){
+  const { data: tickets, error } = await supa
+    .from('tickets')
+    .select('ticket_number, status, created_at, ticket_categories(name, price), orders(buyer_name, buyer_phone)')
+    .eq('event_id', currentEvent.id)
+    .order('created_at', { ascending: false });
+
+  const tbody = document.getElementById('tickets-tbody');
+  if (error || !tickets || !tickets.length){
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Aucun ticket vendu pour l\'instant</td></tr>';
+    return;
+  }
+  const badges = { Normal:'b-green', VIP:'b-gold', VVIP:'b-purple' };
+  tbody.innerHTML = tickets.map(t => `
+    <tr>
+      <td style="font-weight:700;color:var(--white)">N°${t.ticket_number<10?'0'+t.ticket_number:t.ticket_number}</td>
+      <td><span class="badge ${badges[t.ticket_categories?.name] || 'b-green'}">${t.ticket_categories?.name || '—'}</span></td>
+      <td style="color:var(--text)">${t.orders?.buyer_name||'—'}<br><span style="font-size:.72rem;color:var(--muted)">${t.orders?.buyer_phone||''}</span></td>
+      <td style="color:var(--gold);font-weight:700">${(t.ticket_categories?.price||0).toLocaleString('fr-FR')} F</td>
+      <td>${t.status==='used' ? `<span class="badge b-green">${FCI['check']} Scanné</span>` : t.status==='cancelled' ? '<span class="badge b-red">Annulé</span>' : t.status==='pending' ? '<span class="badge b-gold">En attente</span>' : `<span class="badge b-gold">${FCI['check']} Payé</span>`}</td>
+      <td style="color:var(--muted);font-size:.78rem">${fcFormatDate(t.created_at)}</td>
+    </tr>`).join('');
+}
+
+function fcTimeAgo(dateStr){
+  const diffSec = Math.max(0, Math.round((Date.now() - new Date(dateStr).getTime()) / 1000));
+  if (diffSec < 60) return "À l'instant";
+  const diffMin = Math.round(diffSec / 60);
+  if (diffMin < 60) return `Il y a ${diffMin} min`;
+  const diffH = Math.round(diffMin / 60);
+  if (diffH < 24) return `Il y a ${diffH} h`;
+  const diffJ = Math.round(diffH / 24);
+  return `Il y a ${diffJ} j`;
+}
+
+async function loadRecentActivity(){
+  const list = document.getElementById('activity-list');
+  const { data: orders, error } = await supa
+    .from('orders')
+    .select('id, amount, payment_operator, payment_status, created_at, ticket_categories(name), tickets(ticket_number)')
+    .eq('event_id', currentEvent.id)
+    .order('created_at', { ascending: false })
+    .limit(8);
+
+  if (error || !orders || !orders.length){
+    list.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted);font-size:.82rem">Aucune activité pour l'instant</div>`;
+    return;
+  }
+
+  list.innerHTML = orders.map(o => {
+    const catName = o.ticket_categories?.name || 'Ticket';
+    const operator = o.payment_operator ? o.payment_operator.toUpperCase() : '—';
+    const ticketNum = Array.isArray(o.tickets) ? o.tickets[0]?.ticket_number : o.tickets?.ticket_number;
+    const when = fcTimeAgo(o.created_at);
+    if (o.payment_status === 'paid'){
+      const label = ticketNum ? `Ticket N°${ticketNum} ${catName} vendu` : `${catName} vendu`;
+      return `<div class="activity-item">
+        <div class="a-dot" style="background:var(--green)"></div>
+        <div><div class="a-text">${label} <span style="color:var(--gold);font-weight:700">+${o.amount.toLocaleString('fr-FR')} F</span></div><div class="a-time">${when} · ${operator}</div></div>
+      </div>`;
+    }
+    if (o.payment_status === 'failed'){
+      return `<div class="activity-item">
+        <div class="a-dot" style="background:var(--red)"></div>
+        <div><div class="a-text">Paiement refusé — ${catName}</div><div class="a-time">${when} · ${operator}</div></div>
+      </div>`;
+    }
+    return `<div class="activity-item">
+      <div class="a-dot" style="background:var(--gold)"></div>
+      <div><div class="a-text">En attente de confirmation — ${catName}</div><div class="a-time">${when} · ${operator}</div></div>
+    </div>`;
+  }).join('');
+}
+
+async function loadPendingOrders(){
+  const { data, error } = await supa.rpc('pending_orders', { p_event_id: currentEvent.id });
+  const card = document.getElementById('pending-orders-card');
+  const list = document.getElementById('pending-orders-list');
+  const countEl = document.getElementById('pending-count');
+
+  if (error || !data || !data.length){
+    card.style.display = 'none';
+    return;
+  }
+
+  card.style.display = 'block';
+  countEl.textContent = data.length;
+  list.innerHTML = data.map(o => `
+    <div class="pending-order-row" id="pending-row-${o.order_id}">
+      <div class="pending-order-info">
+        <div class="po-title">${o.buyer_name || 'Sans nom'} — N°${o.ticket_number<10?'0'+o.ticket_number:o.ticket_number} ${o.category_name}</div>
+        <div class="po-sub">${o.buyer_phone} · ${(o.payment_operator||'').toUpperCase()} · ${o.amount.toLocaleString('fr-FR')} F · ${fcFormatDateTime(o.created_at)}</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="confirmPendingOrder('${o.order_id}')">Confirmer</button>
+      <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="rejectPendingOrder('${o.order_id}')">Refuser</button>
+    </div>`).join('');
+}
+
+async function refreshEventData(){
+  const { data: event } = await supa
+    .from('events')
+    .select('*, ticket_categories(*)')
+    .eq('id', currentEvent.id)
+    .single();
+  if (event) currentEvent = event;
+}
+
+async function confirmPendingOrder(orderId){
+  if (!confirm('Confirmer avoir bien reçu ce paiement Mobile Money ? Le ticket sera immédiatement valide pour l\'entrée.')) return;
+  const { error } = await supa.rpc('confirm_order_payment', { p_order_id: orderId });
+  if (error){ showToast('Erreur : ' + error.message, FCI['x-circle']); return; }
+  showToast('Paiement confirmé — ticket activé !', FCI['check-circle']);
+  await refreshEventData();
+  await loadPendingOrders();
+  await render();
+}
+
+async function rejectPendingOrder(orderId){
+  if (!confirm("Indiquer que ce paiement n'a jamais été reçu ? Le numéro de ticket redeviendra disponible pour un autre acheteur.")) return;
+  const { error } = await supa.rpc('reject_order_payment', { p_order_id: orderId });
+  if (error){ showToast('Erreur : ' + error.message, FCI['x-circle']); return; }
+  showToast('Paiement refusé — numéro libéré.', FCI['x-circle']);
+  await refreshEventData();
+  await loadPendingOrders();
+  await render();
+}
+
+async function toggleSuspend(){
+  const newStatus = currentEvent.status === 'suspended' ? 'published' : 'suspended';
+  const { error } = await supa.from('events').update({ status: newStatus }).eq('id', currentEvent.id);
+  if (error){ showToast('Erreur : ' + error.message, FCI['x-circle']); return; }
+  currentEvent.status = newStatus;
+  showToast(newStatus === 'suspended' ? 'Événement suspendu' : 'Événement republié', newStatus==='suspended'?FCI['pause']:FCI['check-circle']);
+  render();
+}
+
+async function copyLink(){
+  const linkEl = document.getElementById('share-link-input');
+  const value = linkEl.href;
+  if (!value || value === location.href + '#'){ showToast('Lien pas encore prêt', FCI['alert-triangle']); return; }
+
+  try{
+    if (navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(value);
+    } else {
+      // Repli pour les contextes sans API Clipboard (ex. navigateurs intégrés type
+      // Instagram/Facebook in-app, ou page servie hors HTTPS) : sans ce repli,
+      // l'appel ci-dessus échouait silencieusement et le toast mentait sur le succès.
+      const tmp = document.createElement('textarea');
+      tmp.value = value;
+      tmp.style.position = 'fixed';
+      tmp.style.opacity = '0';
+      document.body.appendChild(tmp);
+      tmp.focus();
+      tmp.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(tmp);
+      if (!ok) throw new Error('execCommand copy failed');
+    }
+    showToast('Lien copié dans le presse-papier !', FCI['clipboard']);
+  }catch(err){
+    console.error('Copie du lien échouée :', err);
+    showToast('Impossible de copier automatiquement — clique sur le lien pour l\'ouvrir et copie-le manuellement', FCI['alert-triangle']);
+  }
+}
+
+function shareTo(platform){
+  const link = encodeURIComponent(document.getElementById('share-link-input').href);
+  const text = encodeURIComponent('Découvre ' + currentEvent.title + ' sur Fest&Chill 🎉');
+  const urls = {
+    whatsapp: `https://wa.me/?text=${text}%20${link}`,
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${link}`
+  };
+  window.open(urls[platform], '_blank');
+}
+
+function downloadQR(){
+  const canvas = document.querySelector('#ev-qr canvas');
+  if (!canvas){ showToast('QR pas encore prêt', FCI['alert-triangle']); return; }
+  const link = document.createElement('a');
+  link.download = `festchill-qr-${currentEvent.slug}.png`;
+  link.href = canvas.toDataURL();
+  link.click();
+}
+
+boot();
+
+function showToast(msg,icon=FCI['check-circle']){
+
+  const t=document.getElementById('toast');
+  document.getElementById('toast-msg').textContent=msg;
+  document.getElementById('toast-icon').innerHTML=icon;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+</script>
+</body>
+</html>

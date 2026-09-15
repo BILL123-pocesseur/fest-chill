@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>(function(){
+  var t=localStorage.getItem('fc-theme')||'dark';
+  var light=t==='light'||(t==='auto'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches);
+  if(light)document.documentElement.setAttribute('data-theme','light');
+  var fcLang = localStorage.getItem('fc-lang')||'fr';
+  document.documentElement.lang = fcLang;
+  document.documentElement.dir = (fcLang === 'ar') ? 'rtl' : 'ltr';
+  var hex = localStorage.getItem('fc-accent');
+  if(hex){
+    function hexToRgb(h){h=h.replace('#','');if(h.length===3)h=h.split('').map(function(c){return c+c}).join('');var n=parseInt(h,16);return{r:(n>>16)&255,g:(n>>8)&255,b:n&255}}
+    function mix(a,b,amt){return{r:Math.round(a.r+(b.r-a.r)*amt),g:Math.round(a.g+(b.g-a.g)*amt),b:Math.round(a.b+(b.b-a.b)*amt)}}
+    function toHex(c){return '#'+[c.r,c.g,c.b].map(function(v){return Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0')}).join('').toUpperCase()}
+    var rgb=hexToRgb(hex);
+    var violet=mix(rgb,{r:0,g:0,b:0},0.28);
+    var glow=light?mix(rgb,{r:0,g:0,b:0},0.18):mix(rgb,{r:255,g:255,b:255},0.32);
+    var s=document.documentElement.style;
+    s.setProperty('--purple',hex);s.setProperty('--violet',toHex(violet));s.setProperty('--glow',toHex(glow));
+    s.setProperty('--accent-rgb',rgb.r+','+rgb.g+','+rgb.b);
+  }
+})();</script>
+<title>Portefeuille — Fest&Chill</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#071619;--deep:#0D2126;--surface:#123037;
+  --purple:#0EA5A0;--violet:#0B7A76;--glow:#5EEAD4;
+  --gold:#FF8A3D;--green:#34D399;--red:#FF5A5F;
+  --white:#F7FBFA;--muted:#7C9A9A;--text:#DCEEEC;
+  --sand:#FFD9A8;--card:rgba(14,165,160,.08);--border:rgba(94,234,212,.14);
+  --topbar-bg:rgba(13,10,30,.9);--accent-rgb:14,165,160;
+  --fd:'Bricolage Grotesque',sans-serif;--fb:'Manrope',sans-serif;--fm:'IBM Plex Mono',monospace;
+  --r:12px;--sidebar:240px;
+  /* Couleurs fixes pour le bandeau illustré (fc-hero) : ce bandeau a un fond
+     sombre codé en dur qui ne change PAS avec le thème clair/sombre. Le texte
+     posé dessus doit donc rester clair, quel que soit le thème actif. */
+  --hero-text:#F7FBFA;--hero-pill-bg:rgba(5,15,18,.55);--hero-pill-border:rgba(255,255,255,.16);
+}
+:root[data-theme="light"]{
+  --ink:#F3F8F7;--deep:#FFFFFF;--surface:#FFFFFF;
+  --purple:#0EA5A0;--violet:#0B7A76;--glow:#0B7A76;
+  --gold:#C9660D;--green:#0F9D58;--red:#DC2626;
+  --white:#0B2226;--muted:#5B7373;--text:#16302E;
+  --sand:#FFE3BE;--card:rgba(14,165,160,.06);--border:rgba(11,38,42,.12);
+  --topbar-bg:rgba(255,255,255,.82);--accent-rgb:14,165,160;
+}
+body{font-family:var(--fb);background:var(--ink);color:var(--text);display:flex;min-height:100vh}
+.sidebar{width:var(--sidebar);background:var(--deep);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;z-index:50}
+/* Arabe (RTL) : la sidebar passe à droite, le contenu se décale en miroir. */
+html[dir="rtl"] .sidebar{left:auto;right:0;border-right:none;border-left:1px solid var(--border)}
+html[dir="rtl"] .main{margin-left:0;margin-right:var(--sidebar)}
+html[dir="rtl"] body{direction:rtl}
+.sidebar-logo{padding:22px 20px;border-bottom:1px solid var(--border)}
+.sidebar-logo a{font-family:var(--fd);font-weight:800;font-size:1.25rem;color:var(--white);text-decoration:none}
+.sidebar-logo span{color:var(--glow)}
+.sidebar-nav{padding:16px 12px;flex:1}
+.nav-label{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;padding:10px 8px 4px}
+.s-link{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:.875rem;font-weight:500;margin-bottom:2px;transition:all .15s}
+.s-link:hover{background:var(--card);color:var(--white)}
+.s-link.active{background:rgba(var(--accent-rgb),.2);color:var(--glow);border:1px solid rgba(var(--accent-rgb),.2)}
+.s-link .ic{width:18px;text-align:center}
+.sidebar-footer{padding:14px 12px;border-top:1px solid var(--border)}
+.avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--glow));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;color:var(--white);flex-shrink:0}
+.user-pill{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px}
+.user-name{font-size:.82rem;font-weight:600;color:var(--white)}
+.user-role{font-size:.72rem;color:var(--muted)}
+.main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column}
+.topbar{padding:14px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--topbar-bg);backdrop-filter:blur(12px);position:sticky;top:0;z-index:40}
+.topbar-title{font-family:var(--fd);font-weight:700;font-size:1.05rem}
+.page{padding:28px}
+
+/* WALLET HERO */
+@keyframes walletShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.wallet-hero{background:linear-gradient(120deg,#0D2126,#123037,#0E2A2E,#0D2126);background-size:300% 300%;animation:walletShift 12s ease infinite;border:1px solid rgba(94,234,212,.3);border-radius:16px;padding:32px;margin-bottom:24px;position:relative;overflow:hidden;display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;align-items:center;box-shadow:0 22px 50px rgba(0,0,0,.35)}
+.wallet-hero::before{content:'';position:absolute;top:-60px;left:-60px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(14,165,160,.3),transparent 70%);pointer-events:none}
+.wallet-hero::after{content:'';position:absolute;bottom:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(255,138,61,.18),transparent 70%);pointer-events:none}
+.wh-block{position:relative;z-index:1}
+.wh-label{font-size:.72rem;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.wh-amount{font-family:var(--fm);font-size:2.1rem;font-weight:700;line-height:1;margin-bottom:4px;transition:transform .3s}
+.wallet-hero:hover .wh-amount{transform:scale(1.02)}
+.wh-sub{font-size:.8rem;color:rgba(255,255,255,.5)}
+.wh-divider{width:1px;height:80px;background:rgba(255,255,255,.1);position:relative;z-index:1}
+.wh-actions{display:flex;flex-direction:column;gap:10px;position:relative;z-index:1}
+
+/* RETRAIT MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(10px);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--deep);border:1px solid var(--border);border-radius:16px;padding:32px;width:420px;max-width:90vw}
+.modal-title{font-family:var(--fd);font-weight:800;font-size:1.2rem;margin-bottom:6px}
+.modal-sub{color:var(--muted);font-size:.85rem;margin-bottom:22px}
+.form-label{display:block;font-size:.75rem;font-weight:700;color:var(--muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:.7px}
+.form-input{width:100%;padding:12px 16px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text);font-family:var(--fb);font-size:.93rem;outline:none;transition:border-color .2s;margin-bottom:14px}
+.form-input:focus{border-color:var(--purple);background:rgba(var(--accent-rgb),.07)}
+.modal-actions{display:flex;gap:10px;margin-top:4px}
+.op-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.op-btn{padding:12px;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font-family:var(--fb);font-weight:700;font-size:.9rem;transition:all .2s;text-align:center}
+.op-btn.sel,.op-btn:hover{border-color:var(--purple);background:rgba(var(--accent-rgb),.15);color:var(--white)}
+.amount-input-wrap{position:relative;margin-bottom:14px}
+.amount-input-wrap .currency{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.85rem;pointer-events:none}
+
+/* STATS ROW */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px}
+.stat-lbl{font-size:.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px}
+.stat-num{font-family:var(--fm);font-size:1.4rem;font-weight:700;margin-bottom:4px}
+.stat-sub{font-size:.75rem;color:var(--muted)}
+
+/* TWO COL */
+.two-col{display:grid;grid-template-columns:1fr 340px;gap:20px}
+
+/* SECTION CARD */
+.section-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:16px}
+.section-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.section-head-title{font-family:var(--fd);font-weight:700;font-size:.9rem}
+
+/* TRANSACTIONS */
+.tx-item{display:flex;align-items:center;gap:14px;padding:14px 20px;border-top:1px solid var(--border);transition:background .15s}
+.tx-item:hover{background:rgba(255,255,255,.02)}
+.tx-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.tx-icon.green{background:rgba(16,185,129,.12);color:var(--green)}
+.tx-icon.red{background:rgba(239,68,68,.12);color:var(--red)}
+.tx-icon.gold{background:rgba(245,158,11,.12);color:var(--gold)}
+.tx-info{flex:1;min-width:0}
+.tx-title{font-size:.86rem;font-weight:600;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx-sub{font-size:.75rem;color:var(--muted);margin-top:1px}
+.tx-amount{font-family:var(--fd);font-weight:700;font-size:.95rem;white-space:nowrap}
+.tx-amount.in{color:var(--green)}
+.tx-amount.out{color:var(--red)}
+.tx-amount.neutral{color:var(--gold)}
+
+/* CHART MINI */
+.chart-wrap{padding:20px;height:140px;display:flex;align-items:flex-end;gap:6px}
+.bar-w{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px}
+.bar-b{width:100%;border-radius:4px 4px 0 0;min-height:3px;cursor:pointer;transition:all .3s}
+.bar-b:hover{filter:brightness(1.3)}
+.bar-lbl{font-size:.63rem;color:var(--muted)}
+
+/* WITHDRAWAL HISTORY */
+.wd-item{display:flex;align-items:center;gap:12px;padding:12px 20px;border-top:1px solid var(--border)}
+.wd-icon{font-size:1.2rem}
+.wd-info{flex:1}
+.wd-title{font-size:.84rem;font-weight:600;color:var(--white)}
+.wd-sub{font-size:.73rem;color:var(--muted);margin-top:1px}
+.wd-amount{font-family:var(--fd);font-weight:700;color:var(--red);font-size:.9rem}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:100px;font-size:.7rem;font-weight:700}
+.b-green{background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.25)}
+.b-gold{background:rgba(245,158,11,.12);color:var(--gold);border:1px solid rgba(245,158,11,.25)}
+.b-red{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:8px;font-size:.88rem;font-weight:600;cursor:pointer;font-family:var(--fb);border:none;transition:all .18s;text-decoration:none}
+.btn-primary{background:var(--purple);color:var(--white)}
+.btn-primary:hover{background:var(--violet);transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--glow);color:var(--white)}
+.btn-lg{padding:13px 24px;font-size:.95rem}
+.btn-sm{padding:6px 12px;font-size:.78rem;border-radius:6px}
+
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid rgba(16,185,129,.4);border-radius:10px;padding:14px 20px;display:flex;align-items:center;gap:10px;font-size:.88rem;font-weight:500;z-index:999;transform:translateY(60px);opacity:0;transition:all .3s;box-shadow:0 20px 40px rgba(0,0,0,.4)}
+.toast.show{transform:none;opacity:1}
+
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%)}
+  .main{margin-left:0}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .two-col{grid-template-columns:1fr}
+  .wallet-hero{grid-template-columns:1fr}
+}
+
+
+/* ============================================================
+   FEST&CHILL — v3 DESIGN SYSTEM
+   Palette: deep teal night + golden-hour amber + coral energy.
+   No purple. Illustrated sunset-festival motif as signature.
+   ============================================================ */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shimmerMove{0%{background-position:-160% 0}100%{background-position:160% 0}}
+@keyframes livedot{0%,100%{box-shadow:0 0 0 0 rgba(255,90,95,.5)}70%{box-shadow:0 0 0 8px rgba(255,90,95,0)}}
+@keyframes sunDrift{0%,100%{transform:translate(0,0)}50%{transform:translate(-1.2%,-1%)}}
+@keyframes twinkle{0%,100%{opacity:.55}50%{opacity:1}}
+@keyframes grainshift{0%,100%{transform:translate(0,0)}50%{transform:translate(-2%,-1%)}}
+@keyframes popIn{0%{opacity:0;transform:scale(.9)}100%{opacity:1;transform:scale(1)}}
+
+html{scroll-behavior:smooth}
+body{position:relative}
+body::before{content:'';position:fixed;inset:-10%;z-index:0;pointer-events:none;opacity:.5;
+  background-image:radial-gradient(circle at 16% 10%,rgba(14,165,160,.14),transparent 42%),
+                    radial-gradient(circle at 90% 85%,rgba(255,138,61,.08),transparent 42%);
+}
+body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.03;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grainshift 9s steps(2) infinite;
+}
+
+/* entrance choreography */
+.page>*,#app>*{opacity:1;animation:fadeUp .6s cubic-bezier(.16,1,.3,1) both}
+.page>*:nth-child(1),#app>*:nth-child(1){animation-delay:.02s}
+.page>*:nth-child(2),#app>*:nth-child(2){animation-delay:.08s}
+.page>*:nth-child(3),#app>*:nth-child(3){animation-delay:.14s}
+.page>*:nth-child(4),#app>*:nth-child(4){animation-delay:.2s}
+.page>*:nth-child(5),#app>*:nth-child(5){animation-delay:.26s}
+.page>*:nth-child(6),#app>*:nth-child(6){animation-delay:.32s}
+.stats-row .stat-card:nth-child(1){animation-delay:.05s}
+.stats-row .stat-card:nth-child(2){animation-delay:.11s}
+.stats-row .stat-card:nth-child(3){animation-delay:.17s}
+.stats-row .stat-card:nth-child(4){animation-delay:.23s}
+
+/* card lift */
+.stat-card,.section-card,.share-card,.qr-card,.prog-card,.info-section,.ticket-detail-card{
+  transition:transform .35s cubic-bezier(.16,1,.3,1),box-shadow .35s,border-color .35s;
+}
+.stat-card:hover{transform:translateY(-5px);box-shadow:0 18px 36px rgba(14,165,160,.16);border-color:rgba(94,234,212,.4)}
+.section-card:hover,.share-card:hover,.info-section:hover{border-color:rgba(94,234,212,.25)}
+
+/* buttons */
+.btn{position:relative;overflow:hidden;letter-spacing:.01em}
+.btn-primary{background:linear-gradient(135deg,var(--purple),var(--violet))}
+.btn-primary::before{content:'';position:absolute;top:0;left:-120%;width:55%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-20deg);transition:left .55s}
+.btn-primary:hover:not(:disabled)::before{left:130%}
+.btn-primary:hover:not(:disabled){box-shadow:0 12px 26px rgba(14,165,160,.35);transform:translateY(-2px)}
+.btn-primary:active:not(:disabled){transform:translateY(0) scale(.98)}
+.btn-ghost:hover{transform:translateY(-1px)}
+
+/* progress */
+.prog-fill,.pc-fill{position:relative;overflow:hidden;background-size:250% 100%}
+.prog-fill::after,.pc-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);animation:shimmerMove 2.6s linear infinite}
+
+/* status pill — clean, professional (no tilt/stamp gimmick) */
+.pill-status{
+  font-family:var(--fm);text-transform:uppercase;letter-spacing:.08em;font-weight:600;font-size:.72rem;
+  border:1.5px solid currentColor;border-radius:100px;padding:5px 13px 5px 10px;
+  display:inline-flex;align-items:center;gap:7px;
+}
+.pill-status .livedot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:livedot 1.8s infinite}
+
+input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(14,165,160,.2)}
+.avatar{transition:transform .3s}
+.sidebar-footer:hover .avatar{transform:scale(1.06)}
+.s-link{transition:all .2s cubic-bezier(.34,1.56,.64,1)}
+.s-link:hover{transform:translateX(3px)}
+tr{transition:background .2s}
+
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:var(--ink)}
+::-webkit-scrollbar-thumb{background:var(--card);border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:var(--purple)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ===== illustrated hero (shared across pages) ===== */
+.fc-hero{position:relative;overflow:hidden;border-radius:18px;min-height:300px;display:flex;flex-direction:column;justify-content:flex-end;box-shadow:0 24px 55px rgba(0,0,0,.35)}
+.illus-hero{position:absolute;inset:0;width:100%;height:100%;z-index:0}
+.illus-sun{animation:sunDrift 10s ease-in-out infinite}
+.illus-lights circle{animation:twinkle 2.6s ease-in-out infinite}
+.illus-lights circle:nth-child(odd){animation-delay:-1.3s}
+.fc-hero-content{position:relative;z-index:1;padding:34px 5% 28px;display:flex;flex-direction:column;gap:14px}
+.fc-hero-topbar{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-start;padding:20px 5% 0}
+.fc-chip{opacity:1;background:var(--hero-pill-bg);backdrop-filter:blur(10px);border:1px solid var(--hero-pill-border);border-radius:100px;padding:7px 16px;font-size:.8rem;font-weight:700;display:flex;align-items:center;gap:8px;animation:popIn .5s .1s cubic-bezier(.2,1.4,.4,1) both;color:var(--hero-text)}
+.fc-hero-title{font-family:var(--fd);font-weight:800;font-size:clamp(1.7rem,4vw,2.7rem);line-height:1.06;letter-spacing:-.01em;text-shadow:0 4px 24px rgba(0,0,0,.4);color:var(--hero-text)}
+.fc-hero-meta{display:flex;flex-wrap:wrap;gap:10px}
+.fc-meta-pill{background:var(--hero-pill-bg);backdrop-filter:blur(8px);border:1px solid var(--hero-pill-border);border-radius:100px;padding:6px 14px;font-size:.82rem;display:flex;align-items:center;gap:7px;color:var(--hero-text)}
+
+
+/* ===== icon system ===== */
+.icn{width:1.15em;height:1.15em;display:inline-block;vertical-align:-0.22em;flex-shrink:0}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;vertical-align:middle;flex-shrink:0}
+.s-link .ic{display:inline-flex;align-items:center;justify-content:center;width:18px;flex-shrink:0}
+.s-link .ic .icn{width:18px;height:18px;vertical-align:0}
+.btn .icn,.badge .icn,.pill-status .icn,.stamp .icn{vertical-align:-0.18em}
+.topbar-title .icn,.section-head-title .icn,.info-title .icn{width:1.05em;height:1.05em;vertical-align:-0.15em;margin-right:2px}
+.result-icon .icn{width:1em;height:1em}
+
+
+.illus{width:100%;height:auto;display:block}
+
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo"><a href="festchill-landing.html">Fest<span>&</span>Chill</a></div>
+  <nav class="sidebar-nav">
+    <div class="nav-label" data-i18n="nav.group_main">Principal</div>
+    <a href="festchill-dashboard.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9.5a1 1 0 0 0 1 1h4v-6h2v6h4a1 1 0 0 0 1-1V10"/></svg></span> <span data-i18n="nav.dashboard">Dashboard</span></a>
+    <a href="festchill-create-event.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> <span data-i18n="nav.create_event">Créer un événement</span></a>
+    <a href="festchill-events.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2.2"/><line x1="3.5" y1="10" x2="20.5" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg></span> <span data-i18n="nav.my_events">Mes événements</span></a>
+    <a href="festchill-tickets.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.5a2 2 0 0 0 0 4V16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.5a2 2 0 0 0 0-4Z"/><line x1="10" y1="6" x2="10" y2="18" stroke-dasharray="2 2.4"/></svg></span> <span data-i18n="nav.tickets_sold">Tickets vendus</span></a>
+    <div class="nav-label" data-i18n="nav.group_finance">Finances</div>
+    <a href="festchill-wallet.html" class="s-link active"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M17 11.5h2.5a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5H17a2 2 0 0 1 0-4Z"/><line x1="3" y1="8.7" x2="21" y2="8.7"/></svg></span> <span data-i18n="nav.wallet">Portefeuille</span></a>
+    <a href="festchill-transactions.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="20" x2="5" y2="11"/><line x1="12" y1="20" x2="12" y2="5"/><line x1="19" y1="20" x2="19" y2="14"/></svg></span> <span data-i18n="nav.transactions">Transactions</span></a>
+    <div class="nav-label" data-i18n="nav.group_tools">Outils</div>
+    <a href="festchill-scanner.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.2A1.7 1.7 0 0 1 5.7 6.5h2.1l1-1.7h6.4l1 1.7h2.1A1.7 1.7 0 0 1 20 8.2v9.1a1.7 1.7 0 0 1-1.7 1.7H5.7A1.7 1.7 0 0 1 4 17.3Z"/><circle cx="12" cy="12.4" r="3.4"/></svg></span> <span data-i18n="nav.scanner">Scanner QR</span></a>
+    <a href="festchill-settings.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2.06 2.06 0 1 1-2.92 2.92l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56v.17a2.06 2.06 0 1 1-4.12 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2.06 2.06 0 1 1-2.92-2.92l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03h-.17a2.06 2.06 0 1 1 0-4.12h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2.06 2.06 0 1 1 2.92-2.92l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1.03-1.56v-.17a2.06 2.06 0 1 1 4.12 0v.09a1.7 1.7 0 0 0 1.03 1.56h.08a1.7 1.7 0 0 0 1.87-.34l.06-.06a2.06 2.06 0 1 1 2.92 2.92l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.03h.17a2.06 2.06 0 1 1 0 4.12h-.09a1.7 1.7 0 0 0-1.56 1.03Z"/></svg></span> <span data-i18n="nav.settings">Paramètres</span></a>
+    <div class="nav-label" data-i18n="nav.group_admin">Admin</div>
+    <a href="festchill-admin.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 4.5 6.3v5.4c0 4.7 3.2 8.6 7.5 9.8 4.3-1.2 7.5-5.1 7.5-9.8V6.3Z"/><path d="M9.2 12.2l1.9 1.9 3.7-3.9"/></svg></span> <span data-i18n="nav.admin">Administration</span></a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-pill">
+      <div class="avatar" id="side-avatar">–</div>
+      <div><div class="user-name" id="side-name">Chargement…</div><div class="user-role">Organisateur</div></div>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M17 11.5h2.5a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5H17a2 2 0 0 1 0-4Z"/><line x1="3" y1="8.7" x2="21" y2="8.7"/></svg> <span data-i18n="topbar.wallet">Portefeuille</span></div>
+    <button class="btn btn-primary btn-sm" onclick="openModal()" data-i18n="wallet.withdraw_money">Retirer de l'argent</button>
+  </div>
+
+  <div class="page">
+    <!-- WALLET HERO -->
+    <div class="wallet-hero">
+      <div class="wh-block">
+        <div class="wh-label" data-i18n="dashboard.stat_balance">Solde disponible</div>
+        <div class="wh-amount" style="color:var(--gold)" id="wh-available">— <span style="font-size:1rem;font-weight:400;opacity:.6">FCFA</span></div>
+        <div class="wh-sub" data-i18n="wallet.ready_withdraw">Prêt à retirer</div>
+      </div>
+      <div class="wh-divider"></div>
+      <div class="wh-block">
+        <div class="wh-label" data-i18n="wallet.total_earned">Total encaissé (net, tout temps)</div>
+        <div class="wh-amount" style="color:var(--white)" id="wh-earned">— <span style="font-size:1rem;font-weight:400;opacity:.6">FCFA</span></div>
+        <div class="wh-sub" id="wh-earned-sub">—</div>
+      </div>
+      <div class="wh-divider"></div>
+      <div class="wh-block">
+        <div class="wh-label" data-i18n="transactions.stat_withdrawn">Total retiré</div>
+        <div class="wh-amount" style="color:var(--glow)" id="wh-withdrawn">— <span style="font-size:1rem;font-weight:400;opacity:.6">FCFA</span></div>
+        <div class="wh-sub" id="wh-withdrawn-sub">—</div>
+        <div class="wh-actions" style="margin-top:16px">
+          <button class="btn btn-primary btn-lg" onclick="openModal()"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="19" height="11" rx="2"/><circle cx="12" cy="12" r="3"/><line x1="6" y1="9.3" x2="6" y2="9.3"/><line x1="18" y1="14.7" x2="18" y2="14.7"/></svg> Retirer maintenant</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-lbl" data-i18n="wallet.sales_today">Ventes aujourd'hui</div>
+        <div class="stat-num" style="color:var(--green)" id="stat-today">—</div>
+        <div class="stat-sub" id="stat-today-sub">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-lbl" data-i18n="wallet.this_week">Cette semaine</div>
+        <div class="stat-num" style="color:var(--glow)" id="stat-week">—</div>
+        <div class="stat-sub" id="stat-week-sub">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-lbl" data-i18n="wallet.commission_charged">Commission prélevée</div>
+        <div class="stat-num" style="color:var(--muted)" id="stat-commission">—</div>
+        <div class="stat-sub" id="stat-commission-sub">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-lbl" data-i18n="wallet.next_withdraw_min">Prochain retrait min.</div>
+        <div class="stat-num" style="color:var(--white)">1 000 F</div>
+        <div class="stat-sub" data-i18n="wallet.no_high_minimum">Pas de minimum élevé</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <!-- LEFT -->
+      <div>
+        <!-- REVENUS CHART -->
+        <div class="section-card" style="margin-bottom:20px">
+          <div class="section-head">
+            <span class="section-head-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 16 10 10 14 14 20 6"/><polyline points="14.5 6 20 6 20 11.5"/></svg> Revenus des 30 derniers jours</span>
+            <select style="padding:5px 10px;border-radius:6px;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:.75rem;outline:none">
+              <option>30 jours</option><option>7 jours</option><option>3 mois</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:16px;align-items:center;padding:0 20px 4px">
+            <div style="width:60px;flex-shrink:0"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
+  <line x1="40" y1="140" x2="210" y2="140" stroke="#1E4750" stroke-width="2"/>
+  <rect x="55" y="104" width="20" height="36" rx="3" fill="#123037" stroke="#0EA5A0" stroke-width="2"/>
+  <rect x="88" y="80" width="20" height="60" rx="3" fill="#123037" stroke="#0EA5A0" stroke-width="2"/>
+  <rect x="121" y="58" width="20" height="82" rx="3" fill="#0EA5A0" opacity=".25" stroke="#0EA5A0" stroke-width="2"/>
+  <rect x="154" y="94" width="20" height="46" rx="3" fill="#123037" stroke="#0EA5A0" stroke-width="2"/>
+  <polyline points="60 100 98 74 131 50 164 84" fill="none" stroke="#FF8A3D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="131" cy="50" r="4" fill="#FF8A3D"/>
+  <circle cx="164" cy="84" r="3" fill="#FF8A3D"/>
+  <circle cx="98" cy="74" r="3" fill="#FF8A3D"/>
+  <circle cx="60" cy="100" r="3" fill="#FF8A3D"/>
+</svg></div>
+            <div style="font-size:.78rem;color:var(--muted)">Tes revenus progressent régulièrement. Les pics correspondent aux soirs de forte affluence.</div>
+          </div>
+          <div class="chart-wrap" id="chart"></div>
+        </div>
+
+        <!-- TRANSACTIONS -->
+        <div class="section-card">
+          <div class="section-head">
+            <span class="section-head-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5" width="13" height="16" rx="2"/><rect x="9" y="3" width="6" height="3.4" rx="1"/></svg> Toutes les transactions</span>
+            <div style="display:flex;gap:8px">
+              <select style="padding:5px 10px;border-radius:6px;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:.75rem;outline:none">
+                <option>Tous</option><option>Entrées</option><option>Retraits</option>
+              </select>
+              <button class="btn btn-ghost btn-sm" onclick="showToast('Export CSV téléchargé !',FCI['download'])"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11.5"/><polyline points="7.5 11 12 15.5 16.5 11"/><path d="M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7"/></svg> Export</button>
+            </div>
+          </div>
+          <div id="tx-list"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div>
+        <!-- MOBILE MONEY INFO -->
+        <div class="section-card" style="margin-bottom:16px">
+          <div class="section-head" style="padding:14px 18px">
+            <span class="section-head-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><line x1="11" y1="18.3" x2="13" y2="18.3"/></svg> Mon Mobile Money</span>
+            <button class="btn btn-ghost btn-sm" onclick="openAddNumberModal()">+ Ajouter</button>
+          </div>
+          <div style="padding:0 18px;display:flex;gap:14px;align-items:center">
+            <div style="width:52px;flex-shrink:0"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
+  <rect x="88" y="26" width="64" height="120" rx="12" fill="#0D2126" stroke="#0EA5A0" stroke-width="2.5"/>
+  <rect x="96" y="42" width="48" height="80" rx="4" fill="#123037"/>
+  <circle cx="120" cy="132" r="6" fill="none" stroke="#0EA5A0" stroke-width="2"/>
+  <text x="120" y="90" text-anchor="middle" font-family="monospace" font-size="15" fill="#FFD9A8" font-weight="700">FCFA</text>
+  <path d="M56 58a20 20 0 0 1 0 28" fill="none" stroke="#5EEAD4" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
+  <path d="M46 50a30 30 0 0 1 0 44" fill="none" stroke="#5EEAD4" stroke-width="2.5" stroke-linecap="round" opacity=".4"/>
+  <circle cx="184" cy="72" r="14" fill="none" stroke="#FF8A3D" stroke-width="2.5"/>
+  <text x="184" y="77" text-anchor="middle" font-family="monospace" font-size="14" fill="#FF8A3D" font-weight="700">₣</text>
+  <circle cx="60" cy="130" r="3" fill="#FF8A3D"/>
+  <circle cx="196" cy="130" r="3" fill="#34D399"/>
+</svg></div>
+            <div style="font-size:.76rem;color:var(--muted);padding-bottom:8px" data-i18n="wallet.numbers_hint">Tes numéros liés reçoivent tes paiements automatiquement, sans délai.</div>
+          </div>
+          <div style="padding:10px 18px 18px" id="wallet-mm-list">
+            <div style="text-align:center;padding:14px;color:var(--muted);font-size:.85rem">Chargement…</div>
+          </div>
+        </div>
+
+        <!-- RETRAIT HISTORY -->
+        <div class="section-card">
+          <div class="section-head" style="padding:14px 18px">
+            <span class="section-head-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="19" height="11" rx="2"/><circle cx="12" cy="12" r="3"/><line x1="6" y1="9.3" x2="6" y2="9.3"/><line x1="18" y1="14.7" x2="18" y2="14.7"/></svg> Historique des retraits</span>
+          </div>
+          <div id="wd-list"><div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem" data-i18n="common.loading">Chargement…</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- RETRAIT MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div style="width:64px;margin:0 auto 4px"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
+  <path d="M78 150 60 96a10 10 0 0 1 12.6-12.6L150 108a10 10 0 0 1 3 17.6l-52 30a10 10 0 0 1-23-5.6Z" fill="#123037" stroke="#FF8A3D" stroke-width="2.2" stroke-linejoin="round"/>
+  <line x1="96" y1="94" x2="150" y2="60" stroke="#0EA5A0" stroke-width="2" stroke-linecap="round" opacity=".6"/>
+  <line x1="110" y1="108" x2="176" y2="88" stroke="#5EEAD4" stroke-width="2" stroke-linecap="round" opacity=".5"/>
+  <circle cx="150" cy="60" r="3.5" fill="#5EEAD4"/>
+  <circle cx="176" cy="88" r="3" fill="#5EEAD4"/>
+  <circle cx="188" cy="56" r="3" fill="#34D399"/>
+  <circle cx="60" cy="60" r="3" fill="#FFD9A8"/>
+  <rect x="160" y="34" width="7" height="7" rx="1.5" fill="#34D399" transform="rotate(20 163 37)"/>
+  <rect x="70" y="44" width="7" height="7" rx="1.5" fill="#FF8A3D" transform="rotate(-15 73 47)"/>
+  <rect x="196" y="100" width="7" height="7" rx="1.5" fill="#5EEAD4" transform="rotate(30 199 103)"/>
+  <ellipse cx="105" cy="160" rx="46" ry="7" fill="#0B1E23"/>
+</svg></div>
+    <div class="modal-title" style="justify-content:center"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="19" height="11" rx="2"/><circle cx="12" cy="12" r="3"/><line x1="6" y1="9.3" x2="6" y2="9.3"/><line x1="18" y1="14.7" x2="18" y2="14.7"/></svg> Retirer de l'argent</div>
+    <div class="modal-sub" data-i18n="wallet.arrival_hint">L'argent arrive sur ton Mobile Money en 5 à 10 minutes.</div>
+
+    <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:14px;text-align:center;margin-bottom:20px">
+      <div style="font-size:.72rem;color:rgba(245,158,11,.7);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px">Solde disponible</div>
+      <div style="font-family:var(--fd);font-size:1.8rem;font-weight:800;color:var(--gold)" id="modal-balance">0 FCFA</div>
+    </div>
+
+    <div class="form-label" data-i18n="wallet.receiving_number">Numéro de réception</div>
+    <select class="form-input" id="wd-phone-select" onchange="onWithdrawPhoneChange()"></select>
+    <div id="wd-no-number-hint" style="display:none;font-size:.76rem;color:var(--gold);margin:6px 0 0">Tu n'as aucun numéro Mobile Money enregistré. <a href="festchill-settings.html?panel=mobile" style="color:var(--glow)">Ajoutes-en un dans Paramètres</a> avant de retirer.</div>
+
+    <div class="form-label" data-i18n="wallet.amount_to_withdraw">Montant à retirer (FCFA)</div>
+    <div class="amount-input-wrap">
+      <input type="number" class="form-input" id="withdraw-amount" value="487300" min="1000" max="487300" oninput="updateWithdraw()">
+      <span class="currency">FCFA</span>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="setAmount(50000)">50 000</button>
+      <button class="btn btn-ghost btn-sm" onclick="setAmount(100000)">100 000</button>
+      <button class="btn btn-ghost btn-sm" onclick="setAmount(200000)">200 000</button>
+      <button class="btn btn-ghost btn-sm" onclick="setAmount(487300)">Tout</button>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="closeModal()" data-i18n="common.cancel">Annuler</button>
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="processWithdraw()">Confirmer le retrait</button>
+    </div>
+  </div>
+</div>
+
+<!-- AJOUTER UN NUMÉRO MOBILE MONEY -->
+<div class="modal-overlay" id="modal-add-number">
+  <div class="modal">
+    <div class="modal-title" style="justify-content:center"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><line x1="11" y1="18.3" x2="13" y2="18.3"/></svg> Ajouter un numéro</div>
+    <div class="modal-sub">Ce numéro pourra recevoir tes retraits une fois enregistré.</div>
+
+    <div class="form-label" data-i18n="wallet.operator_label">Opérateur</div>
+    <div class="op-grid">
+      <button class="op-btn sel" id="add-op-mtn" onclick="selAddOp('mtn')"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><line x1="11" y1="18.3" x2="13" y2="18.3"/></svg> MTN Money</button>
+      <button class="op-btn" id="add-op-moov" onclick="selAddOp('moov')"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><line x1="11" y1="18.3" x2="13" y2="18.3"/></svg> Moov Money</button>
+    </div>
+
+    <div class="form-label">Numéro de téléphone</div>
+    <input type="tel" class="form-input" id="add-number-phone" placeholder="+229 97 12 34 56">
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="closeAddNumberModal()" data-i18n="common.cancel">Annuler</button>
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="saveNewNumber()">Ajouter ce numéro</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toast-icon"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 10.8 15.3 16 9.5"/></svg></span><span id="toast-msg"></span></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase-client.js"></script>
+<script>
+const FCI = {
+  'check': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"20 6 9 17 4 12\"/></svg>",
+  'check-circle': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><polyline points=\"8 12.5 10.8 15.3 16 9.5\"/></svg>",
+  'x-circle': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><line x1=\"9\" y1=\"9\" x2=\"15\" y2=\"15\"/><line x1=\"15\" y1=\"9\" x2=\"9\" y2=\"15\"/></svg>",
+  'x': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"6\" y1=\"6\" x2=\"18\" y2=\"18\"/><line x1=\"18\" y1=\"6\" x2=\"6\" y2=\"18\"/></svg>",
+  'smartphone': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"7\" y=\"2.5\" width=\"10\" height=\"19\" rx=\"2.2\"/><line x1=\"11\" y1=\"18.3\" x2=\"13\" y2=\"18.3\"/></svg>",
+  'ticket': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 9.5V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.5a2 2 0 0 0 0 4V16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.5a2 2 0 0 0 0-4Z\"/><line x1=\"10\" y1=\"6\" x2=\"10\" y2=\"18\" stroke-dasharray=\"2 2.4\"/></svg>",
+  'star': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3.5 14.6 9.1 20.8 9.9 16.3 14.1 17.5 20.2 12 17.1 6.5 20.2 7.7 14.1 3.2 9.9 9.4 9.1Z\"/></svg>",
+  'download': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3.5v11.5\"/><polyline points=\"7.5 11 12 15.5 16.5 11\"/><path d=\"M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7\"/></svg>",
+  'upload': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 20.5V9\"/><polyline points=\"7.5 13 12 8.5 16.5 13\"/><path d=\"M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7\"/></svg>",
+  'cash': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"2.5\" y=\"6.5\" width=\"19\" height=\"11\" rx=\"2\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/><line x1=\"6\" y1=\"9.3\" x2=\"6\" y2=\"9.3\"/><line x1=\"18\" y1=\"14.7\" x2=\"18\" y2=\"14.7\"/></svg>",
+  'calendar': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3.5\" y=\"5\" width=\"17\" height=\"16\" rx=\"2.2\"/><line x1=\"3.5\" y1=\"10\" x2=\"20.5\" y2=\"10\"/><line x1=\"8\" y1=\"3\" x2=\"8\" y2=\"7\"/><line x1=\"16\" y1=\"3\" x2=\"16\" y2=\"7\"/></svg>",
+  'settings': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"3.2\"/><path d=\"M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2.06 2.06 0 1 1-2.92 2.92l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56v.17a2.06 2.06 0 1 1-4.12 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2.06 2.06 0 1 1-2.92-2.92l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03h-.17a2.06 2.06 0 1 1 0-4.12h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2.06 2.06 0 1 1 2.92-2.92l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1.03-1.56v-.17a2.06 2.06 0 1 1 4.12 0v.09a1.7 1.7 0 0 0 1.03 1.56h.08a1.7 1.7 0 0 0 1.87-.34l.06-.06a2.06 2.06 0 1 1 2.92 2.92l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.03h.17a2.06 2.06 0 1 1 0 4.12h-.09a1.7 1.7 0 0 0-1.56 1.03Z\"/></svg>",
+  'lock': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"4.5\" y=\"10.5\" width=\"15\" height=\"10\" rx=\"2.2\"/><path d=\"M7.5 10.5V7.2a4.5 4.5 0 0 1 9 0v3.3\"/></svg>",
+  'wallet': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 7.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z\"/><path d=\"M17 11.5h2.5a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5H17a2 2 0 0 1 0-4Z\"/><line x1=\"3\" y1=\"8.7\" x2=\"21\" y2=\"8.7\"/></svg>",
+  'plus': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"12\" y1=\"5\" x2=\"12\" y2=\"19\"/><line x1=\"5\" y1=\"12\" x2=\"19\" y2=\"12\"/></svg>",
+  'camera': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 8.2A1.7 1.7 0 0 1 5.7 6.5h2.1l1-1.7h6.4l1 1.7h2.1A1.7 1.7 0 0 1 20 8.2v9.1a1.7 1.7 0 0 1-1.7 1.7H5.7A1.7 1.7 0 0 1 4 17.3Z\"/><circle cx=\"12\" cy=\"12.4\" r=\"3.4\"/></svg>",
+  'bar-chart': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"5\" y1=\"20\" x2=\"5\" y2=\"11\"/><line x1=\"12\" y1=\"20\" x2=\"12\" y2=\"5\"/><line x1=\"19\" y1=\"20\" x2=\"19\" y2=\"14\"/></svg>",
+  'alert-triangle': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 4 21.5 20H2.5Z\" stroke-linejoin=\"round\"/><line x1=\"12\" y1=\"10\" x2=\"12\" y2=\"14.5\"/><line x1=\"12\" y1=\"17.3\" x2=\"12\" y2=\"17.3\"/></svg>",
+  'clipboard': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"5.5\" y=\"5\" width=\"13\" height=\"16\" rx=\"2\"/><rect x=\"9\" y=\"3\" width=\"6\" height=\"3.4\" rx=\"1\"/></svg>",
+  'home': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 11.5 12 4l8 7.5\"/><path d=\"M6 10v9.5a1 1 0 0 0 1 1h4v-6h2v6h4a1 1 0 0 0 1-1V10\"/></svg>",
+  'trending-up': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"4 16 10 10 14 14 20 6\"/><polyline points=\"14.5 6 20 6 20 11.5\"/></svg>",
+  'refresh': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 12a8 8 0 0 1 13.66-5.66L20 8.5\"/><polyline points=\"20 4 20 8.5 15.5 8.5\"/><path d=\"M20 12a8 8 0 0 1-13.66 5.66L4 15.5\"/><polyline points=\"4 20 4 15.5 8.5 15.5\"/></svg>",
+  'music': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M9 18.3a2.7 2.7 0 1 1-2.7-2.7A2.7 2.7 0 0 1 9 18.3Z\"/><path d=\"M19 16.3a2.7 2.7 0 1 1-2.7-2.7 2.7 2.7 0 0 1 2.7 2.7Z\"/><path d=\"M9 18.3V6.5l10-2v11.8\"/></svg>",
+  'siren': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 15a6 6 0 0 1 12 0v2H6Z\"/><line x1=\"4\" y1=\"20\" x2=\"20\" y2=\"20\"/><line x1=\"12\" y1=\"6\" x2=\"12\" y2=\"3.5\"/><line x1=\"7\" y1=\"7.5\" x2=\"5.5\" y2=\"6\"/><line x1=\"17\" y1=\"7.5\" x2=\"18.5\" y2=\"6\"/></svg>",
+  'message-circle': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 12a8 8 0 1 1 3.5 6.6L4 20l1.3-3.6A7.96 7.96 0 0 1 4 12Z\"/></svg>",
+  'search': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"10.5\" cy=\"10.5\" r=\"6.5\"/><line x1=\"15.3\" y1=\"15.3\" x2=\"20.5\" y2=\"20.5\"/></svg>",
+  'edit': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M14 5.5 18.5 10 8 20.5H3.5V16Z\"/><line x1=\"12\" y1=\"7.5\" x2=\"16.5\" y2=\"12\"/></svg>",
+  'user': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"8\" r=\"3.6\"/><path d=\"M4.5 20a7.5 7.5 0 0 1 15 0\"/></svg>",
+  'users': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"9\" cy=\"8.2\" r=\"3.2\"/><path d=\"M3 19a6 6 0 0 1 12 0\"/><path d=\"M15.5 5.5a3.2 3.2 0 0 1 0 6.2\"/><path d=\"M17 13a6 6 0 0 1 4 5.6\"/></svg>",
+  'file': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6.5 3.5h7l4 4V20a1 1 0 0 1-1 1h-10a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z\"/><polyline points=\"13.5 3.5 13.5 7.5 17.5 7.5\"/></svg>",
+  'map-pin': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 21s7-6.4 7-11.6A7 7 0 0 0 5 9.4C5 14.6 12 21 12 21Z\"/><circle cx=\"12\" cy=\"9.4\" r=\"2.4\"/></svg>",
+  'printer': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"5\" y=\"8.5\" width=\"14\" height=\"7.5\" rx=\"1.5\"/><path d=\"M7.5 8.5V4h9v4.5\"/><path d=\"M7.5 15.5v4.5h9v-4.5\"/></svg>",
+  'bell': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 10.5a6 6 0 0 1 12 0c0 4 1.3 5.4 1.9 6H4.1c.6-.6 1.9-2 1.9-6Z\"/><path d=\"M10.2 19.5a1.9 1.9 0 0 0 3.6 0\"/></svg>",
+  'palette': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><circle cx=\"8.2\" cy=\"10\" r=\"1.15\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"12\" cy=\"7.5\" r=\"1.15\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"16\" cy=\"10\" r=\"1.15\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"9.5\" cy=\"14.7\" r=\"1.15\" fill=\"currentColor\" stroke=\"none\"/><path d=\"M15 15.2a2.2 2.2 0 0 0 2.2 2.2c1.6 0 2.8-.9 2.8-2.6A9 9 0 1 0 12 21\"/></svg>",
+  'sun': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"4.3\"/><line x1=\"12\" y1=\"2.5\" x2=\"12\" y2=\"4.5\"/><line x1=\"12\" y1=\"19.5\" x2=\"12\" y2=\"21.5\"/><line x1=\"4.2\" y1=\"4.2\" x2=\"5.6\" y2=\"5.6\"/><line x1=\"18.4\" y1=\"18.4\" x2=\"19.8\" y2=\"19.8\"/><line x1=\"2.5\" y1=\"12\" x2=\"4.5\" y2=\"12\"/><line x1=\"19.5\" y1=\"12\" x2=\"21.5\" y2=\"12\"/><line x1=\"4.2\" y1=\"19.8\" x2=\"5.6\" y2=\"18.4\"/><line x1=\"18.4\" y1=\"5.6\" x2=\"19.8\" y2=\"4.2\"/></svg>",
+  'moon': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 14.3A8.5 8.5 0 1 1 9.7 4a6.7 6.7 0 0 0 10.3 10.3Z\"/></svg>",
+  'credit-card': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"2.5\" y=\"5.5\" width=\"19\" height=\"13\" rx=\"2.2\"/><line x1=\"2.5\" y1=\"9.8\" x2=\"21.5\" y2=\"9.8\"/><line x1=\"6\" y1=\"14.5\" x2=\"10\" y2=\"14.5\"/></svg>",
+  'trophy': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M7 4.5h10v5a5 5 0 0 1-10 0Z\"/><path d=\"M7 6H4.5A2.5 2.5 0 0 0 6 10.5\"/><path d=\"M17 6h2.5A2.5 2.5 0 0 1 18 10.5\"/><line x1=\"12\" y1=\"14.5\" x2=\"12\" y2=\"18\"/><line x1=\"8.5\" y1=\"21\" x2=\"15.5\" y2=\"21\"/><line x1=\"12\" y1=\"18\" x2=\"12\" y2=\"21\"/></svg>",
+  'medal': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"14.5\" r=\"5.2\"/><path d=\"M12 11.5 13 14.2h2.8l-2.3 1.7.9 2.7-2.4-1.7-2.4 1.7.9-2.7-2.3-1.7H11Z\" fill=\"currentColor\" stroke=\"none\"/><path d=\"M9 8.5 6 3h3l2.2 4.3\"/><path d=\"M15 8.5 18 3h-3l-2.2 4.3\"/></svg>",
+  'party': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 20 14.5 4.8c.5-.7 1.6-.4 1.7.4l1.6 12a1 1 0 0 1-1.3 1.1L4 20Z\"/><line x1=\"8\" y1=\"4\" x2=\"9\" y2=\"5.6\"/><line x1=\"3\" y1=\"9\" x2=\"4.8\" y2=\"9.6\"/><line x1=\"18\" y1=\"2.5\" x2=\"18\" y2=\"4.2\"/></svg>",
+  'arrow-left': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"19\" y1=\"12\" x2=\"5\" y2=\"12\"/><polyline points=\"10.5 6 5 12 10.5 18\"/></svg>",
+  'arrow-up': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"12\" y1=\"19\" x2=\"12\" y2=\"5\"/><polyline points=\"6 10.5 12 5 18 10.5\"/></svg>",
+  'arrow-down': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"12\" y1=\"5\" x2=\"12\" y2=\"19\"/><polyline points=\"6 13.5 12 19 18 13.5\"/></svg>",
+  'link': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M9.5 14.5 14.5 9.5\"/><path d=\"M11 6.3 13 4.3a3.9 3.9 0 0 1 5.5 5.5l-2 2\"/><path d=\"M13 17.7 11 19.7a3.9 3.9 0 0 1-5.5-5.5l2-2\"/></svg>",
+  'thumbs-up': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M7 11v9H4.5A1.5 1.5 0 0 1 3 18.5v-6A1.5 1.5 0 0 1 4.5 11Z\"/><path d=\"M7 11l4-7.5a2 2 0 0 1 3.6 1.7L13.3 9H18a2 2 0 0 1 2 2.4l-1.4 7A2 2 0 0 1 16.6 20H9.5A2.5 2.5 0 0 1 7 17.5\"/></svg>",
+  'ban': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><line x1=\"6\" y1=\"18\" x2=\"18\" y2=\"6\"/></svg>",
+  'tent': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 4 21 19H3Z\"/><path d=\"M12 4v15\"/><path d=\"M8 19 12 11l4 8\"/></svg>",
+  'building': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"5\" y=\"3.5\" width=\"14\" height=\"17\" rx=\"1\"/><line x1=\"8.5\" y1=\"7.5\" x2=\"8.5\" y2=\"7.5\"/><line x1=\"12\" y1=\"7.5\" x2=\"12\" y2=\"7.5\"/><line x1=\"15.5\" y1=\"7.5\" x2=\"15.5\" y2=\"7.5\"/><line x1=\"8.5\" y1=\"11\" x2=\"8.5\" y2=\"11\"/><line x1=\"12\" y1=\"11\" x2=\"12\" y2=\"11\"/><line x1=\"15.5\" y1=\"11\" x2=\"15.5\" y2=\"11\"/><line x1=\"8.5\" y1=\"14.5\" x2=\"8.5\" y2=\"14.5\"/><line x1=\"15.5\" y1=\"14.5\" x2=\"15.5\" y2=\"14.5\"/><rect x=\"10\" y=\"16\" width=\"4\" height=\"4.5\"/></svg>",
+  'church': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"12\" y1=\"2.5\" x2=\"12\" y2=\"6.5\"/><line x1=\"10\" y1=\"4.2\" x2=\"14\" y2=\"4.2\"/><path d=\"M12 6.5 20 12.5v8H4v-8Z\"/><rect x=\"10\" y=\"15\" width=\"4\" height=\"5.5\"/></svg>",
+  'graduation-cap': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M2.5 9.5 12 5l9.5 4.5L12 14Z\"/><path d=\"M6.5 11.7v4.3c0 1.4 2.5 2.8 5.5 2.8s5.5-1.4 5.5-2.8v-4.3\"/><line x1=\"21.5\" y1=\"9.5\" x2=\"21.5\" y2=\"15.5\"/></svg>",
+  'briefcase': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"7.5\" width=\"18\" height=\"12\" rx=\"2\"/><path d=\"M8.5 7.5V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1.5\"/><line x1=\"3\" y1=\"12.5\" x2=\"21\" y2=\"12.5\"/></svg>",
+  'undo': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M8 8.5H4.5V5\"/><path d=\"M4.5 8.5A8 8 0 1 1 6 16\"/></svg>",
+  'key': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"8\" cy=\"15\" r=\"4.2\"/><path d=\"M11 12 19 4\"/><path d=\"M15.5 7.5 18 10\"/><path d=\"M18.5 4.5 21 7\"/></svg>",
+  'mail': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"5.5\" width=\"18\" height=\"13\" rx=\"2\"/><polyline points=\"3.5 6.5 12 13 20.5 6.5\"/></svg>",
+  'laptop': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"4.5\" y=\"5\" width=\"15\" height=\"10\" rx=\"1.3\"/><path d=\"M2.5 19.5h19l-2-3h-15Z\"/></svg>",
+  'help-circle': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M9.3 9.3a2.7 2.7 0 1 1 3.9 2.4c-.9.5-1.2 1-1.2 2\"/><line x1=\"12\" y1=\"16.8\" x2=\"12\" y2=\"16.8\"/></svg>",
+  'trash': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"4.5\" y1=\"7\" x2=\"19.5\" y2=\"7\"/><path d=\"M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2\"/><path d=\"M6.5 7 7.3 19a2 2 0 0 0 2 1.9h5.4a2 2 0 0 0 2-1.9L17.5 7\"/></svg>",
+  'scan': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8\"/><path d=\"M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8\"/><path d=\"M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16\"/><path d=\"M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16\"/><line x1=\"4\" y1=\"12\" x2=\"20\" y2=\"12\"/></svg>",
+  'external-link': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M18 13.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5.5\"/><polyline points=\"15 3 21 3 21 9\"/><line x1=\"10\" y1=\"14\" x2=\"21\" y2=\"3\"/></svg>",
+  'chevron-right': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"9 5.5 15.5 12 9 18.5\"/></svg>",
+  'eye': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z\"/><circle cx=\"12\" cy=\"12\" r=\"2.8\"/></svg>",
+  'shield': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3 20 6.5v5.7c0 5-3.4 8.3-8 9.8-4.6-1.5-8-4.8-8-9.8V6.5Z\"/><polyline points=\"8.5 12 11 14.5 15.5 9.5\"/></svg>",
+  'info': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><line x1=\"12\" y1=\"11\" x2=\"12\" y2=\"16.5\"/><line x1=\"12\" y1=\"7.5\" x2=\"12\" y2=\"7.5\"/></svg>",
+  'filter': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polygon points=\"3.5 4.5 20.5 4.5 14 12.5 14 19 10 21 10 12.5\"/></svg>",
+  'logout': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M15 4.5H7a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h8\"/><line x1=\"10\" y1=\"12\" x2=\"21\" y2=\"12\"/><polyline points=\"17 8 21 12 17 16\"/></svg>",
+  'pause': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"6\" y=\"4.5\" width=\"4\" height=\"15\" rx=\"1\"/><rect x=\"14\" y=\"4.5\" width=\"4\" height=\"15\" rx=\"1\"/></svg>",
+  'clock': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><polyline points=\"12 7 12 12 16 14\"/></svg>",
+  'play': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M8 5.5 19 12 8 18.5Z\" stroke-linejoin=\"round\"/></svg>",
+  'stop': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"6\" y=\"6\" width=\"12\" height=\"12\" rx=\"2\"/></svg>",
+  'qr': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3.5\" y=\"3.5\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"13.5\" y=\"3.5\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"3.5\" y=\"13.5\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"6\" y=\"6\" width=\"2\" height=\"2\" fill=\"currentColor\" stroke=\"none\"/><rect x=\"16\" y=\"6\" width=\"2\" height=\"2\" fill=\"currentColor\" stroke=\"none\"/><rect x=\"6\" y=\"16\" width=\"2\" height=\"2\" fill=\"currentColor\" stroke=\"none\"/><rect x=\"14\" y=\"14\" width=\"3\" height=\"3\"/><rect x=\"18.5\" y=\"14\" width=\"2\" height=\"2\" fill=\"currentColor\" stroke=\"none\"/><rect x=\"14\" y=\"18.5\" width=\"2\" height=\"2\" fill=\"currentColor\" stroke=\"none\"/><rect x=\"18.5\" y=\"18.5\" width=\"2\" height=\"2\" fill=\"currentColor\" stroke=\"none\"/></svg>",
+  'dot-red': '<span class="dot" style="background:var(--red)"></span>',
+  'dot-green': '<span class="dot" style="background:var(--green)"></span>',
+  'dot-gold': '<span class="dot" style="background:var(--gold)"></span>',
+  'dot-teal': '<span class="dot" style="background:var(--purple)"></span>',
+};
+
+// Count-up animation — only touches leading text node, preserves nested spans (e.g. "FCFA")
+function fcCountUp(el){
+  const node = [...el.childNodes].find(n=>n.nodeType===3 && n.textContent.trim());
+  const target_el = node ? el : null;
+  const raw = node ? node.textContent : el.textContent.trim();
+  const m = raw.match(/([\d.,\s]+)/);
+  if(!m) return;
+  const target = parseFloat(m[1].replace(/[,\s]/g,''));
+  if(isNaN(target)) return;
+  const before = raw.slice(0, m.index), after = raw.slice(m.index + m[1].length);
+  let cur = 0;
+  const step = Math.max(target/32,0.5);
+  const iv = setInterval(()=>{
+    cur += step;
+    const val = cur>=target ? (Number.isInteger(target)?target:Math.round(target*10)/10) : Math.round(cur);
+    const text = before + val.toLocaleString('fr-FR') + after;
+    if(node) node.textContent = text; else el.textContent = text;
+    if(cur>=target) clearInterval(iv);
+  },20);
+}
+document.querySelectorAll('.stat-num,.wh-amount').forEach(fcCountUp);
+
+let profile = null;
+let selectedOp = 'mtn';
+let availableBalance = 0;
+
+async function boot(){
+  profile = await fcRequireAuth();
+  if (!profile) return;
+  fcMountSidebar(profile);
+  await loadWalletMobileMoney();
+  await loadAll();
+}
+
+async function loadAll(){
+  const { data: cfg } = await supa.from('platform_config').select('commission_rate').eq('id',1).single();
+  const rate = cfg?.commission_rate ?? 10;
+
+  const { data: orders } = await supa
+    .from('orders')
+    .select('id, amount, created_at, events!inner(organizer_id, title)')
+    .eq('events.organizer_id', profile.id)
+    .eq('payment_status', 'paid')
+    .order('created_at', { ascending: false });
+
+  const { data: withdrawals } = await supa
+    .from('withdrawals')
+    .select('*')
+    .eq('organizer_id', profile.id)
+    .order('created_at', { ascending: false });
+
+  const paid = orders || [];
+  const gross = paid.reduce((s,o)=>s+o.amount,0);
+  const commission = Math.round(gross * rate / 100);
+  const net = gross - commission;
+  const withdrawnConfirmed = (withdrawals||[]).filter(w=>w.status==='confirmed').reduce((s,w)=>s+w.amount,0);
+  const withdrawnPending = (withdrawals||[]).filter(w=>w.status==='pending').reduce((s,w)=>s+w.amount,0);
+  availableBalance = Math.max(0, net - withdrawnConfirmed - withdrawnPending);
+
+  document.getElementById('wh-available').innerHTML = availableBalance.toLocaleString('fr-FR') + ' <span style="font-size:1rem;font-weight:400;opacity:.6">FCFA</span>';
+  document.getElementById('wh-earned').innerHTML = net.toLocaleString('fr-FR') + ' <span style="font-size:1rem;font-weight:400;opacity:.6">FCFA</span>';
+  document.getElementById('wh-earned-sub').textContent = paid.length + ' ventes au total';
+  document.getElementById('wh-withdrawn').innerHTML = withdrawnConfirmed.toLocaleString('fr-FR') + ' <span style="font-size:1rem;font-weight:400;opacity:.6">FCFA</span>';
+  document.getElementById('wh-withdrawn-sub').textContent = (withdrawals||[]).filter(w=>w.status==='confirmed').length + ' retraits effectués';
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
+  const todayOrders = paid.filter(o => new Date(o.created_at) >= today);
+  const weekOrders = paid.filter(o => new Date(o.created_at) >= weekAgo);
+  document.getElementById('stat-today').textContent = fcFormatFCFA(todayOrders.reduce((s,o)=>s+o.amount,0));
+  document.getElementById('stat-today-sub').textContent = todayOrders.length + ' tickets vendus';
+  document.getElementById('stat-week').textContent = fcFormatFCFA(weekOrders.reduce((s,o)=>s+o.amount,0));
+  document.getElementById('stat-week-sub').textContent = weekOrders.length + ' tickets vendus';
+  document.getElementById('stat-commission').textContent = fcFormatFCFA(commission);
+  document.getElementById('stat-commission-sub').textContent = rate + '% sur les ventes';
+
+  document.querySelectorAll('.stat-num,.wh-amount').forEach(fcCountUp);
+
+  // Mini graphique des 30 derniers jours (revenu brut/jour)
+  const days = [...Array(30)].map((_,i)=>{
+    const d = new Date(); d.setDate(d.getDate() - (29-i)); d.setHours(0,0,0,0); return d;
+  });
+  const rev = days.map(d => {
+    const next = new Date(d); next.setDate(next.getDate()+1);
+    return paid.filter(o => { const t = new Date(o.created_at); return t >= d && t < next; }).reduce((s,o)=>s+o.amount,0);
+  });
+  const maxRev = Math.max(1, ...rev);
+  const chart = document.getElementById('chart');
+  chart.innerHTML = '';
+  rev.forEach((v,i)=>{
+    const w = document.createElement('div');
+    w.className = 'bar-w';
+    const b = document.createElement('div');
+    b.className = 'bar-b';
+    const h = Math.max(3, v/maxRev*100);
+    b.style.cssText = `height:${h}px;background:linear-gradient(180deg,#0EA5A0,#0B7A76);border-radius:4px 4px 0 0`;
+    b.title = v.toLocaleString('fr-FR')+' FCFA';
+    b.addEventListener('mouseenter',()=>b.style.background='linear-gradient(180deg,#5EEAD4,#0EA5A0)');
+    b.addEventListener('mouseleave',()=>b.style.background='linear-gradient(180deg,#0EA5A0,#0B7A76)');
+    const l = document.createElement('div');
+    l.className = 'bar-lbl';
+    l.textContent = (i%5===0) ? days[i].getDate() : '';
+    w.appendChild(b); w.appendChild(l);
+    chart.appendChild(w);
+  });
+
+  // Transactions (ventes + retraits)
+  const txs = [
+    ...paid.map(o => ({ icon:FCI['ticket'], type:'green', title: o.events?.title || 'Vente ticket', sub:'Paiement reçu', amount:'+'+o.amount.toLocaleString('fr-FR')+' F', dir:'in', date:o.created_at })),
+    ...(withdrawals||[]).map(w => ({ icon:FCI['cash'], type:'gold', title:'Retrait vers '+w.operator.toUpperCase()+' Money', sub: w.status==='confirmed'?'Confirmé':w.status==='pending'?'En attente':'Échoué', amount:'-'+w.amount.toLocaleString('fr-FR')+' F', dir:'out', date:w.created_at }))
+  ].sort((a,b)=> new Date(b.date) - new Date(a.date)).slice(0,25);
+
+  const txList = document.getElementById('tx-list');
+  txList.innerHTML = '';
+  if (!txs.length){
+    txList.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">Aucune transaction pour l\'instant</div>';
+  } else {
+    txs.forEach(tx=>{
+      const d = document.createElement('div');
+      d.className = 'tx-item';
+      d.innerHTML = `
+        <div class="tx-icon ${tx.type}">${tx.icon}</div>
+        <div class="tx-info">
+          <div class="tx-title">${tx.title}</div>
+          <div class="tx-sub">${tx.sub} · ${fcFormatDate(tx.date, {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+        </div>
+        <div class="tx-amount ${tx.dir}">${tx.amount}</div>
+      `;
+      txList.appendChild(d);
+    });
+  }
+
+  // Historique des retraits (colonne droite)
+  const wdList = document.getElementById('wd-list');
+  if (!(withdrawals||[]).length){
+    wdList.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem">Aucun retrait pour l\'instant</div>';
+  } else {
+    wdList.innerHTML = withdrawals.map(w => `
+      <div class="wd-item">
+        <div class="wd-icon">${FCI['cash']}</div>
+        <div class="wd-info">
+          <div class="wd-title">Retrait vers ${w.operator.toUpperCase()} Money</div>
+          <div class="wd-sub">${fcFormatDate(w.created_at)} · ${w.status==='confirmed'?FCI['check-circle']+' Reçu':w.status==='pending'?'En cours':'Échoué'}</div>
+        </div>
+        <div class="wd-amount">-${w.amount.toLocaleString('fr-FR')} F</div>
+      </div>`).join('') + `<div style="padding:14px 18px;border-top:1px solid var(--border);font-size:.78rem;color:var(--muted);text-align:center">Total retiré : <span style="color:var(--white);font-weight:700">${fcFormatFCFA(withdrawnConfirmed)}</span></div>`;
+  }
+}
+
+let payoutMethods = [];
+
+function selOp(btn){
+  document.querySelectorAll('.op-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  selectedOp = btn.textContent.toLowerCase().includes('moov') ? 'moov' : 'mtn';
+}
+
+function setAmount(v){ document.getElementById('withdraw-amount').value = Math.min(v, availableBalance); }
+function updateWithdraw(){}
+
+function onWithdrawPhoneChange(){
+  const sel = document.getElementById('wd-phone-select');
+  const opt = sel.options[sel.selectedIndex];
+  selectedOp = opt ? opt.dataset.operator : 'mtn';
+}
+
+async function openModal(){
+  payoutMethods = await fcListPayoutMethods();
+  const sel = document.getElementById('wd-phone-select');
+  const hint = document.getElementById('wd-no-number-hint');
+  if (!payoutMethods.length){
+    sel.innerHTML = '';
+    sel.disabled = true;
+    hint.style.display = 'block';
+  } else {
+    sel.disabled = false;
+    hint.style.display = 'none';
+    sel.innerHTML = payoutMethods.map(m => {
+      const opLabel = m.operator === 'moov' ? 'Moov Money' : 'MTN Money';
+      return `<option value="${m.phone}" data-operator="${m.operator}">${opLabel} — ${m.phone}${m.is_primary ? ' (Principal)' : ''}</option>`;
+    }).join('');
+    onWithdrawPhoneChange();
+  }
+  document.getElementById('withdraw-amount').max = availableBalance;
+  document.getElementById('withdraw-amount').value = availableBalance;
+  document.getElementById('modal-balance').textContent = fcFormatFCFA(availableBalance);
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){ document.getElementById('modal').classList.remove('open'); }
+
+// ------------------------------------------------------------
+// MOBILE MONEY (liste réelle + ajout d'un numéro)
+// ------------------------------------------------------------
+function renderWalletMobileMoney(methods){
+  const box = document.getElementById('wallet-mm-list');
+  if (!methods.length){
+    box.innerHTML = '<div style="text-align:center;padding:14px;color:var(--muted);font-size:.85rem">Aucun numéro enregistré pour l\'instant.</div>';
+    return;
+  }
+  box.innerHTML = methods.map(m => `
+    <div style="display:flex;align-items:center;gap:12px;padding:14px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;margin-bottom:10px">
+      <div style="font-size:1.5rem"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><line x1="11" y1="18.3" x2="13" y2="18.3"/></svg></div>
+      <div style="flex:1">
+        <div style="font-weight:700;color:var(--white)">${m.phone}</div>
+        <div style="font-size:.75rem;color:var(--muted)">${m.operator === 'mtn' ? 'MTN Money' : 'Moov Money'}${m.is_primary ? ' — Principal' : ''}</div>
+      </div>
+      <span class="badge ${m.is_primary ? 'b-green' : 'b-gold'}">${m.is_primary ? 'Principal' : 'Secondaire'}</span>
+    </div>`).join('');
+}
+
+async function loadWalletMobileMoney(){
+  renderWalletMobileMoney(await fcListPayoutMethods());
+}
+
+let addOp = 'mtn';
+function selAddOp(op){
+  addOp = op;
+  document.getElementById('add-op-mtn').classList.toggle('sel', op === 'mtn');
+  document.getElementById('add-op-moov').classList.toggle('sel', op === 'moov');
+}
+
+function openAddNumberModal(){
+  addOp = 'mtn';
+  selAddOp('mtn');
+  document.getElementById('add-number-phone').value = '';
+  document.getElementById('modal-add-number').classList.add('open');
+}
+function closeAddNumberModal(){ document.getElementById('modal-add-number').classList.remove('open'); }
+
+async function saveNewNumber(){
+  const phone = document.getElementById('add-number-phone').value.trim();
+  if (!phone){ showToast('Entre un numéro de téléphone', FCI['x-circle']); return; }
+  try {
+    await fcAddPayoutMethod(addOp, phone);
+    closeAddNumberModal();
+    await loadWalletMobileMoney();
+    payoutMethods = await fcListPayoutMethods(); // pour que le formulaire de retrait soit aussi à jour
+    showToast('Numéro ajouté !', FCI['check-circle']);
+  } catch(e){
+    showToast('Erreur : ' + e.message, FCI['x-circle']);
+  }
+}
+
+async function processWithdraw(){
+  const amount = parseInt(document.getElementById('withdraw-amount').value) || 0;
+  const sel = document.getElementById('wd-phone-select');
+  const phone = sel.value.trim();
+
+  if (!phone){ showToast('Ajoute un numéro Mobile Money d\'abord', FCI['alert-triangle']); return; }
+  if (amount < 1000){ showToast('Montant minimum : 1 000 FCFA', FCI['alert-triangle']); return; }
+  if (amount > availableBalance){ showToast('Solde insuffisant', FCI['alert-triangle']); return; }
+
+  // Sécurité : code PIN de retrait (voir schema-update-9.sql)
+  let pin = null;
+  try {
+    const hasPin = await fcHasWithdrawalPin();
+    if (hasPin) {
+      pin = prompt('Entre ton code PIN à 5 chiffres pour confirmer le retrait :');
+      if (pin === null) return; // annulé
+      if (!/^[0-9]{5}$/.test(pin)) { showToast('Code PIN invalide (5 chiffres)', FCI['alert-triangle']); return; }
+    } else {
+      const wantsPin = confirm('Astuce sécurité : veux-tu protéger tes retraits avec un code PIN à 5 chiffres ? (facultatif, tu peux le faire plus tard dans Réglages)\n\nOK = en créer un maintenant\nAnnuler = continuer sans PIN pour cette fois');
+      if (wantsPin) {
+        const newPin = prompt('Choisis ton code PIN à 5 chiffres :');
+        if (newPin && /^[0-9]{5}$/.test(newPin)) {
+          await fcSetWithdrawalPin(newPin);
+          pin = newPin;
+          showToast('Code PIN activé !', FCI['check-circle']);
+        } else if (newPin !== null) {
+          showToast('Code PIN invalide, retrait annulé — réessaie', FCI['alert-triangle']);
+          return;
+        }
+      }
+    }
+  } catch(e) {
+    showToast('Erreur PIN : ' + e.message, FCI['x-circle']);
+    return;
+  }
+
+  closeModal();
+  try {
+    await fcRequestWithdrawal(amount, selectedOp, phone, pin);
+    showToast('Retrait envoyé — l\'argent arrive sous peu !', FCI['check-circle']);
+  } catch(e) {
+    showToast('Erreur : ' + e.message, FCI['x-circle']);
+  }
+  loadAll();
+}
+
+boot();
+
+function showToast(msg,icon=FCI['check-circle']){
+  const t=document.getElementById('toast');
+  document.getElementById('toast-msg').textContent=msg;
+  document.getElementById('toast-icon').innerHTML=icon;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+</script>
+</body>
+</html>
