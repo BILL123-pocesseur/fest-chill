@@ -2226,6 +2226,39 @@ async function fcRequestWithdrawal(amount, operator, phone, pin) {
   return withdrawalId;
 }
 
+// Aperçu brut / commission / net avant de confirmer un retrait
+// (commission plateforme prélevée au moment du retrait, voir
+// schema : fonction fc_preview_withdrawal).
+async function fcPreviewWithdrawal(amount) {
+  const { data, error } = await supa.rpc('fc_preview_withdrawal', { p_amount: amount });
+  if (error) throw error;
+  return data[0]; // { gross, commission, net, rate }
+}
+
+// ------------------------------------------------------------
+// COMPTE COMMISSION DE LA PLATEFORME (admin uniquement) — voir
+// migration "withdrawal_commission_system".
+// ------------------------------------------------------------
+async function fcGetAdminCommissionBalance() {
+  const { data, error } = await supa.rpc('fc_get_admin_commission_balance');
+  if (error) throw error;
+  return data;
+}
+
+async function fcRequestAdminWithdrawal(amount, operator, phone, pin) {
+  const { data: withdrawalId, error } = await supa.rpc('fc_request_admin_withdrawal', {
+    p_amount: amount, p_operator: operator, p_phone: phone, p_pin: pin || null,
+  });
+  if (error) throw error;
+
+  const { data, error: payoutError } = await supa.functions.invoke('fedapay-payout', {
+    body: { withdrawal_id: withdrawalId },
+  });
+  if (payoutError) throw payoutError;
+  if (data?.error) throw new Error(data.error);
+  return withdrawalId;
+}
+
 // ------------------------------------------------------------
 // PRÉFÉRENCES DE NOTIFICATIONS — stockées sur profiles.notif_prefs (jsonb).
 // ------------------------------------------------------------

@@ -105,6 +105,14 @@ html[dir="rtl"] body{direction:rtl}
 .section-head{padding:15px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
 .section-head-title{font-family:var(--fd);font-weight:700;font-size:.9rem}
 
+/* MODAL (retrait admin) */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(10px);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--deep);border:1px solid var(--border);border-radius:16px;padding:32px;width:420px;max-width:90vw}
+.modal-title{font-family:var(--fd);font-weight:800;font-size:1.2rem;margin-bottom:6px}
+.modal-sub{font-size:.82rem;color:var(--muted);margin-bottom:20px}
+.modal-actions{display:flex;gap:10px;margin-top:6px}
+
 /* TABLE */
 table{width:100%;border-collapse:collapse}
 th{background:rgba(var(--accent-rgb),.07);color:var(--muted);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;padding:10px 14px;text-align:left}
@@ -397,9 +405,42 @@ tr{transition:background .2s}
   <circle cx="98" cy="74" r="3" fill="#FF8A3D"/>
   <circle cx="60" cy="100" r="3" fill="#FF8A3D"/>
 </svg></div>
-            <div style="font-size:.78rem;color:var(--muted)">La commission de la plateforme (10% par ticket) progresse avec le volume de ventes des organisateurs.</div>
+            <div style="font-size:.78rem;color:var(--muted)">La commission de la plateforme (5%, prélevée au moment du retrait de chaque organisateur) progresse avec le volume de ventes.</div>
           </div>
           <div class="chart-wrap" id="admin-chart"></div>
+        </div>
+
+        <!-- SOLDE COMMISSION RÉEL (retirable) -->
+        <div class="section-card" style="margin-bottom:16px">
+          <div class="section-head">
+            <span class="section-head-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M17 11.5h2.5a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5H17a2 2 0 0 1 0-4Z"/><line x1="3" y1="8.7" x2="21" y2="8.7"/></svg> Solde commission plateforme</span>
+            <button class="btn btn-primary btn-sm" onclick="openAdminWithdrawModal()">Retirer</button>
+          </div>
+          <div style="padding:18px 20px">
+            <div style="font-family:var(--fd);font-size:1.9rem;font-weight:800;color:var(--gold)" id="admin-commission-balance">—</div>
+            <div style="font-size:.78rem;color:var(--muted);margin-top:4px">Argent accumulé sur les retraits des organisateurs, disponible pour toi.</div>
+          </div>
+        </div>
+
+        <!-- MODAL RETRAIT ADMIN -->
+        <div class="modal-overlay" id="admin-wd-modal">
+          <div class="modal">
+            <div class="modal-title">Retirer les commissions</div>
+            <div class="modal-sub">L'argent arrive sur ton Mobile Money en 5 à 10 minutes.</div>
+            <div class="form-label">Numéro de réception (Mobile Money)</div>
+            <input type="text" class="form-input" id="admin-wd-phone" placeholder="Ex: 61 23 45 67" style="margin-bottom:12px">
+            <div class="form-label">Opérateur</div>
+            <select class="form-input" id="admin-wd-operator" style="margin-bottom:12px">
+              <option value="mtn">MTN Money</option>
+              <option value="moov">Moov Money</option>
+            </select>
+            <div class="form-label">Montant (FCFA)</div>
+            <input type="number" class="form-input" id="admin-wd-amount" min="1000" style="margin-bottom:16px">
+            <div class="modal-actions">
+              <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="closeAdminWithdrawModal()">Annuler</button>
+              <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="processAdminWithdraw()">Confirmer</button>
+            </div>
+          </div>
         </div>
 
         <!-- EVENTS TABLE -->
@@ -635,8 +676,54 @@ async function boot(){
 
 async function loadAll(){
   document.getElementById('last-update').textContent = fcT('admin.last_update') + ' : ' + fcFormatTime();
-  await Promise.all([loadStats(), loadEvents(), loadOrders(), loadOrganizers(), loadConfig(), loadAlerts(), loadChart()]);
+  await Promise.all([loadStats(), loadEvents(), loadOrders(), loadOrganizers(), loadConfig(), loadAlerts(), loadChart(), loadAdminCommissionBalance()]);
   document.querySelectorAll('.stat-num').forEach(fcCountUp);
+}
+
+async function loadAdminCommissionBalance(){
+  try {
+    const balance = await fcGetAdminCommissionBalance();
+    document.getElementById('admin-commission-balance').textContent = fcFormatFCFA(balance);
+  } catch(e) {
+    document.getElementById('admin-commission-balance').textContent = '—';
+  }
+}
+
+function openAdminWithdrawModal(){
+  document.getElementById('admin-wd-amount').value = '';
+  document.getElementById('admin-wd-phone').value = '';
+  document.getElementById('admin-wd-modal').classList.add('open');
+}
+function closeAdminWithdrawModal(){
+  document.getElementById('admin-wd-modal').classList.remove('open');
+}
+
+async function processAdminWithdraw(){
+  const amount = parseInt(document.getElementById('admin-wd-amount').value) || 0;
+  const phone = document.getElementById('admin-wd-phone').value.trim();
+  const operator = document.getElementById('admin-wd-operator').value;
+
+  if (!phone){ showToast('Entre un numéro Mobile Money', FCI['alert-triangle']); return; }
+  if (amount < 1000){ showToast('Montant minimum : 1 000 FCFA', FCI['alert-triangle']); return; }
+
+  let pin = null;
+  try {
+    const hasPin = await fcHasWithdrawalPin();
+    if (hasPin) {
+      pin = prompt('Entre ton code PIN à 5 chiffres pour confirmer :');
+      if (pin === null) return;
+      if (!/^[0-9]{5}$/.test(pin)) { showToast('Code PIN invalide (5 chiffres)', FCI['alert-triangle']); return; }
+    }
+  } catch(e) {}
+
+  closeAdminWithdrawModal();
+  try {
+    await fcRequestAdminWithdrawal(amount, operator, phone, pin);
+    showToast('Retrait envoyé — l\'argent arrive sous peu !', FCI['check-circle']);
+    await loadAdminCommissionBalance();
+  } catch(e) {
+    showToast('Erreur : ' + e.message, FCI['x-circle']);
+  }
 }
 
 async function loadStats(){

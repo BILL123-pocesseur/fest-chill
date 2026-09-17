@@ -489,6 +489,12 @@ tr{transition:background .2s}
       <button class="btn btn-ghost btn-sm" onclick="setAmount(487300)">Tout</button>
     </div>
 
+    <div id="wd-preview" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:.82rem">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--muted)">Montant demandé</span><span id="wd-p-gross">—</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--muted)">Commission plateforme (<span id="wd-p-rate">—</span>%)</span><span id="wd-p-commission" style="color:var(--red)">—</span></div>
+      <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px dashed var(--border);font-weight:700"><span>Tu reçois</span><span id="wd-p-net" style="color:var(--green)">—</span></div>
+    </div>
+
     <div class="modal-actions">
       <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="closeModal()" data-i18n="common.cancel">Annuler</button>
       <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="processWithdraw()">Confirmer le retrait</button>
@@ -757,8 +763,28 @@ function selOp(btn){
   selectedOp = btn.textContent.toLowerCase().includes('moov') ? 'moov' : 'mtn';
 }
 
-function setAmount(v){ document.getElementById('withdraw-amount').value = Math.min(v, availableBalance); }
-function updateWithdraw(){}
+function setAmount(v){ document.getElementById('withdraw-amount').value = Math.min(v, availableBalance); updateWithdraw(); }
+
+let wdPreviewTimer = null;
+function updateWithdraw(){
+  clearTimeout(wdPreviewTimer);
+  wdPreviewTimer = setTimeout(async () => {
+    const amount = parseInt(document.getElementById('withdraw-amount').value) || 0;
+    if (amount < 1){
+      document.getElementById('wd-p-gross').textContent = '—';
+      document.getElementById('wd-p-commission').textContent = '—';
+      document.getElementById('wd-p-net').textContent = '—';
+      return;
+    }
+    try {
+      const p = await fcPreviewWithdrawal(amount);
+      document.getElementById('wd-p-gross').textContent = p.gross.toLocaleString('fr-FR') + ' F';
+      document.getElementById('wd-p-rate').textContent = p.rate;
+      document.getElementById('wd-p-commission').textContent = '- ' + p.commission.toLocaleString('fr-FR') + ' F';
+      document.getElementById('wd-p-net').textContent = p.net.toLocaleString('fr-FR') + ' F';
+    } catch(e) { /* aperçu silencieux si erreur, la confirmation validera de toute façon */ }
+  }, 250);
+}
 
 function onWithdrawPhoneChange(){
   const sel = document.getElementById('wd-phone-select');
@@ -787,6 +813,7 @@ async function openModal(){
   document.getElementById('withdraw-amount').value = availableBalance;
   document.getElementById('modal-balance').textContent = fcFormatFCFA(availableBalance);
   document.getElementById('modal').classList.add('open');
+  updateWithdraw();
 }
 function closeModal(){ document.getElementById('modal').classList.remove('open'); }
 
