@@ -66,8 +66,9 @@ h1 i{font-style:italic;color:var(--red-deep)}
 </nav>
 
 <header class="page-head">
-  <h1>Trouve ton <i>prochain événement</i></h1>
-  <div class="page-sub">Tous les événements en vente sur Fest&Chill, par tous les organisateurs.</div>
+  <h1 id="page-title">Trouve ton <i>prochain événement</i></h1>
+  <div class="page-sub" id="page-sub">Tous les événements en vente sur Fest&Chill, par tous les organisateurs.</div>
+  <button class="btn" id="history-toggle" style="margin-top:16px" onclick="toggleHistory()">🕐 Voir les événements passés</button>
 </header>
 
 <div class="filters" id="filters"></div>
@@ -80,17 +81,33 @@ h1 i{font-style:italic;color:var(--red-deep)}
 <script>
 let allEvents = [];
 let currentType = 'all';
+let showingHistory = false;
 
 const TYPE_ICON = {
-  'Concert / Musique': '🎵','Conférence': '🎤','Soirée / Club': '🎉','Sport': '⚽','Théâtre / Art': '🎭','Autre': '✨',
+  'Concert / Musique': '🎵','Conférence': '🎤','Soirée / Club': '🎉','Sport': '⚽','Théâtre / Art': '✨','Autre': '✨',
 };
 
+async function toggleHistory(){
+  showingHistory = !showingHistory;
+  document.getElementById('page-title').innerHTML = showingHistory ? 'Historique des <i>événements passés</i>' : 'Trouve ton <i>prochain événement</i>';
+  document.getElementById('page-sub').textContent = showingHistory ? 'Les événements déjà terminés sur Fest&Chill.' : 'Tous les événements en vente sur Fest&Chill, par tous les organisateurs.';
+  document.getElementById('history-toggle').textContent = showingHistory ? '← Retour aux événements à venir' : '🕐 Voir les événements passés';
+  document.getElementById('grid').innerHTML = '<div class="state-msg">Chargement...</div>';
+  await boot();
+}
+
 async function boot(){
-  const { data, error } = await supa
+  const today = new Date().toISOString().slice(0,10);
+  let q = supa
     .from('events')
     .select('id, slug, title, event_type, location, event_date, event_time, organizer_id, ticket_categories(price), profiles(full_name)')
-    .eq('status', 'published')
-    .order('event_date', { ascending: true });
+    .eq('status', 'published');
+
+  q = showingHistory
+    ? q.lt('event_date', today).order('event_date', { ascending: false })
+    : q.gte('event_date', today).order('event_date', { ascending: true });
+
+  const { data, error } = await q;
 
   if (error){
     document.getElementById('grid').innerHTML = '<div class="state-msg">Impossible de charger les événements pour le moment. Réessaie dans un instant.</div>';

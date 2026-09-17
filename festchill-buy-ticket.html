@@ -15,7 +15,7 @@
   --sand:#FFE3BE;--card:rgba(232,67,46,.05);--border:#EBDFC9;
   --fd:'Instrument Serif',serif;--fb:'Plus Jakarta Sans',sans-serif;--fm:'IBM Plex Mono',monospace;
   --r:12px;
-  --hero-text:#F7FBFA;--hero-pill-bg:rgba(5,15,18,.55);--hero-pill-border:rgba(255,255,255,.16);
+  --hero-text:#2B1706;--hero-pill-bg:rgba(255,251,243,.72);--hero-pill-border:rgba(43,23,6,.16);
 }
 body{font-family:var(--fb);background:var(--ink);color:var(--text);min-height:100vh}
 
@@ -122,7 +122,13 @@ nav{padding:16px 5%;display:flex;align-items:center;justify-content:space-betwee
   .ticket-grid{grid-template-columns:repeat(auto-fill,minmax(56px,1fr))}
 }
 .how-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:24px 0}
-.how-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;text-align:center;position:relative}
+.how-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;text-align:center;position:relative;opacity:0;animation:howStepIn .6s cubic-bezier(.16,1,.3,1) forwards}
+.how-card:nth-child(1){animation-delay:.05s}
+.how-card:nth-child(2){animation-delay:.22s}
+.how-card:nth-child(3){animation-delay:.39s}
+.how-card:nth-child(4){animation-delay:.56s}
+@keyframes howStepIn{from{opacity:0;transform:translateY(22px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.how-card{opacity:1;animation:none}}
 .how-card .illus{width:100%;height:auto;margin-bottom:10px}
 .how-step-num{position:absolute;top:12px;left:12px;width:22px;height:22px;border-radius:50%;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--fm);font-size:.7rem;font-weight:700;color:var(--glow)}
 .how-title{font-weight:700;font-size:.85rem;margin-bottom:4px}
@@ -218,7 +224,7 @@ tr{transition:background .2s}
 .fc-hero-content{position:relative;z-index:1;padding:34px 5% 28px;display:flex;flex-direction:column;gap:14px}
 .fc-hero-topbar{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-start;padding:20px 5% 0}
 .fc-chip{opacity:1;background:var(--hero-pill-bg);backdrop-filter:blur(10px);border:1px solid var(--hero-pill-border);border-radius:100px;padding:7px 16px;font-size:.8rem;font-weight:700;display:flex;align-items:center;gap:8px;animation:popIn .5s .1s cubic-bezier(.2,1.4,.4,1) both;color:var(--hero-text)}
-.fc-hero-title{font-family:var(--fd);font-weight:800;font-size:clamp(1.7rem,4vw,2.7rem);line-height:1.06;letter-spacing:-.01em;text-shadow:0 4px 24px rgba(0,0,0,.4);color:var(--hero-text)}
+.fc-hero-title{font-family:var(--fd);font-weight:800;font-size:clamp(1.7rem,4vw,2.7rem);line-height:1.06;letter-spacing:-.01em;color:var(--hero-text)}
 .fc-hero-meta{display:flex;flex-wrap:wrap;gap:10px}
 .fc-meta-pill{background:var(--hero-pill-bg);backdrop-filter:blur(8px);border:1px solid var(--hero-pill-border);border-radius:100px;padding:6px 14px;font-size:.82rem;display:flex;align-items:center;gap:7px;color:var(--hero-text)}
 
@@ -253,10 +259,10 @@ tr{transition:background .2s}
     <svg class="illus-hero" viewBox="0 0 1600 400" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
   <defs>
     <linearGradient id="fcSky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#123A42"/>
-      <stop offset="42%" stop-color="#0F262B"/>
-      <stop offset="80%" stop-color="#0B1E23"/>
-      <stop offset="100%" stop-color="#050F12"/>
+      <stop offset="0%" stop-color="#FFE9C7"/>
+      <stop offset="42%" stop-color="#FFD9A0"/>
+      <stop offset="80%" stop-color="#FFC177"/>
+      <stop offset="100%" stop-color="#E8802E"/>
     </linearGradient>
     <linearGradient id="fcHorizon" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#FFB238" stop-opacity="0"/>
@@ -268,9 +274,9 @@ tr{transition:background .2s}
       <stop offset="100%" stop-color="#FFB238" stop-opacity="0"/>
     </radialGradient>
     <linearGradient id="fcFade" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#050F12" stop-opacity="0.85"/>
-      <stop offset="46%" stop-color="#050F12" stop-opacity="0.4"/>
-      <stop offset="100%" stop-color="#050F12" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#E8802E" stop-opacity="0.85"/>
+      <stop offset="46%" stop-color="#E8802E" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#E8802E" stop-opacity="0"/>
     </linearGradient>
   </defs>
   <rect width="1600" height="400" fill="url(#fcSky)"/>
@@ -280,28 +286,28 @@ tr{transition:background .2s}
   <g class="illus-confetti">
     <circle cx="507" cy="323" r="3" fill="#FFD98E" opacity="0.35"/>
     <circle cx="1256" cy="262" r="3" fill="#FFB238" opacity="0.25"/>
-    <circle cx="1260" cy="26" r="2" fill="#5EEAD4" opacity="0.45"/>
-    <circle cx="499" cy="118" r="3" fill="#5EEAD4" opacity="0.45"/>
+    <circle cx="1260" cy="26" r="2" fill="#E8432E" opacity="0.45"/>
+    <circle cx="499" cy="118" r="3" fill="#E8432E" opacity="0.45"/>
     <circle cx="1145" cy="263" r="2" fill="#FFB238" opacity="0.25"/>
     <circle cx="494" cy="345" r="2" fill="#FFB238" opacity="0.35"/>
     <circle cx="1538" cy="27" r="3" fill="#FFD98E" opacity="0.25"/>
-    <circle cx="1572" cy="322" r="2" fill="#5EEAD4" opacity="0.25"/>
+    <circle cx="1572" cy="322" r="2" fill="#E8432E" opacity="0.25"/>
     <circle cx="571" cy="262" r="3" fill="#FFB238" opacity="0.35"/>
     <circle cx="1482" cy="238" r="2" fill="#FFB238" opacity="0.45"/>
     <circle cx="930" cy="88" r="2" fill="#FFD98E" opacity="0.25"/>
-    <circle cx="298" cy="273" r="2" fill="#5EEAD4" opacity="0.45"/>
-    <circle cx="913" cy="340" r="2" fill="#5EEAD4" opacity="0.45"/>
+    <circle cx="298" cy="273" r="2" fill="#E8432E" opacity="0.45"/>
+    <circle cx="913" cy="340" r="2" fill="#E8432E" opacity="0.45"/>
     <circle cx="810" cy="313" r="2" fill="#FFB238" opacity="0.45"/>
-    <circle cx="854" cy="319" r="2" fill="#5EEAD4" opacity="0.45"/>
+    <circle cx="854" cy="319" r="2" fill="#E8432E" opacity="0.45"/>
     <circle cx="78" cy="163" r="3" fill="#FFB238" opacity="0.45"/>
     <circle cx="354" cy="377" r="2" fill="#FFB238" opacity="0.45"/>
     <circle cx="1185" cy="73" r="3" fill="#FFB238" opacity="0.25"/>
-    <circle cx="1316" cy="313" r="2" fill="#5EEAD4" opacity="0.25"/>
-    <circle cx="149" cy="266" r="3" fill="#5EEAD4" opacity="0.25"/>
+    <circle cx="1316" cy="313" r="2" fill="#E8432E" opacity="0.25"/>
+    <circle cx="149" cy="266" r="3" fill="#E8432E" opacity="0.25"/>
     <circle cx="724" cy="54" r="2" fill="#FFD98E" opacity="0.25"/>
     <circle cx="621" cy="238" r="2" fill="#FFD98E" opacity="0.25"/>
-    <circle cx="1259" cy="334" r="2" fill="#5EEAD4" opacity="0.45"/>
-    <circle cx="1220" cy="189" r="3" fill="#5EEAD4" opacity="0.45"/>
+    <circle cx="1259" cy="334" r="2" fill="#E8432E" opacity="0.45"/>
+    <circle cx="1220" cy="189" r="3" fill="#E8432E" opacity="0.45"/>
     <circle cx="503" cy="38" r="2" fill="#FFD98E" opacity="0.25"/>
     <circle cx="241" cy="327" r="3" fill="#FFD98E" opacity="0.25"/>
   </g>
@@ -343,13 +349,13 @@ tr{transition:background .2s}
     <circle cx="1470" cy="70" r="4.4" fill="#FFD98E"/>
     <circle cx="1560" cy="77" r="4.4" fill="#FFD98E"/>
   </g>
-  <rect x="636" y="252" width="330" height="11" fill="#193944"/>
-  <rect x="656" y="190" width="8" height="64" fill="#2A5560"/>
-  <rect x="936" y="190" width="8" height="64" fill="#2A5560"/>
-  <rect x="656" y="190" width="288" height="7" fill="#2A5560"/>
-  <rect x="594" y="210" width="36" height="54" rx="3" fill="#193944"/>
-  <rect x="970" y="210" width="36" height="54" rx="3" fill="#193944"/>
-  <g class="illus-crowd-back" fill="#0B1E23" stroke="#0B1E23">
+  <rect x="636" y="252" width="330" height="11" fill="#F2B25A"/>
+  <rect x="656" y="190" width="8" height="64" fill="#E8B26B"/>
+  <rect x="936" y="190" width="8" height="64" fill="#E8B26B"/>
+  <rect x="656" y="190" width="288" height="7" fill="#E8B26B"/>
+  <rect x="594" y="210" width="36" height="54" rx="3" fill="#F2B25A"/>
+  <rect x="970" y="210" width="36" height="54" rx="3" fill="#F2B25A"/>
+  <g class="illus-crowd-back" fill="#FFC177" stroke="#FFC177">
     <ellipse cx="10" cy="294.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
     <circle cx="10" cy="274" r="11" opacity="0.85"/>
     <ellipse cx="51" cy="293.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
@@ -456,7 +462,7 @@ tr{transition:background .2s}
     <ellipse cx="1610" cy="288.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
     <circle cx="1610" cy="268" r="11" opacity="0.85"/>
   </g>
-  <g class="illus-crowd-mid" fill="#081619" stroke="#081619">
+  <g class="illus-crowd-mid" fill="#C4321F" stroke="#C4321F">
     <ellipse cx="5" cy="328.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
     <circle cx="5" cy="302" r="14" opacity="0.92"/>
     <ellipse cx="52" cy="317.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
@@ -552,7 +558,7 @@ tr{transition:background .2s}
     <circle cx="1605" cy="300" r="14" opacity="0.92"/>
     <line x1="1605" y1="318.2" x2="1628.8" y2="274.8" stroke-width="7.0" stroke-linecap="round" opacity="0.92"/>
   </g>
-  <g class="illus-crowd-front" fill="#050F12" stroke="#050F12">
+  <g class="illus-crowd-front" fill="#E8802E" stroke="#E8802E">
     <ellipse cx="9" cy="359.2" rx="20.7" ry="27.0" opacity="1"/>
     <circle cx="9" cy="325" r="18" opacity="1"/>
     <line x1="9" y1="348.4" x2="-21.599999999999998" y2="292.6" stroke-width="9.0" stroke-linecap="round" opacity="1"/>
@@ -650,26 +656,26 @@ tr{transition:background .2s}
   <div class="how-strip">
     <div class="how-card"><span class="how-step-num">1</span><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
   <defs><linearGradient id="ilEmptyG" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="#123037"/><stop offset="100%" stop-color="#0D2126"/>
+    <stop offset="0%" stop-color="#FFF4E1"/><stop offset="100%" stop-color="#FFE3BE"/>
   </linearGradient></defs>
-  <ellipse cx="120" cy="150" rx="70" ry="10" fill="#0B1E23"/>
+  <ellipse cx="120" cy="150" rx="70" ry="10" fill="#FFC177"/>
   <rect x="70" y="60" width="100" height="75" rx="10" fill="url(#ilEmptyG)" stroke="#1E4750" stroke-width="2"/>
   <line x1="70" y1="88" x2="170" y2="88" stroke="#1E4750" stroke-width="2" stroke-dasharray="4 4"/>
   <circle cx="120" cy="60" r="9" fill="none" stroke="#1E4750" stroke-width="2"/>
-  <path d="M95 100h50M95 114h32" stroke="#2A5560" stroke-width="4" stroke-linecap="round"/>
+  <path d="M95 100h50M95 114h32" stroke="#E8B26B" stroke-width="4" stroke-linecap="round"/>
   <circle cx="168" cy="52" r="20" fill="none" stroke="#FF8A3D" stroke-width="2.5" opacity=".55"/>
   <line x1="182" y1="66" x2="192" y2="76" stroke="#FF8A3D" stroke-width="2.5" stroke-linecap="round" opacity=".55"/>
-  <circle cx="52" cy="40" r="4" fill="#5EEAD4" opacity=".6"/>
+  <circle cx="52" cy="40" r="4" fill="#E8432E" opacity=".6"/>
   <circle cx="42" cy="70" r="3" fill="#FFD9A8" opacity=".6"/>
-  <circle cx="196" cy="110" r="3.5" fill="#5EEAD4" opacity=".5"/>
+  <circle cx="196" cy="110" r="3.5" fill="#E8432E" opacity=".5"/>
 </svg><div class="how-title">Choisis ton ticket</div><div class="how-sub">Sélectionne la catégorie et le numéro de ton choix dans la grille.</div></div>
     <div class="how-card"><span class="how-step-num">2</span><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
-  <rect x="88" y="26" width="64" height="120" rx="12" fill="#0D2126" stroke="#0EA5A0" stroke-width="2.5"/>
-  <rect x="96" y="42" width="48" height="80" rx="4" fill="#123037"/>
-  <circle cx="120" cy="132" r="6" fill="none" stroke="#0EA5A0" stroke-width="2"/>
+  <rect x="88" y="26" width="64" height="120" rx="12" fill="#FFE3BE" stroke="#C4321F" stroke-width="2.5"/>
+  <rect x="96" y="42" width="48" height="80" rx="4" fill="#FFF4E1"/>
+  <circle cx="120" cy="132" r="6" fill="none" stroke="#C4321F" stroke-width="2"/>
   <text x="120" y="90" text-anchor="middle" font-family="monospace" font-size="15" fill="#FFD9A8" font-weight="700">FCFA</text>
-  <path d="M56 58a20 20 0 0 1 0 28" fill="none" stroke="#5EEAD4" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
-  <path d="M46 50a30 30 0 0 1 0 44" fill="none" stroke="#5EEAD4" stroke-width="2.5" stroke-linecap="round" opacity=".4"/>
+  <path d="M56 58a20 20 0 0 1 0 28" fill="none" stroke="#E8432E" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
+  <path d="M46 50a30 30 0 0 1 0 44" fill="none" stroke="#E8432E" stroke-width="2.5" stroke-linecap="round" opacity=".4"/>
   <circle cx="184" cy="72" r="14" fill="none" stroke="#FF8A3D" stroke-width="2.5"/>
   <text x="184" y="77" text-anchor="middle" font-family="monospace" font-size="14" fill="#FF8A3D" font-weight="700">₣</text>
   <circle cx="60" cy="130" r="3" fill="#FF8A3D"/>
@@ -677,34 +683,34 @@ tr{transition:background .2s}
 </svg><div class="how-title">Paie en Mobile Money</div><div class="how-sub">MTN ou Moov Money — tu confirmes directement depuis ton téléphone.</div></div>
     <div class="how-card"><span class="how-step-num">3</span><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
   <circle cx="120" cy="92" r="46" fill="none" stroke="#34D399" stroke-width="2" opacity=".35"/>
-  <circle cx="120" cy="92" r="34" fill="#0D2126" stroke="#34D399" stroke-width="2.5"/>
+  <circle cx="120" cy="92" r="34" fill="#FFE3BE" stroke="#34D399" stroke-width="2.5"/>
   <polyline points="104 92 116 104 138 80" fill="none" stroke="#34D399" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
   <g stroke-linecap="round">
     <line x1="46" y1="50" x2="54" y2="58" stroke="#FF8A3D" stroke-width="3"/>
-    <line x1="190" y1="46" x2="182" y2="55" stroke="#5EEAD4" stroke-width="3"/>
+    <line x1="190" y1="46" x2="182" y2="55" stroke="#E8432E" stroke-width="3"/>
     <circle cx="58" cy="120" r="4" fill="#FFD9A8"/>
-    <circle cx="184" cy="118" r="3.5" fill="#0EA5A0"/>
-    <circle cx="70" cy="30" r="3" fill="#5EEAD4"/>
+    <circle cx="184" cy="118" r="3.5" fill="#C4321F"/>
+    <circle cx="70" cy="30" r="3" fill="#E8432E"/>
     <circle cx="172" cy="140" r="3" fill="#FF8A3D"/>
     <rect x="36" y="90" width="8" height="8" rx="2" fill="#FF5A5F" transform="rotate(20 40 94)"/>
     <rect x="198" y="80" width="7" height="7" rx="2" fill="#34D399" transform="rotate(-15 201 83)"/>
   </g>
 </svg><div class="how-title">Reçois ton QR code</div><div class="how-sub">Ton ticket est généré instantanément, disponible en PDF.</div></div>
     <div class="how-card"><span class="how-step-num">4</span><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
-  <rect x="86" y="24" width="68" height="122" rx="13" fill="#0D2126" stroke="#0EA5A0" stroke-width="2.5"/>
-  <rect x="96" y="40" width="48" height="48" rx="4" fill="#123037" stroke="#5EEAD4" stroke-width="1.5"/>
-  <g fill="#5EEAD4" opacity=".85">
+  <rect x="86" y="24" width="68" height="122" rx="13" fill="#FFE3BE" stroke="#C4321F" stroke-width="2.5"/>
+  <rect x="96" y="40" width="48" height="48" rx="4" fill="#FFF4E1" stroke="#E8432E" stroke-width="1.5"/>
+  <g fill="#E8432E" opacity=".85">
     <rect x="101" y="45" width="6" height="6"/><rect x="112" y="45" width="6" height="6"/><rect x="133" y="45" width="6" height="6"/>
     <rect x="101" y="56" width="6" height="6"/><rect x="123" y="56" width="6" height="6"/>
     <rect x="101" y="67" width="6" height="6"/><rect x="112" y="67" width="6" height="6"/><rect x="133" y="67" width="6" height="6"/>
     <rect x="123" y="78" width="16" height="6"/>
   </g>
   <line x1="94" y1="60" x2="146" y2="60" stroke="#FF8A3D" stroke-width="2" opacity=".8"/>
-  <path d="M120 108h0" stroke="#0EA5A0" stroke-width="2"/>
+  <path d="M120 108h0" stroke="#C4321F" stroke-width="2"/>
   <circle cx="120" cy="112" r="7" fill="none" stroke="#34D399" stroke-width="2.5"/>
   <path d="M116.5 112 119 114.5 124 109" fill="none" stroke="#34D399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M50 50a34 34 0 0 0 0 60" fill="none" stroke="#5EEAD4" stroke-width="2" opacity=".3"/>
-  <path d="M190 50a34 34 0 0 1 0 60" fill="none" stroke="#5EEAD4" stroke-width="2" opacity=".3"/>
+  <path d="M50 50a34 34 0 0 0 0 60" fill="none" stroke="#E8432E" stroke-width="2" opacity=".3"/>
+  <path d="M190 50a34 34 0 0 1 0 60" fill="none" stroke="#E8432E" stroke-width="2" opacity=".3"/>
 </svg><div class="how-title">Scanne à l'entrée</div><div class="how-sub">Présente le QR code — vérification en moins d'une seconde.</div></div>
   </div>
 
@@ -791,14 +797,14 @@ tr{transition:background .2s}
 
           <div style="display:flex;align-items:center;gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
             <div style="width:52px;flex-shrink:0"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
-  <path d="M120 32 168 48v38c0 34-22 55-48 62-26-7-48-28-48-62V48Z" fill="#0D2126" stroke="#0EA5A0" stroke-width="2.5"/>
-  <path d="M120 32 168 48v38c0 34-22 55-48 62Z" fill="#0EA5A0" opacity=".08"/>
-  <circle cx="120" cy="94" r="15" fill="none" stroke="#5EEAD4" stroke-width="2.5"/>
-  <path d="M112 94h16M120 86v16" stroke="#5EEAD4" stroke-width="2.5" stroke-linecap="round" opacity="0"/>
-  <path d="M113 94.5 118 100 128 88" fill="none" stroke="#5EEAD4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 32 168 48v38c0 34-22 55-48 62-26-7-48-28-48-62V48Z" fill="#FFE3BE" stroke="#C4321F" stroke-width="2.5"/>
+  <path d="M120 32 168 48v38c0 34-22 55-48 62Z" fill="#C4321F" opacity=".08"/>
+  <circle cx="120" cy="94" r="15" fill="none" stroke="#E8432E" stroke-width="2.5"/>
+  <path d="M112 94h16M120 86v16" stroke="#E8432E" stroke-width="2.5" stroke-linecap="round" opacity="0"/>
+  <path d="M113 94.5 118 100 128 88" fill="none" stroke="#E8432E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
   <circle cx="46" cy="60" r="3" fill="#FFD9A8"/>
   <circle cx="198" cy="70" r="3.5" fill="#FF8A3D"/>
-  <circle cx="200" cy="130" r="2.5" fill="#5EEAD4"/>
+  <circle cx="200" cy="130" r="2.5" fill="#E8432E"/>
 </svg></div>
             <div style="font-size:.74rem;color:var(--muted);line-height:1.4">Paiement sécurisé et chiffré. Fest&amp;Chill ne stocke jamais tes identifiants Mobile Money.</div>
           </div>

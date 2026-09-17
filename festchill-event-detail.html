@@ -30,7 +30,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --ink:#071619;--deep:#0D2126;--surface:#123037;
-  --purple:#0EA5A0;--violet:#0B7A76;--glow:#5EEAD4;
+  --purple:#0EA5A0;--violet:#0B7A76;--glow:#E8432E;
   --gold:#FF8A3D;--green:#34D399;--red:#FF5A5F;
   --white:#F7FBFA;--muted:#7C9A9A;--text:#DCEEEC;
   --sand:#FFD9A8;--card:rgba(14,165,160,.08);--border:rgba(94,234,212,.14);
@@ -40,7 +40,7 @@
   /* Couleurs fixes pour le bandeau illustré (fc-hero) : ce bandeau a un fond
      sombre codé en dur qui ne change PAS avec le thème clair/sombre. Le texte
      posé dessus doit donc rester clair, quel que soit le thème actif. */
-  --hero-text:#F7FBFA;--hero-pill-bg:rgba(5,15,18,.55);--hero-pill-border:rgba(255,255,255,.16);
+  --hero-text:#2B1706;--hero-pill-bg:rgba(255,251,243,.72);--hero-pill-border:rgba(43,23,6,.16);
 }
 :root[data-theme="light"]{
   --ink:#FFFBF3;--deep:#FFFFFF;--surface:#FFFFFF;
@@ -258,7 +258,7 @@ tr{transition:background .2s}
 .fc-hero-content{position:relative;z-index:1;padding:34px 5% 28px;display:flex;flex-direction:column;gap:14px}
 .fc-hero-topbar{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-start;padding:20px 5% 0}
 .fc-chip{opacity:1;background:var(--hero-pill-bg);backdrop-filter:blur(10px);border:1px solid var(--hero-pill-border);border-radius:100px;padding:7px 16px;font-size:.8rem;font-weight:700;display:flex;align-items:center;gap:8px;animation:popIn .5s .1s cubic-bezier(.2,1.4,.4,1) both;color:var(--hero-text)}
-.fc-hero-title{font-family:var(--fd);font-weight:800;font-size:clamp(1.7rem,4vw,2.7rem);line-height:1.06;letter-spacing:-.01em;text-shadow:0 4px 24px rgba(0,0,0,.4);color:var(--hero-text)}
+.fc-hero-title{font-family:var(--fd);font-weight:800;font-size:clamp(1.7rem,4vw,2.7rem);line-height:1.06;letter-spacing:-.01em;color:var(--hero-text)}
 .fc-hero-meta{display:flex;flex-wrap:wrap;gap:10px}
 .fc-meta-pill{background:var(--hero-pill-bg);backdrop-filter:blur(8px);border:1px solid var(--hero-pill-border);border-radius:100px;padding:6px 14px;font-size:.82rem;display:flex;align-items:center;gap:7px;color:var(--hero-text)}
 
@@ -320,10 +320,10 @@ tr{transition:background .2s}
       <svg class="illus-hero" viewBox="0 0 1600 400" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
   <defs>
     <linearGradient id="fcSky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#123A42"/>
-      <stop offset="42%" stop-color="#0F262B"/>
-      <stop offset="80%" stop-color="#0B1E23"/>
-      <stop offset="100%" stop-color="#050F12"/>
+      <stop offset="0%" stop-color="#FFE9C7"/>
+      <stop offset="42%" stop-color="#FFD9A0"/>
+      <stop offset="80%" stop-color="#FFC177"/>
+      <stop offset="100%" stop-color="#E8802E"/>
     </linearGradient>
     <linearGradient id="fcHorizon" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#FFB238" stop-opacity="0"/>
@@ -335,9 +335,9 @@ tr{transition:background .2s}
       <stop offset="100%" stop-color="#FFB238" stop-opacity="0"/>
     </radialGradient>
     <linearGradient id="fcFade" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#050F12" stop-opacity="0.85"/>
-      <stop offset="46%" stop-color="#050F12" stop-opacity="0.4"/>
-      <stop offset="100%" stop-color="#050F12" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#E8802E" stop-opacity="0.85"/>
+      <stop offset="46%" stop-color="#E8802E" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#E8802E" stop-opacity="0"/>
     </linearGradient>
   </defs>
   <rect width="1600" height="400" fill="url(#fcSky)"/>
@@ -347,28 +347,28 @@ tr{transition:background .2s}
   <g class="illus-confetti">
     <circle cx="507" cy="323" r="3" fill="#FFD98E" opacity="0.35"/>
     <circle cx="1256" cy="262" r="3" fill="#FFB238" opacity="0.25"/>
-    <circle cx="1260" cy="26" r="2" fill="#5EEAD4" opacity="0.45"/>
-    <circle cx="499" cy="118" r="3" fill="#5EEAD4" opacity="0.45"/>
+    <circle cx="1260" cy="26" r="2" fill="#E8432E" opacity="0.45"/>
+    <circle cx="499" cy="118" r="3" fill="#E8432E" opacity="0.45"/>
     <circle cx="1145" cy="263" r="2" fill="#FFB238" opacity="0.25"/>
     <circle cx="494" cy="345" r="2" fill="#FFB238" opacity="0.35"/>
     <circle cx="1538" cy="27" r="3" fill="#FFD98E" opacity="0.25"/>
-    <circle cx="1572" cy="322" r="2" fill="#5EEAD4" opacity="0.25"/>
+    <circle cx="1572" cy="322" r="2" fill="#E8432E" opacity="0.25"/>
     <circle cx="571" cy="262" r="3" fill="#FFB238" opacity="0.35"/>
     <circle cx="1482" cy="238" r="2" fill="#FFB238" opacity="0.45"/>
     <circle cx="930" cy="88" r="2" fill="#FFD98E" opacity="0.25"/>
-    <circle cx="298" cy="273" r="2" fill="#5EEAD4" opacity="0.45"/>
-    <circle cx="913" cy="340" r="2" fill="#5EEAD4" opacity="0.45"/>
+    <circle cx="298" cy="273" r="2" fill="#E8432E" opacity="0.45"/>
+    <circle cx="913" cy="340" r="2" fill="#E8432E" opacity="0.45"/>
     <circle cx="810" cy="313" r="2" fill="#FFB238" opacity="0.45"/>
-    <circle cx="854" cy="319" r="2" fill="#5EEAD4" opacity="0.45"/>
+    <circle cx="854" cy="319" r="2" fill="#E8432E" opacity="0.45"/>
     <circle cx="78" cy="163" r="3" fill="#FFB238" opacity="0.45"/>
     <circle cx="354" cy="377" r="2" fill="#FFB238" opacity="0.45"/>
     <circle cx="1185" cy="73" r="3" fill="#FFB238" opacity="0.25"/>
-    <circle cx="1316" cy="313" r="2" fill="#5EEAD4" opacity="0.25"/>
-    <circle cx="149" cy="266" r="3" fill="#5EEAD4" opacity="0.25"/>
+    <circle cx="1316" cy="313" r="2" fill="#E8432E" opacity="0.25"/>
+    <circle cx="149" cy="266" r="3" fill="#E8432E" opacity="0.25"/>
     <circle cx="724" cy="54" r="2" fill="#FFD98E" opacity="0.25"/>
     <circle cx="621" cy="238" r="2" fill="#FFD98E" opacity="0.25"/>
-    <circle cx="1259" cy="334" r="2" fill="#5EEAD4" opacity="0.45"/>
-    <circle cx="1220" cy="189" r="3" fill="#5EEAD4" opacity="0.45"/>
+    <circle cx="1259" cy="334" r="2" fill="#E8432E" opacity="0.45"/>
+    <circle cx="1220" cy="189" r="3" fill="#E8432E" opacity="0.45"/>
     <circle cx="503" cy="38" r="2" fill="#FFD98E" opacity="0.25"/>
     <circle cx="241" cy="327" r="3" fill="#FFD98E" opacity="0.25"/>
   </g>
@@ -410,13 +410,13 @@ tr{transition:background .2s}
     <circle cx="1470" cy="70" r="4.4" fill="#FFD98E"/>
     <circle cx="1560" cy="77" r="4.4" fill="#FFD98E"/>
   </g>
-  <rect x="636" y="252" width="330" height="11" fill="#193944"/>
-  <rect x="656" y="190" width="8" height="64" fill="#2A5560"/>
-  <rect x="936" y="190" width="8" height="64" fill="#2A5560"/>
-  <rect x="656" y="190" width="288" height="7" fill="#2A5560"/>
-  <rect x="594" y="210" width="36" height="54" rx="3" fill="#193944"/>
-  <rect x="970" y="210" width="36" height="54" rx="3" fill="#193944"/>
-  <g class="illus-crowd-back" fill="#0B1E23" stroke="#0B1E23">
+  <rect x="636" y="252" width="330" height="11" fill="#F2B25A"/>
+  <rect x="656" y="190" width="8" height="64" fill="#E8B26B"/>
+  <rect x="936" y="190" width="8" height="64" fill="#E8B26B"/>
+  <rect x="656" y="190" width="288" height="7" fill="#E8B26B"/>
+  <rect x="594" y="210" width="36" height="54" rx="3" fill="#F2B25A"/>
+  <rect x="970" y="210" width="36" height="54" rx="3" fill="#F2B25A"/>
+  <g class="illus-crowd-back" fill="#FFC177" stroke="#FFC177">
     <ellipse cx="10" cy="294.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
     <circle cx="10" cy="274" r="11" opacity="0.85"/>
     <ellipse cx="51" cy="293.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
@@ -523,7 +523,7 @@ tr{transition:background .2s}
     <ellipse cx="1610" cy="288.9" rx="12.649999999999999" ry="16.5" opacity="0.85"/>
     <circle cx="1610" cy="268" r="11" opacity="0.85"/>
   </g>
-  <g class="illus-crowd-mid" fill="#081619" stroke="#081619">
+  <g class="illus-crowd-mid" fill="#C4321F" stroke="#C4321F">
     <ellipse cx="5" cy="328.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
     <circle cx="5" cy="302" r="14" opacity="0.92"/>
     <ellipse cx="52" cy="317.6" rx="16.099999999999998" ry="21.0" opacity="0.92"/>
@@ -619,7 +619,7 @@ tr{transition:background .2s}
     <circle cx="1605" cy="300" r="14" opacity="0.92"/>
     <line x1="1605" y1="318.2" x2="1628.8" y2="274.8" stroke-width="7.0" stroke-linecap="round" opacity="0.92"/>
   </g>
-  <g class="illus-crowd-front" fill="#050F12" stroke="#050F12">
+  <g class="illus-crowd-front" fill="#E8802E" stroke="#E8802E">
     <ellipse cx="9" cy="359.2" rx="20.7" ry="27.0" opacity="1"/>
     <circle cx="9" cy="325" r="18" opacity="1"/>
     <line x1="9" y1="348.4" x2="-21.599999999999998" y2="292.6" stroke-width="9.0" stroke-linecap="round" opacity="1"/>
@@ -747,10 +747,10 @@ tr{transition:background .2s}
     <div class="prog-card" style="display:grid;grid-template-columns:64px 1fr;gap:18px;align-items:start">
       <div style="width:64px"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
   <line x1="40" y1="140" x2="210" y2="140" stroke="#1E4750" stroke-width="2"/>
-  <rect x="55" y="104" width="20" height="36" rx="3" fill="#123037" stroke="#0EA5A0" stroke-width="2"/>
-  <rect x="88" y="80" width="20" height="60" rx="3" fill="#123037" stroke="#0EA5A0" stroke-width="2"/>
-  <rect x="121" y="58" width="20" height="82" rx="3" fill="#0EA5A0" opacity=".25" stroke="#0EA5A0" stroke-width="2"/>
-  <rect x="154" y="94" width="20" height="46" rx="3" fill="#123037" stroke="#0EA5A0" stroke-width="2"/>
+  <rect x="55" y="104" width="20" height="36" rx="3" fill="#FFF4E1" stroke="#C4321F" stroke-width="2"/>
+  <rect x="88" y="80" width="20" height="60" rx="3" fill="#FFF4E1" stroke="#C4321F" stroke-width="2"/>
+  <rect x="121" y="58" width="20" height="82" rx="3" fill="#C4321F" opacity=".25" stroke="#C4321F" stroke-width="2"/>
+  <rect x="154" y="94" width="20" height="46" rx="3" fill="#FFF4E1" stroke="#C4321F" stroke-width="2"/>
   <polyline points="60 100 98 74 131 50 164 84" fill="none" stroke="#FF8A3D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
   <circle cx="131" cy="50" r="4" fill="#FF8A3D"/>
   <circle cx="164" cy="84" r="3" fill="#FF8A3D"/>
@@ -786,13 +786,13 @@ tr{transition:background .2s}
       </div>
       </div>
       <div><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="90" cy="76" r="20" fill="#123037" stroke="#0EA5A0" stroke-width="2.2"/>
-  <path d="M62 132a28 28 0 0 1 56 0" fill="none" stroke="#0EA5A0" stroke-width="2.2"/>
-  <circle cx="158" cy="66" r="16" fill="#123037" stroke="#FF8A3D" stroke-width="2.2"/>
+  <circle cx="90" cy="76" r="20" fill="#FFF4E1" stroke="#C4321F" stroke-width="2.2"/>
+  <path d="M62 132a28 28 0 0 1 56 0" fill="none" stroke="#C4321F" stroke-width="2.2"/>
+  <circle cx="158" cy="66" r="16" fill="#FFF4E1" stroke="#FF8A3D" stroke-width="2.2"/>
   <path d="M136 118a24 24 0 0 1 44-8" fill="none" stroke="#FF8A3D" stroke-width="2.2"/>
-  <path d="M150 30h44a8 8 0 0 1 8 8v20a8 8 0 0 1-8 8h-8l-8 10v-10h-28a8 8 0 0 1-8-8V38a8 8 0 0 1 8-8Z" fill="#0D2126" stroke="#5EEAD4" stroke-width="2.2"/>
-  <line x1="166" y1="44" x2="192" y2="44" stroke="#5EEAD4" stroke-width="2" stroke-linecap="round"/>
-  <line x1="166" y1="52" x2="184" y2="52" stroke="#5EEAD4" stroke-width="2" stroke-linecap="round" opacity=".6"/>
+  <path d="M150 30h44a8 8 0 0 1 8 8v20a8 8 0 0 1-8 8h-8l-8 10v-10h-28a8 8 0 0 1-8-8V38a8 8 0 0 1 8-8Z" fill="#FFE3BE" stroke="#E8432E" stroke-width="2.2"/>
+  <line x1="166" y1="44" x2="192" y2="44" stroke="#E8432E" stroke-width="2" stroke-linecap="round"/>
+  <line x1="166" y1="52" x2="184" y2="52" stroke="#E8432E" stroke-width="2" stroke-linecap="round" opacity=".6"/>
 </svg></div>
     </div>
 
@@ -852,11 +852,11 @@ tr{transition:background .2s}
           <div class="section-head" style="padding:14px 18px;gap:12px">
             <span class="section-head-title" data-i18n="event_detail.recent_activity">Activité récente</span>
             <div style="width:38px;flex-shrink:0"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
-  <path d="M96 100a24 24 0 0 1 48 0c0 16 5.2 21.6 7.6 24H88.4c2.4-2.4 7.6-8 7.6-24Z" fill="#0D2126" stroke="#FF8A3D" stroke-width="2.5"/>
+  <path d="M96 100a24 24 0 0 1 48 0c0 16 5.2 21.6 7.6 24H88.4c2.4-2.4 7.6-8 7.6-24Z" fill="#FFE3BE" stroke="#FF8A3D" stroke-width="2.5"/>
   <path d="M112.5 130a7.5 7.5 0 0 0 15 0" fill="none" stroke="#FF8A3D" stroke-width="2.5"/>
-  <path d="M150 78a34 34 0 0 1 0 40" fill="none" stroke="#5EEAD4" stroke-width="2.2" stroke-linecap="round" opacity=".65"/>
-  <path d="M160 66a50 50 0 0 1 0 64" fill="none" stroke="#5EEAD4" stroke-width="2.2" stroke-linecap="round" opacity=".35"/>
-  <rect x="46" y="56" width="26" height="34" rx="4" fill="#123037" stroke="#0EA5A0" stroke-width="2" transform="rotate(-8 59 73)"/>
+  <path d="M150 78a34 34 0 0 1 0 40" fill="none" stroke="#E8432E" stroke-width="2.2" stroke-linecap="round" opacity=".65"/>
+  <path d="M160 66a50 50 0 0 1 0 64" fill="none" stroke="#E8432E" stroke-width="2.2" stroke-linecap="round" opacity=".35"/>
+  <rect x="46" y="56" width="26" height="34" rx="4" fill="#FFF4E1" stroke="#C4321F" stroke-width="2" transform="rotate(-8 59 73)"/>
   <circle cx="196" cy="120" r="4" fill="#34D399"/>
   <circle cx="60" cy="128" r="3" fill="#FFD9A8"/>
 </svg></div>
@@ -871,12 +871,12 @@ tr{transition:background .2s}
           </div>
           <div style="padding:18px;display:flex;gap:16px;align-items:center">
             <div style="width:56px;flex-shrink:0"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
-  <rect x="88" y="26" width="64" height="120" rx="12" fill="#0D2126" stroke="#0EA5A0" stroke-width="2.5"/>
-  <rect x="96" y="42" width="48" height="80" rx="4" fill="#123037"/>
-  <circle cx="120" cy="132" r="6" fill="none" stroke="#0EA5A0" stroke-width="2"/>
+  <rect x="88" y="26" width="64" height="120" rx="12" fill="#FFE3BE" stroke="#C4321F" stroke-width="2.5"/>
+  <rect x="96" y="42" width="48" height="80" rx="4" fill="#FFF4E1"/>
+  <circle cx="120" cy="132" r="6" fill="none" stroke="#C4321F" stroke-width="2"/>
   <text x="120" y="90" text-anchor="middle" font-family="monospace" font-size="15" fill="#FFD9A8" font-weight="700">FCFA</text>
-  <path d="M56 58a20 20 0 0 1 0 28" fill="none" stroke="#5EEAD4" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
-  <path d="M46 50a30 30 0 0 1 0 44" fill="none" stroke="#5EEAD4" stroke-width="2.5" stroke-linecap="round" opacity=".4"/>
+  <path d="M56 58a20 20 0 0 1 0 28" fill="none" stroke="#E8432E" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
+  <path d="M46 50a30 30 0 0 1 0 44" fill="none" stroke="#E8432E" stroke-width="2.5" stroke-linecap="round" opacity=".4"/>
   <circle cx="184" cy="72" r="14" fill="none" stroke="#FF8A3D" stroke-width="2.5"/>
   <text x="184" y="77" text-anchor="middle" font-family="monospace" font-size="14" fill="#FF8A3D" font-weight="700">₣</text>
   <circle cx="60" cy="130" r="3" fill="#FF8A3D"/>

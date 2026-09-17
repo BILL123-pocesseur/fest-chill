@@ -77,7 +77,7 @@ html[dir="rtl"] body{direction:rtl}
 
 /* WALLET HERO */
 @keyframes walletShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
-.wallet-hero{background:linear-gradient(120deg,#0D2126,#123037,#0E2A2E,#0D2126);background-size:300% 300%;animation:walletShift 12s ease infinite;border:1px solid rgba(94,234,212,.3);border-radius:16px;padding:32px;margin-bottom:24px;position:relative;overflow:hidden;display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;align-items:center;box-shadow:0 22px 50px rgba(0,0,0,.35)}
+.wallet-hero{background:linear-gradient(120deg,#FFE9C7,#FFD9A0,#FFC177,#FFE9C7);background-size:300% 300%;animation:walletShift 12s ease infinite;border:1.5px solid var(--border);border-radius:16px;padding:32px;margin-bottom:24px;position:relative;overflow:hidden;display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;align-items:center;box-shadow:0 14px 30px rgba(196,50,31,.1)}
 .wallet-hero::before{content:'';position:absolute;top:-60px;left:-60px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(14,165,160,.3),transparent 70%);pointer-events:none}
 .wallet-hero::after{content:'';position:absolute;bottom:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(255,138,61,.18),transparent 70%);pointer-events:none}
 .wh-block{position:relative;z-index:1}
@@ -378,10 +378,10 @@ tr{transition:background .2s}
           <div style="display:flex;gap:16px;align-items:center;padding:0 20px 4px">
             <div style="width:60px;flex-shrink:0"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
   <line x1="40" y1="140" x2="210" y2="140" stroke="#1E4750" stroke-width="2"/>
-  <rect x="55" y="104" width="20" height="36" rx="3" fill="#123037" stroke="#0EA5A0" stroke-width="2"/>
-  <rect x="88" y="80" width="20" height="60" rx="3" fill="#123037" stroke="#0EA5A0" stroke-width="2"/>
-  <rect x="121" y="58" width="20" height="82" rx="3" fill="#0EA5A0" opacity=".25" stroke="#0EA5A0" stroke-width="2"/>
-  <rect x="154" y="94" width="20" height="46" rx="3" fill="#123037" stroke="#0EA5A0" stroke-width="2"/>
+  <rect x="55" y="104" width="20" height="36" rx="3" fill="#FFF4E1" stroke="#C4321F" stroke-width="2"/>
+  <rect x="88" y="80" width="20" height="60" rx="3" fill="#FFF4E1" stroke="#C4321F" stroke-width="2"/>
+  <rect x="121" y="58" width="20" height="82" rx="3" fill="#0EA5A0" opacity=".25" stroke="#C4321F" stroke-width="2"/>
+  <rect x="154" y="94" width="20" height="46" rx="3" fill="#FFF4E1" stroke="#C4321F" stroke-width="2"/>
   <polyline points="60 100 98 74 131 50 164 84" fill="none" stroke="#FF8A3D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
   <circle cx="131" cy="50" r="4" fill="#FF8A3D"/>
   <circle cx="164" cy="84" r="3" fill="#FF8A3D"/>
@@ -418,12 +418,12 @@ tr{transition:background .2s}
           </div>
           <div style="padding:0 18px;display:flex;gap:14px;align-items:center">
             <div style="width:52px;flex-shrink:0"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
-  <rect x="88" y="26" width="64" height="120" rx="12" fill="#0D2126" stroke="#0EA5A0" stroke-width="2.5"/>
-  <rect x="96" y="42" width="48" height="80" rx="4" fill="#123037"/>
-  <circle cx="120" cy="132" r="6" fill="none" stroke="#0EA5A0" stroke-width="2"/>
+  <rect x="88" y="26" width="64" height="120" rx="12" fill="#FFE3BE" stroke="#C4321F" stroke-width="2.5"/>
+  <rect x="96" y="42" width="48" height="80" rx="4" fill="#FFF4E1"/>
+  <circle cx="120" cy="132" r="6" fill="none" stroke="#C4321F" stroke-width="2"/>
   <text x="120" y="90" text-anchor="middle" font-family="monospace" font-size="15" fill="#FFD9A8" font-weight="700">FCFA</text>
-  <path d="M56 58a20 20 0 0 1 0 28" fill="none" stroke="#5EEAD4" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
-  <path d="M46 50a30 30 0 0 1 0 44" fill="none" stroke="#5EEAD4" stroke-width="2.5" stroke-linecap="round" opacity=".4"/>
+  <path d="M56 58a20 20 0 0 1 0 28" fill="none" stroke="#1E8A5F" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
+  <path d="M46 50a30 30 0 0 1 0 44" fill="none" stroke="#1E8A5F" stroke-width="2.5" stroke-linecap="round" opacity=".4"/>
   <circle cx="184" cy="72" r="14" fill="none" stroke="#FF8A3D" stroke-width="2.5"/>
   <text x="184" y="77" text-anchor="middle" font-family="monospace" font-size="14" fill="#FF8A3D" font-weight="700">₣</text>
   <circle cx="60" cy="130" r="3" fill="#FF8A3D"/>
@@ -452,17 +452,17 @@ tr{transition:background .2s}
 <div class="modal-overlay" id="modal">
   <div class="modal">
     <div style="width:64px;margin:0 auto 4px"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
-  <path d="M78 150 60 96a10 10 0 0 1 12.6-12.6L150 108a10 10 0 0 1 3 17.6l-52 30a10 10 0 0 1-23-5.6Z" fill="#123037" stroke="#FF8A3D" stroke-width="2.2" stroke-linejoin="round"/>
-  <line x1="96" y1="94" x2="150" y2="60" stroke="#0EA5A0" stroke-width="2" stroke-linecap="round" opacity=".6"/>
-  <line x1="110" y1="108" x2="176" y2="88" stroke="#5EEAD4" stroke-width="2" stroke-linecap="round" opacity=".5"/>
-  <circle cx="150" cy="60" r="3.5" fill="#5EEAD4"/>
-  <circle cx="176" cy="88" r="3" fill="#5EEAD4"/>
+  <path d="M78 150 60 96a10 10 0 0 1 12.6-12.6L150 108a10 10 0 0 1 3 17.6l-52 30a10 10 0 0 1-23-5.6Z" fill="#FFF4E1" stroke="#FF8A3D" stroke-width="2.2" stroke-linejoin="round"/>
+  <line x1="96" y1="94" x2="150" y2="60" stroke="#C4321F" stroke-width="2" stroke-linecap="round" opacity=".6"/>
+  <line x1="110" y1="108" x2="176" y2="88" stroke="#1E8A5F" stroke-width="2" stroke-linecap="round" opacity=".5"/>
+  <circle cx="150" cy="60" r="3.5" fill="#1E8A5F"/>
+  <circle cx="176" cy="88" r="3" fill="#1E8A5F"/>
   <circle cx="188" cy="56" r="3" fill="#34D399"/>
   <circle cx="60" cy="60" r="3" fill="#FFD9A8"/>
   <rect x="160" y="34" width="7" height="7" rx="1.5" fill="#34D399" transform="rotate(20 163 37)"/>
   <rect x="70" y="44" width="7" height="7" rx="1.5" fill="#FF8A3D" transform="rotate(-15 73 47)"/>
-  <rect x="196" y="100" width="7" height="7" rx="1.5" fill="#5EEAD4" transform="rotate(30 199 103)"/>
-  <ellipse cx="105" cy="160" rx="46" ry="7" fill="#0B1E23"/>
+  <rect x="196" y="100" width="7" height="7" rx="1.5" fill="#1E8A5F" transform="rotate(30 199 103)"/>
+  <ellipse cx="105" cy="160" rx="46" ry="7" fill="#EBDFC9"/>
 </svg></div>
     <div class="modal-title" style="justify-content:center"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="19" height="11" rx="2"/><circle cx="12" cy="12" r="3"/><line x1="6" y1="9.3" x2="6" y2="9.3"/><line x1="18" y1="14.7" x2="18" y2="14.7"/></svg> Retirer de l'argent</div>
     <div class="modal-sub" data-i18n="wallet.arrival_hint">L'argent arrive sur ton Mobile Money en 5 à 10 minutes.</div>
@@ -701,10 +701,10 @@ async function loadAll(){
     const b = document.createElement('div');
     b.className = 'bar-b';
     const h = Math.max(3, v/maxRev*100);
-    b.style.cssText = `height:${h}px;background:linear-gradient(180deg,#0EA5A0,#0B7A76);border-radius:4px 4px 0 0`;
+    b.style.cssText = `height:${h}px;background:linear-gradient(180deg,#C4321F,#E8432E);border-radius:4px 4px 0 0`;
     b.title = v.toLocaleString('fr-FR')+' FCFA';
-    b.addEventListener('mouseenter',()=>b.style.background='linear-gradient(180deg,#5EEAD4,#0EA5A0)');
-    b.addEventListener('mouseleave',()=>b.style.background='linear-gradient(180deg,#0EA5A0,#0B7A76)');
+    b.addEventListener('mouseenter',()=>b.style.background='linear-gradient(180deg,#FFC53D,#C4321F)');
+    b.addEventListener('mouseleave',()=>b.style.background='linear-gradient(180deg,#C4321F,#E8432E)');
     const l = document.createElement('div');
     l.className = 'bar-lbl';
     l.textContent = (i%5===0) ? days[i].getDate() : '';
