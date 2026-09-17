@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script>(function(){
-  var t=localStorage.getItem('fc-theme')||'dark';
+  var t=localStorage.getItem('fc-theme')||'light';
   var light=t==='light'||(t==='auto'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches);
   if(light)document.documentElement.setAttribute('data-theme','light');
   var fcLang = localStorage.getItem('fc-lang')||'fr';
@@ -24,7 +24,7 @@
   }
 })();</script>
 <title>Transactions — Fest&Chill</title>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -34,7 +34,7 @@
   --white:#F7FBFA;--muted:#7C9A9A;--text:#DCEEEC;
   --sand:#FFD9A8;--card:rgba(14,165,160,.08);--border:rgba(94,234,212,.14);
   --topbar-bg:rgba(13,10,30,.9);--accent-rgb:14,165,160;
-  --fd:'Bricolage Grotesque',sans-serif;--fb:'Manrope',sans-serif;--fm:'IBM Plex Mono',monospace;
+  --fd:'Instrument Serif',serif;--fb:'Plus Jakarta Sans',sans-serif;--fm:'IBM Plex Mono',monospace;
   --r:12px;--sidebar:240px;
   /* Couleurs fixes pour le bandeau illustré (fc-hero) : ce bandeau a un fond
      sombre codé en dur qui ne change PAS avec le thème clair/sombre. Le texte
@@ -42,12 +42,12 @@
   --hero-text:#F7FBFA;--hero-pill-bg:rgba(5,15,18,.55);--hero-pill-border:rgba(255,255,255,.16);
 }
 :root[data-theme="light"]{
-  --ink:#F3F8F7;--deep:#FFFFFF;--surface:#FFFFFF;
-  --purple:#0EA5A0;--violet:#0B7A76;--glow:#0B7A76;
-  --gold:#C9660D;--green:#0F9D58;--red:#DC2626;
-  --white:#0B2226;--muted:#5B7373;--text:#16302E;
-  --sand:#FFE3BE;--card:rgba(14,165,160,.06);--border:rgba(11,38,42,.12);
-  --topbar-bg:rgba(255,255,255,.82);--accent-rgb:14,165,160;
+  --ink:#FFFBF3;--deep:#FFFFFF;--surface:#FFFFFF;
+  --purple:#C4321F;--violet:#E8432E;--glow:#1E8A5F;
+  --gold:#E8A012;--green:#1E8A5F;--red:#C4321F;
+  --white:#241C14;--muted:#8A7A68;--text:#241C14;
+  --sand:#FFE3BE;--card:rgba(232,67,46,.05);--border:#EBDFC9;
+  --topbar-bg:rgba(255,251,243,.85);--accent-rgb:196,50,31;
 }
 body{font-family:var(--fb);background:var(--ink);color:var(--text);display:flex;min-height:100vh}
 .sidebar{width:var(--sidebar);background:var(--deep);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;z-index:50}

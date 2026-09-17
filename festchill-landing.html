@@ -4,16 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fest&Chill — Vends tes tickets d'événements</title>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --ink:#071619;--deep:#0D2126;--surface:#123037;
-  --purple:#0EA5A0;--violet:#0B7A76;--glow:#5EEAD4;
-  --gold:#FF8A3D;--green:#34D399;--red:#FF5A5F;
-  --white:#F7FBFA;--muted:#7C9A9A;--text:#DCEEEC;
-  --sand:#FFD9A8;--card:rgba(14,165,160,.08);--border:rgba(94,234,212,.14);
-  --fd:'Bricolage Grotesque',sans-serif;--fb:'Manrope',sans-serif;--fm:'IBM Plex Mono',monospace;
+  --ink:#FFFBF3;--deep:#FFFFFF;--surface:#FFFFFF;
+  --purple:#C4321F;--violet:#E8432E;--glow:#1E8A5F;
+  --gold:#E8A012;--green:#1E8A5F;--red:#C4321F;
+  --white:#241C14;--muted:#8A7A68;--text:#241C14;
+  --sand:#FFE3BE;--card:rgba(232,67,46,.05);--border:#EBDFC9;
+  --fd:'Instrument Serif',serif;--fb:'Plus Jakarta Sans',sans-serif;--fm:'IBM Plex Mono',monospace;
   --r:12px;
 }
 body{font-family:var(--fb);background:var(--ink);color:var(--text);min-height:100vh;overflow-x:hidden}
@@ -179,6 +179,16 @@ footer{padding:26px 5%;border-top:1px solid var(--border);text-align:center;colo
       <input type="password" class="form-input" id="signup-password" placeholder="6 caractères minimum">
       <button class="btn btn-primary btn-block" onclick="doSignup()">Créer mon compte</button>
     </div>
+
+    <div class="auth-panel" id="panel-verify" style="display:none">
+      <div class="auth-sub" id="verify-sub">On t'a envoyé un code à 6 chiffres par email.</div>
+      <label class="form-label">Code reçu par email</label>
+      <input type="text" class="form-input" id="verify-code" placeholder="123456" inputmode="numeric" maxlength="6" style="letter-spacing:6px;font-size:1.3rem;text-align:center">
+      <button class="btn btn-primary btn-block" onclick="doVerifyCode()">Vérifier le code</button>
+      <div style="text-align:center;margin-top:14px;font-size:.82rem;color:var(--muted)">
+        Pas reçu ? <a href="#" onclick="resendCode();return false" style="color:var(--purple);font-weight:700">Renvoyer le code</a>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -234,11 +244,33 @@ async function doSignup(){
 
   const { error } = await fcSignUpWithEmail(email, password, fullName);
   if (error){ showError(translateAuthError(error.message)); return; }
-  showSuccess('Compte créé ! Si une confirmation par email est activée, vérifie ta boîte mail — sinon tu es connecté.');
-  setTimeout(async () => {
-    const session = await fcGetSession();
-    if (session) window.location.href = 'festchill-dashboard.html';
-  }, 1500);
+
+  // Compte créé, en attente de vérification par code (envoyé via Brevo,
+  // voir la configuration SMTP + template dans Supabase → Authentication)
+  pendingVerifyEmail = email;
+  document.getElementById('panel-signup').style.display = 'none';
+  document.getElementById('panel-verify').style.display = 'block';
+  document.getElementById('verify-sub').textContent = `On a envoyé un code à 6 chiffres à ${email}.`;
+  document.querySelectorAll('.auth-tabs')[0].style.display = 'none';
+}
+
+let pendingVerifyEmail = null;
+
+async function doVerifyCode(){
+  const code = document.getElementById('verify-code').value.trim();
+  if (!/^[0-9]{6}$/.test(code)){ showError('Entre le code à 6 chiffres reçu par email.'); return; }
+
+  const { error } = await supa.auth.verifyOtp({ email: pendingVerifyEmail, token: code, type: 'signup' });
+  if (error){ showError('Code incorrect ou expiré — clique sur "Renvoyer le code".'); return; }
+
+  showSuccess('Compte vérifié !');
+  setTimeout(() => { window.location.href = 'festchill-dashboard.html'; }, 800);
+}
+
+async function resendCode(){
+  const { error } = await supa.auth.resend({ type: 'signup', email: pendingVerifyEmail });
+  if (error){ showError(error.message); return; }
+  showSuccess('Nouveau code envoyé !');
 }
 
 function translateAuthError(msg){
