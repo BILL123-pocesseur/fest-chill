@@ -384,6 +384,25 @@ tr{transition:background .2s}
     <div class="section-card">
       <div class="section-head">
         <div>
+          <div class="section-head-title">🔢 Numérotation des tickets</div>
+          <div style="font-size:.8rem;color:var(--muted);margin-top:2px">Comment le numéro de chaque ticket est attribué à l'achat.</div>
+        </div>
+      </div>
+      <div style="padding:18px 22px;display:flex;gap:12px">
+        <label style="flex:1;display:flex;align-items:flex-start;gap:10px;padding:14px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer" id="mode-manual-label">
+          <input type="radio" name="numbering-mode" value="manual" id="mode-manual" checked style="margin-top:3px" onchange="updateNumberingMode()">
+          <span><strong style="font-size:.86rem">Manuel</strong><br><span style="font-size:.78rem;color:var(--muted)">Le client choisit son numéro parmi une grille disponible.</span></span>
+        </label>
+        <label style="flex:1;display:flex;align-items:flex-start;gap:10px;padding:14px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer" id="mode-automatic-label">
+          <input type="radio" name="numbering-mode" value="automatic" id="mode-automatic" style="margin-top:3px" onchange="updateNumberingMode()">
+          <span><strong style="font-size:.86rem">Automatique</strong><br><span style="font-size:.78rem;color:var(--muted)">Le système attribue le prochain numéro libre, sans que le client choisisse.</span></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-head">
+        <div>
           <div class="section-head-title">🎟️ <span data-i18n="create.categories_title">Catégories de tickets</span></div>
           <div style="font-size:.8rem;color:var(--muted);margin-top:2px" data-i18n="create.categories_sub">Ajoute au moins une catégorie (ex: Normal, VIP, VVIP)</div>
         </div>
@@ -405,12 +424,19 @@ tr{transition:background .2s}
 let profile = null;
 let catCount = 0;
 
+function updateNumberingMode(){
+  const manual = document.getElementById('mode-manual').checked;
+  document.getElementById('mode-manual-label').style.borderColor = manual ? 'var(--purple)' : 'var(--border)';
+  document.getElementById('mode-automatic-label').style.borderColor = !manual ? 'var(--purple)' : 'var(--border)';
+}
+
 async function boot(){
   profile = await fcRequireAuth();
   if (!profile) return;
   fcMountSidebar(profile);
   addCategory('Normal', 3000, 100);
   addCategory('VIP', 10000, 50);
+  updateNumberingMode();
 }
 
 function addCategory(name='', price='', quota=''){
@@ -469,9 +495,11 @@ async function submitEvent(status){
   const baseSlug = fcSlugify(title);
   const slug = baseSlug + '-' + Math.random().toString(36).slice(2,7);
 
+  const numbering_mode = document.querySelector('input[name="numbering-mode"]:checked').value;
+
   const { data: event, error } = await supa.from('events').insert({
     organizer_id: profile.id, slug, title, event_type, description,
-    location, event_date, event_time, status
+    location, event_date, event_time, status, numbering_mode
   }).select().single();
 
   if (error){ showFormError(fcT('common.error_prefix') + ' ' + error.message); btn.disabled = false; btn.innerHTML = '🚀 ' + fcT('create.publish'); return; }

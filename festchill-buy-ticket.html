@@ -999,6 +999,19 @@ async function switchCat(cat, btn){
 
 async function renderGrid(cat){
   const grid = document.getElementById('ticket-grid');
+
+  if (currentEvent.numbering_mode === 'automatic'){
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--muted);font-size:.85rem;border:1.5px dashed var(--border);border-radius:10px">
+      🔢 Numéro attribué automatiquement à l'achat — pas besoin d'en choisir un.
+    </div>`;
+    selectedTicket = 'auto';
+    selectedTicketData = cat;
+    updateDetailAuto(cat);
+    updateSummary();
+    checkPayBtn();
+    return;
+  }
+
   grid.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:10px">Chargement des places…</div>';
 
   const { data: soldNums, error } = await supa.rpc('sold_ticket_numbers', { p_category_id: cat.id });
@@ -1040,6 +1053,22 @@ function updateDetail(num, cat){
   `;
 }
 
+function updateDetailAuto(cat){
+  const catClass = cat.name.toLowerCase().includes('vvip') ? 'cat-vvip' : cat.name.toLowerCase().includes('vip') ? 'cat-vip' : 'cat-normal';
+  document.getElementById('ticket-detail').innerHTML = `
+    <div class="td-header">
+      <div>
+        <div class="td-title">${currentEvent.title}</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-top:2px">${fcFormatDate(currentEvent.event_date)} · ${currentEvent.location||''}</div>
+      </div>
+      <div class="td-num">N° auto</div>
+    </div>
+    <div class="td-cat ${catClass}">${cat.name}</div>
+    <div class="td-price">${cat.price.toLocaleString('fr-FR')} <span style="font-size:1rem;color:var(--muted)">FCFA</span></div>
+    <div class="td-hint">Numéro attribué automatiquement · QR code unique · 1 entrée</div>
+  `;
+}
+
 function resetDetail(){
   document.getElementById('ticket-detail').innerHTML = `
     <div style="text-align:center;padding:20px 0;color:var(--muted)">
@@ -1051,7 +1080,7 @@ function resetDetail(){
 
 function updateSummary(){
   if (!selectedTicket) return;
-  const num = selectedTicket < 10 ? '0'+selectedTicket : selectedTicket;
+  const num = selectedTicket === 'auto' ? 'Auto' : (selectedTicket < 10 ? '0'+selectedTicket : selectedTicket);
   document.getElementById('sum-ticket').textContent = 'N°' + num;
   document.getElementById('sum-cat').textContent = selectedTicketData.name;
   document.getElementById('sum-price').textContent = selectedTicketData.price.toLocaleString('fr-FR') + ' FCFA';
@@ -1106,7 +1135,7 @@ async function processPayment(){
     // que le ticket ne devienne valide pour l'entrée.
     const { data, error } = await supa.rpc('purchase_ticket', {
       p_category_id: currentCat.id,
-      p_ticket_number: selectedTicket,
+      p_ticket_number: selectedTicket === 'auto' ? null : selectedTicket,
       p_buyer_name: name,
       p_buyer_phone: phone,
       p_operator: selectedOp

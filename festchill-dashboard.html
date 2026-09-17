@@ -59,10 +59,12 @@ body{font-family:var(--fb);background:var(--ink);color:var(--text);display:flex;
 .sidebar-nav{padding:16px 12px;flex:1}
 .nav-label{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;padding:10px 8px 4px}
 .s-link{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:.875rem;font-weight:500;margin-bottom:2px;transition:all .15s}
-.s-link:hover{background:var(--card);color:var(--white)}
-.s-link.active{background:rgba(var(--accent-rgb),.2);color:var(--glow);border:1px solid rgba(var(--accent-rgb),.2)}
+.s-link:hover{background:var(--paper2, var(--card));color:var(--ink)}
+.s-link.active{background:var(--red);color:#fff;border:1.5px solid var(--red)}
 .s-link .ic{width:18px;text-align:center}
-.sidebar-footer{padding:14px 12px;border-top:1px solid var(--border)}
+.sidebar-footer{padding:14px 12px;border-top:1.5px solid var(--border);display:flex;align-items:center;gap:8px}
+.logout-btn{flex-shrink:0;width:34px;height:34px;border-radius:8px;border:1.5px solid var(--border);background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);transition:all .2s}
+.logout-btn:hover{border-color:var(--red);color:var(--red);background:var(--card)}
 .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--red),var(--gold));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;color:var(--white);flex-shrink:0}
 .user-pill{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px}
 .user-name{font-size:.82rem;font-weight:600;color:var(--white)}
@@ -78,14 +80,15 @@ html[dir="rtl"] body{direction:rtl}
 
 /* STATS */
 .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
-.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;position:relative;overflow:hidden}
-.stat-card::after{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;opacity:.12}
-.stat-card.s1::after{background:var(--purple)}
-.stat-card.s2::after{background:var(--gold)}
-.stat-card.s3::after{background:var(--green)}
-.stat-card.s4::after{background:var(--red)}
+.stat-card{background:var(--surface);border:1.5px solid var(--ink);border-radius:4px;padding:20px;position:relative;overflow:hidden}
+.stat-card::after{display:none}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.stat-card.s1::before{background:var(--purple)}
+.stat-card.s2::before{background:var(--gold)}
+.stat-card.s3::before{background:var(--green)}
+.stat-card.s4::before{background:var(--ink)}
 .stat-lbl{font-size:.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px}
-.stat-num{font-family:var(--fm);font-size:1.7rem;font-weight:700;line-height:1;margin-bottom:5px}
+.stat-num{font-family:var(--fd);font-size:2.1rem;font-weight:400;line-height:1;margin-bottom:5px}
 .stat-sub{font-size:.76rem;color:var(--muted)}
 .stat-sub.up{color:var(--green)}
 .stat-sub.down{color:var(--red)}
@@ -180,8 +183,8 @@ tr:hover td{background:rgba(255,255,255,.02)}
 html{scroll-behavior:smooth}
 body{position:relative}
 body::before{content:'';position:fixed;inset:-10%;z-index:0;pointer-events:none;opacity:.5;
-  background-image:radial-gradient(circle at 16% 10%,rgba(14,165,160,.14),transparent 42%),
-                    radial-gradient(circle at 90% 85%,rgba(255,138,61,.08),transparent 42%);
+  background-image:radial-gradient(circle at 16% 10%,rgba(232,67,46,.08),transparent 42%),
+                    radial-gradient(circle at 90% 85%,rgba(255,197,61,.10),transparent 42%);
 }
 body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.03;mix-blend-mode:overlay;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -322,6 +325,7 @@ tr{transition:background .2s}
       <div class="avatar" id="side-avatar">–</div>
       <div><div class="user-name" id="side-name">Chargement…</div><div class="user-role">Organisateur</div></div>
     </div>
+    <button class="logout-btn" onclick="fcSignOut()" title="Se déconnecter"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
   </div>
 </aside>
 
