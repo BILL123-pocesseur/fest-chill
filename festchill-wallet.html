@@ -40,13 +40,13 @@
   /* Couleurs fixes pour le bandeau illustré (fc-hero) : ce bandeau a un fond
      sombre codé en dur qui ne change PAS avec le thème clair/sombre. Le texte
      posé dessus doit donc rester clair, quel que soit le thème actif. */
-  --hero-text:#F7FBFA;--hero-pill-bg:rgba(5,15,18,.55);--hero-pill-border:rgba(255,255,255,.16);
+  --hero-text:#2B1706;--hero-pill-bg:rgba(255,251,243,.72);--hero-pill-border:rgba(43,23,6,.16);
 }
 :root[data-theme="light"]{
   --ink:#FFFBF3;--deep:#FFFFFF;--surface:#FFFFFF;
   --purple:#C4321F;--violet:#E8432E;--glow:#1E8A5F;
   --gold:#E8A012;--green:#1E8A5F;--red:#C4321F;
-  --white:#241C14;--muted:#8A7A68;--text:#241C14;
+  --white:#FFFFFF;--muted:#8A7A68;--text:#241C14;
   --sand:#FFE3BE;--card:rgba(232,67,46,.05);--border:#EBDFC9;
   --topbar-bg:rgba(255,251,243,.85);--accent-rgb:196,50,31;
 }
@@ -57,18 +57,18 @@ html[dir="rtl"] .sidebar{left:auto;right:0;border-right:none;border-left:1px sol
 html[dir="rtl"] .main{margin-left:0;margin-right:var(--sidebar)}
 html[dir="rtl"] body{direction:rtl}
 .sidebar-logo{padding:22px 20px;border-bottom:1px solid var(--border)}
-.sidebar-logo a{font-family:var(--fd);font-weight:800;font-size:1.25rem;color:var(--white);text-decoration:none}
+.sidebar-logo a{font-family:var(--fd);font-weight:800;font-size:1.25rem;color:var(--text);text-decoration:none}
 .sidebar-logo span{color:var(--glow)}
 .sidebar-nav{padding:16px 12px;flex:1}
 .nav-label{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;padding:10px 8px 4px}
 .s-link{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:.875rem;font-weight:500;margin-bottom:2px;transition:all .15s}
-.s-link:hover{background:var(--card);color:var(--white)}
+.s-link:hover{background:var(--card);color:var(--text)}
 .s-link.active{background:rgba(var(--accent-rgb),.2);color:var(--glow);border:1px solid rgba(var(--accent-rgb),.2)}
 .s-link .ic{width:18px;text-align:center}
 .sidebar-footer{padding:14px 12px;border-top:1px solid var(--border)}
 .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--glow));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;color:var(--white);flex-shrink:0}
 .user-pill{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px}
-.user-name{font-size:.82rem;font-weight:600;color:var(--white)}
+.user-name{font-size:.82rem;font-weight:600;color:var(--text)}
 .user-role{font-size:.72rem;color:var(--muted)}
 .main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column}
 .topbar{padding:14px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--topbar-bg);backdrop-filter:blur(12px);position:sticky;top:0;z-index:40}
@@ -100,7 +100,7 @@ html[dir="rtl"] body{direction:rtl}
 .modal-actions{display:flex;gap:10px;margin-top:4px}
 .op-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
 .op-btn{padding:12px;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font-family:var(--fb);font-weight:700;font-size:.9rem;transition:all .2s;text-align:center}
-.op-btn.sel,.op-btn:hover{border-color:var(--purple);background:rgba(var(--accent-rgb),.15);color:var(--white)}
+.op-btn.sel,.op-btn:hover{border-color:var(--purple);background:rgba(var(--accent-rgb),.15);color:var(--text)}
 .amount-input-wrap{position:relative;margin-bottom:14px}
 .amount-input-wrap .currency{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.85rem;pointer-events:none}
 
@@ -127,7 +127,7 @@ html[dir="rtl"] body{direction:rtl}
 .tx-icon.red{background:rgba(239,68,68,.12);color:var(--red)}
 .tx-icon.gold{background:rgba(245,158,11,.12);color:var(--gold)}
 .tx-info{flex:1;min-width:0}
-.tx-title{font-size:.86rem;font-weight:600;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx-title{font-size:.86rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tx-sub{font-size:.75rem;color:var(--muted);margin-top:1px}
 .tx-amount{font-family:var(--fd);font-weight:700;font-size:.95rem;white-space:nowrap}
 .tx-amount.in{color:var(--green)}
@@ -145,7 +145,7 @@ html[dir="rtl"] body{direction:rtl}
 .wd-item{display:flex;align-items:center;gap:12px;padding:12px 20px;border-top:1px solid var(--border)}
 .wd-icon{font-size:1.2rem}
 .wd-info{flex:1}
-.wd-title{font-size:.84rem;font-weight:600;color:var(--white)}
+.wd-title{font-size:.84rem;font-weight:600;color:var(--text)}
 .wd-sub{font-size:.73rem;color:var(--muted);margin-top:1px}
 .wd-amount{font-family:var(--fd);font-weight:700;color:var(--red);font-size:.9rem}
 
@@ -160,7 +160,7 @@ html[dir="rtl"] body{direction:rtl}
 .btn-primary{background:var(--purple);color:var(--white)}
 .btn-primary:hover{background:var(--violet);transform:translateY(-1px)}
 .btn-ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
-.btn-ghost:hover{border-color:var(--glow);color:var(--white)}
+.btn-ghost:hover{border-color:var(--glow);color:var(--text)}
 .btn-lg{padding:13px 24px;font-size:.95rem}
 .btn-sm{padding:6px 12px;font-size:.78rem;border-radius:6px}
 
@@ -263,7 +263,7 @@ tr{transition:background .2s}
 .fc-hero-content{position:relative;z-index:1;padding:34px 5% 28px;display:flex;flex-direction:column;gap:14px}
 .fc-hero-topbar{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-start;padding:20px 5% 0}
 .fc-chip{opacity:1;background:var(--hero-pill-bg);backdrop-filter:blur(10px);border:1px solid var(--hero-pill-border);border-radius:100px;padding:7px 16px;font-size:.8rem;font-weight:700;display:flex;align-items:center;gap:8px;animation:popIn .5s .1s cubic-bezier(.2,1.4,.4,1) both;color:var(--hero-text)}
-.fc-hero-title{font-family:var(--fd);font-weight:800;font-size:clamp(1.7rem,4vw,2.7rem);line-height:1.06;letter-spacing:-.01em;text-shadow:0 4px 24px rgba(0,0,0,.4);color:var(--hero-text)}
+.fc-hero-title{font-family:var(--fd);font-weight:800;font-size:clamp(1.7rem,4vw,2.7rem);line-height:1.06;letter-spacing:-.01em;color:var(--hero-text)}
 .fc-hero-meta{display:flex;flex-wrap:wrap;gap:10px}
 .fc-meta-pill{background:var(--hero-pill-bg);backdrop-filter:blur(8px);border:1px solid var(--hero-pill-border);border-radius:100px;padding:6px 14px;font-size:.82rem;display:flex;align-items:center;gap:7px;color:var(--hero-text)}
 
@@ -326,7 +326,7 @@ tr{transition:background .2s}
       <div class="wh-divider"></div>
       <div class="wh-block">
         <div class="wh-label" data-i18n="wallet.total_earned">Total encaissé (net, tout temps)</div>
-        <div class="wh-amount" style="color:var(--white)" id="wh-earned">— <span style="font-size:1rem;font-weight:400;opacity:.6">FCFA</span></div>
+        <div class="wh-amount" style="color:var(--text)" id="wh-earned">— <span style="font-size:1rem;font-weight:400;opacity:.6">FCFA</span></div>
         <div class="wh-sub" id="wh-earned-sub">—</div>
       </div>
       <div class="wh-divider"></div>
@@ -359,7 +359,7 @@ tr{transition:background .2s}
       </div>
       <div class="stat-card">
         <div class="stat-lbl" data-i18n="wallet.next_withdraw_min">Prochain retrait min.</div>
-        <div class="stat-num" style="color:var(--white)">1 000 F</div>
+        <div class="stat-num" style="color:var(--text)">1 000 F</div>
         <div class="stat-sub" data-i18n="wallet.no_high_minimum">Pas de minimum élevé</div>
       </div>
     </div>
@@ -751,7 +751,7 @@ async function loadAll(){
           <div class="wd-sub">${fcFormatDate(w.created_at)} · ${w.status==='confirmed'?FCI['check-circle']+' Reçu':w.status==='pending'?'En cours':'Échoué'}</div>
         </div>
         <div class="wd-amount">-${w.amount.toLocaleString('fr-FR')} F</div>
-      </div>`).join('') + `<div style="padding:14px 18px;border-top:1px solid var(--border);font-size:.78rem;color:var(--muted);text-align:center">Total retiré : <span style="color:var(--white);font-weight:700">${fcFormatFCFA(withdrawnConfirmed)}</span></div>`;
+      </div>`).join('') + `<div style="padding:14px 18px;border-top:1px solid var(--border);font-size:.78rem;color:var(--muted);text-align:center">Total retiré : <span style="color:var(--text);font-weight:700">${fcFormatFCFA(withdrawnConfirmed)}</span></div>`;
   }
 }
 
@@ -830,7 +830,7 @@ function renderWalletMobileMoney(methods){
     <div style="display:flex;align-items:center;gap:12px;padding:14px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;margin-bottom:10px">
       <div style="font-size:1.5rem"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><line x1="11" y1="18.3" x2="13" y2="18.3"/></svg></div>
       <div style="flex:1">
-        <div style="font-weight:700;color:var(--white)">${m.phone}</div>
+        <div style="font-weight:700;color:var(--text)">${m.phone}</div>
         <div style="font-size:.75rem;color:var(--muted)">${m.operator === 'mtn' ? 'MTN Money' : 'Moov Money'}${m.is_primary ? ' — Principal' : ''}</div>
       </div>
       <span class="badge ${m.is_primary ? 'b-green' : 'b-gold'}">${m.is_primary ? 'Principal' : 'Secondaire'}</span>

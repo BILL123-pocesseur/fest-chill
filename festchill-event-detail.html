@@ -46,7 +46,7 @@
   --ink:#FFFBF3;--deep:#FFFFFF;--surface:#FFFFFF;
   --purple:#C4321F;--violet:#E8432E;--glow:#1E8A5F;
   --gold:#E8A012;--green:#1E8A5F;--red:#C4321F;
-  --white:#241C14;--muted:#8A7A68;--text:#241C14;
+  --white:#FFFFFF;--muted:#8A7A68;--text:#241C14;
   --sand:#FFE3BE;--card:rgba(232,67,46,.05);--border:#EBDFC9;
   --topbar-bg:rgba(255,251,243,.85);--accent-rgb:196,50,31;
 }
@@ -57,18 +57,18 @@ html[dir="rtl"] .sidebar{left:auto;right:0;border-right:none;border-left:1px sol
 html[dir="rtl"] .main{margin-left:0;margin-right:var(--sidebar)}
 html[dir="rtl"] body{direction:rtl}
 .sidebar-logo{padding:22px 20px;border-bottom:1px solid var(--border)}
-.sidebar-logo a{font-family:var(--fd);font-weight:800;font-size:1.25rem;color:var(--white);text-decoration:none}
+.sidebar-logo a{font-family:var(--fd);font-weight:800;font-size:1.25rem;color:var(--text);text-decoration:none}
 .sidebar-logo span{color:var(--glow)}
 .sidebar-nav{padding:16px 12px;flex:1}
 .nav-label{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;padding:10px 8px 4px}
 .s-link{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:.875rem;font-weight:500;margin-bottom:2px;transition:all .15s}
-.s-link:hover{background:var(--card);color:var(--white)}
+.s-link:hover{background:var(--card);color:var(--text)}
 .s-link.active{background:rgba(var(--accent-rgb),.2);color:var(--glow);border:1px solid rgba(var(--accent-rgb),.2)}
 .s-link .ic{width:18px;text-align:center}
 .sidebar-footer{padding:14px 12px;border-top:1px solid var(--border)}
 .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--glow));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;color:var(--white);flex-shrink:0}
 .user-pill{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px}
-.user-name{font-size:.82rem;font-weight:600;color:var(--white)}
+.user-name{font-size:.82rem;font-weight:600;color:var(--text)}
 .user-role{font-size:.72rem;color:var(--muted)}
 .main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column}
 .topbar{padding:14px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--topbar-bg);backdrop-filter:blur(12px);position:sticky;top:0;z-index:40}
@@ -110,7 +110,7 @@ html[dir="rtl"] body{direction:rtl}
 .share-link input{flex:1;padding:10px 14px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--glow);font-family:var(--fb);font-size:.85rem;outline:none}
 .share-btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
 .share-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font-family:var(--fb);font-size:.8rem;font-weight:600;transition:all .15s}
-.share-btn:hover{border-color:var(--glow);background:var(--card);color:var(--white)}
+.share-btn:hover{border-color:var(--glow);background:var(--card);color:var(--text)}
 
 /* TWO COL */
 .two-col{display:grid;grid-template-columns:1fr 340px;gap:20px}
@@ -138,7 +138,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 
 /* QR CARD */
 .qr-card{background:var(--deep);border:1px solid var(--border);border-radius:var(--r);padding:22px;text-align:center;margin-bottom:16px}
-.qr-box{width:140px;height:140px;background:var(--white);border-radius:10px;margin:16px auto;display:flex;align-items:center;justify-content:center;font-size:5rem}
+.qr-box{width:140px;height:140px;background:#FFFFFF;border-radius:10px;margin:16px auto;display:flex;align-items:center;justify-content:center;font-size:5rem}
 .qr-hint{font-size:.78rem;color:var(--muted);line-height:1.5}
 
 /* ACTIVITY */
@@ -152,7 +152,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .btn-primary{background:var(--purple);color:var(--white)}
 .btn-primary:hover{background:var(--violet);transform:translateY(-1px)}
 .btn-ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
-.btn-ghost:hover{border-color:var(--glow);color:var(--white)}
+.btn-ghost:hover{border-color:var(--glow);color:var(--text)}
 .btn-danger{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25)}
 .btn-danger:hover{background:rgba(239,68,68,.2)}
 .btn-sm{padding:6px 12px;font-size:.78rem;border-radius:6px}
@@ -738,7 +738,7 @@ tr{transition:background .2s}
       </div>
       <div class="stat-card s4">
         <div class="stat-lbl">Taux de remplissage</div>
-        <div class="stat-num" style="color:var(--white)" id="stat-fillrate">—</div>
+        <div class="stat-num" style="color:var(--text)" id="stat-fillrate">—</div>
         <div class="stat-sub">tous types de tickets</div>
       </div>
     </div>
@@ -1126,7 +1126,7 @@ async function loadTickets(){
   const badges = { Normal:'b-green', VIP:'b-gold', VVIP:'b-purple' };
   tbody.innerHTML = tickets.map(t => `
     <tr>
-      <td style="font-weight:700;color:var(--white)">N°${t.ticket_number<10?'0'+t.ticket_number:t.ticket_number}</td>
+      <td style="font-weight:700;color:var(--text)">N°${t.ticket_number<10?'0'+t.ticket_number:t.ticket_number}</td>
       <td><span class="badge ${badges[t.ticket_categories?.name] || 'b-green'}">${t.ticket_categories?.name || '—'}</span></td>
       <td style="color:var(--text)">${t.orders?.buyer_name||'—'}<br><span style="font-size:.72rem;color:var(--muted)">${t.orders?.buyer_phone||''}</span></td>
       <td style="color:var(--gold);font-weight:700">${(t.ticket_categories?.price||0).toLocaleString('fr-FR')} F</td>
