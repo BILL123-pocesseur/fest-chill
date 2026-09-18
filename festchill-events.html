@@ -302,6 +302,12 @@ tr{transition:background .2s}
 .toggle input:checked + .toggle-slider::before{transform:translateX(20px)}
 
 .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(10px);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--deep);border:1px solid var(--border);border-radius:16px;padding:32px;width:420px;max-width:90vw}
+.modal-title{font-family:var(--fd);font-weight:800;font-size:1.2rem;margin-bottom:6px}
+.modal-sub{font-size:.82rem;color:var(--muted);margin-bottom:20px}
+.modal-actions{display:flex;gap:10px;margin-top:6px}
 </style>
 <body>
 
@@ -339,6 +345,8 @@ tr{transition:background .2s}
   </div>
 
   <div class="page">
+    <div id="pending-invites" style="display:none;margin-bottom:16px"></div>
+
     <div style="display:flex;gap:8px;margin-bottom:20px" id="filter-tabs">
       <button class="btn btn-primary btn-sm" data-f="all" onclick="setFilter('all')" data-i18n="events.filter_all">Tous</button>
       <button class="btn btn-ghost btn-sm" data-f="published" onclick="setFilter('published')" data-i18n="status.published">En vente</button>
@@ -353,6 +361,31 @@ tr{transition:background .2s}
   </div>
 </main>
 
+<div class="modal-overlay" id="invite-modal">
+  <div class="modal">
+    <div class="modal-title">Inviter un co-organisateur</div>
+    <div class="modal-sub">Il doit déjà avoir un compte Fest&Chill avec cet email.</div>
+    <div class="form-label">Email de la personne</div>
+    <input type="email" class="form-input" id="invite-email" placeholder="email@exemple.com" style="margin-bottom:14px">
+    <div class="form-label">Accès accordé</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px">
+      <label style="display:flex;gap:8px;align-items:flex-start;padding:10px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer">
+        <input type="radio" name="invite-role" value="full" checked style="margin-top:3px">
+        <span><strong style="font-size:.85rem">Accès complet</strong><br><span style="font-size:.76rem;color:var(--muted)">Peut modifier l'événement, gérer les tickets, scanner à l'entrée.</span></span>
+      </label>
+      <label style="display:flex;gap:8px;align-items:flex-start;padding:10px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer">
+        <input type="radio" name="invite-role" value="view" style="margin-top:3px">
+        <span><strong style="font-size:.85rem">Lecture seule</strong><br><span style="font-size:.76rem;color:var(--muted)">Peut seulement consulter, ne peut rien modifier.</span></span>
+      </label>
+    </div>
+    <div style="font-size:.74rem;color:var(--muted);margin-bottom:16px">💰 L'argent des ventes reste toujours sur ton compte, quel que soit l'accès donné.</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="closeInviteModal()">Annuler</button>
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="sendInvite()">Envoyer l'invitation</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase-client.js"></script>
 <script>
@@ -365,14 +398,79 @@ async function boot(){
   if (!profile) return;
   fcMountSidebar(profile);
 
-  const { data: events, error } = await supa
-    .from('events')
-    .select('id, title, slug, status, event_date, location, event_type, ticket_categories(quota, sold, price)')
+  // Événements dont je suis créateur + ceux où je suis co-organisateur accepté
+  const { data: collabs } = await supa
+    .from('event_collaborators')
+    .select('event_id, role')
     .eq('organizer_id', profile.id)
-    .order('event_date', { ascending: false });
+    .eq('status', 'accepted');
+  const collabIds = (collabs || []).map(c => c.event_id);
+  const roleByEvent = Object.fromEntries((collabs || []).map(c => [c.event_id, c.role]));
 
-  allEvents = events || [];
+  let query = supa
+    .from('events')
+    .select('id, title, slug, status, event_date, location, event_type, organizer_id, ticket_categories(quota, sold, price)');
+  query = collabIds.length
+    ? query.or(`organizer_id.eq.${profile.id},id.in.(${collabIds.join(',')})`)
+    : query.eq('organizer_id', profile.id);
+
+  const { data: events } = await query.order('event_date', { ascending: false });
+
+  allEvents = (events || []).map(e => ({
+    ...e,
+    myRole: e.organizer_id === profile.id ? 'owner' : roleByEvent[e.id],
+  }));
   render();
+  loadPendingInvites();
+}
+
+async function loadPendingInvites(){
+  const { data } = await supa
+    .from('event_collaborators')
+    .select('id, role, events(title), invited_by, profiles!event_collaborators_invited_by_fkey(full_name)')
+    .eq('organizer_id', profile.id)
+    .eq('status', 'pending');
+
+  const box = document.getElementById('pending-invites');
+  if (!box) return;
+  if (!data || !data.length){ box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  box.innerHTML = data.map(inv => `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:8px">
+      <div style="font-size:.85rem"><strong>${inv.profiles?.full_name || 'Un organisateur'}</strong> t'invite à co-gérer <strong>${inv.events?.title || 'un événement'}</strong> (${inv.role === 'full' ? 'accès complet' : 'lecture seule'})</div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn btn-primary btn-sm" onclick="respondInvite('${inv.id}', true)">Accepter</button>
+        <button class="btn btn-ghost btn-sm" onclick="respondInvite('${inv.id}', false)">Refuser</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function respondInvite(id, accept){
+  try {
+    await supa.rpc('fc_respond_collaborator_invite', { p_collab_id: id, p_accept: accept });
+    showToast(accept ? 'Invitation acceptée !' : 'Invitation refusée', FCI['check-circle']);
+    boot();
+  } catch(e) { showToast('Erreur : ' + e.message, FCI['x-circle']); }
+}
+
+let inviteEventId = null;
+function openInviteModal(eventId){
+  inviteEventId = eventId;
+  document.getElementById('invite-email').value = '';
+  document.getElementById('invite-modal').classList.add('open');
+}
+function closeInviteModal(){ document.getElementById('invite-modal').classList.remove('open'); }
+
+async function sendInvite(){
+  const email = document.getElementById('invite-email').value.trim();
+  const role = document.querySelector('input[name="invite-role"]:checked').value;
+  if (!email){ showToast('Entre un email', FCI['alert-triangle']); return; }
+  try {
+    await supa.rpc('fc_invite_collaborator', { p_event_id: inviteEventId, p_email: email, p_role: role });
+    showToast('Invitation envoyée !', FCI['check-circle']);
+    closeInviteModal();
+  } catch(e) { showToast('Erreur : ' + e.message, FCI['x-circle']); }
 }
 
 function setFilter(f){
@@ -404,19 +502,26 @@ function render(){
     const quota = (e.ticket_categories||[]).reduce((s,c)=>s+c.quota,0);
     const revenue = (e.ticket_categories||[]).reduce((s,c)=>s+c.sold*c.price,0);
     const fill = quota ? Math.round(sold/quota*100) : 0;
-    return `<a href="festchill-event-detail.html?id=${e.id}" class="section-card" style="display:block;padding:20px;text-decoration:none;color:inherit;cursor:pointer">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-        <span style="font-size:.72rem;color:var(--glow);font-weight:700">${e.event_type||'Événement'}</span>
-        ${badges[e.status]||''}
-      </div>
-      <div style="font-family:var(--fd);font-weight:700;font-size:1.05rem;margin-bottom:6px">${e.title}</div>
-      <div style="font-size:.78rem;color:var(--muted);margin-bottom:14px">📅 ${fcFormatDate(e.event_date, {day:'numeric',month:'short',year:'numeric'})} · 📍 ${e.location||'—'}</div>
-      <div class="prog-bar" style="height:6px;background:rgba(255,255,255,.06);border-radius:100px;overflow:hidden;margin-bottom:8px"><div class="prog-fill" style="height:100%;width:${fill}%;background:linear-gradient(90deg,var(--purple),var(--glow))"></div></div>
-      <div style="display:flex;justify-content:space-between;font-size:.78rem">
-        <span style="color:var(--muted)">${sold}/${quota} ${fcT('events.sold_label')}</span>
-        <span style="color:var(--gold);font-weight:700">${revenue.toLocaleString('fr-FR')} F</span>
-      </div>
-    </a>`;
+    const canManage = e.myRole === 'owner' || e.myRole === 'full';
+    const roleBadge = e.myRole === 'owner' ? '' : e.myRole === 'full'
+      ? '<span class="badge b-purple" style="margin-left:6px">🤝 Co-organisateur</span>'
+      : '<span class="badge b-gray" style="margin-left:6px">👁️ Lecture seule</span>';
+    return `<div class="section-card" style="padding:20px;position:relative">
+      <a href="festchill-event-detail.html?id=${e.id}" style="text-decoration:none;color:inherit;display:block">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+          <span style="font-size:.72rem;color:var(--glow);font-weight:700">${e.event_type||'Événement'}</span>
+          <span>${badges[e.status]||''}${roleBadge}</span>
+        </div>
+        <div style="font-family:var(--fd);font-weight:700;font-size:1.05rem;margin-bottom:6px">${e.title}</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:14px">📅 ${fcFormatDate(e.event_date, {day:'numeric',month:'short',year:'numeric'})} · 📍 ${e.location||'—'}</div>
+        <div class="prog-bar" style="height:6px;background:rgba(255,255,255,.06);border-radius:100px;overflow:hidden;margin-bottom:8px"><div class="prog-fill" style="height:100%;width:${fill}%;background:linear-gradient(90deg,var(--purple),var(--glow))"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:.78rem">
+          <span style="color:var(--muted)">${sold}/${quota} ${fcT('events.sold_label')}</span>
+          ${e.myRole === 'view' ? '' : `<span style="color:var(--gold);font-weight:700">${revenue.toLocaleString('fr-FR')} F</span>`}
+        </div>
+      </a>
+      ${canManage ? `<button class="btn btn-ghost btn-sm" style="margin-top:12px;width:100%;justify-content:center" onclick="openInviteModal('${e.id}')">+ Inviter un co-organisateur</button>` : ''}
+    </div>`;
   }).join('');
 }
 

@@ -647,7 +647,7 @@ async function boot(){
 
 async function loadAll(){
   const { data: cfg } = await supa.from('platform_config').select('commission_rate').eq('id',1).single();
-  const rate = cfg?.commission_rate ?? 10;
+  const rate = cfg?.commission_rate ?? 5;
 
   const { data: orders } = await supa
     .from('orders')
@@ -658,20 +658,27 @@ async function loadAll(){
 
   const { data: withdrawals } = await supa
     .from('withdrawals')
-    .select('*')
+    .select('*, platform_commissions(amount)')
     .eq('organizer_id', profile.id)
     .order('created_at', { ascending: false });
 
   const paid = orders || [];
   const gross = paid.reduce((s,o)=>s+o.amount,0);
-  const commission = Math.round(gross * rate / 100);
-  const net = gross - commission;
-  const withdrawnConfirmed = (withdrawals||[]).filter(w=>w.status==='confirmed').reduce((s,w)=>s+w.amount,0);
-  const withdrawnPending = (withdrawals||[]).filter(w=>w.status==='pending').reduce((s,w)=>s+w.amount,0);
-  availableBalance = Math.max(0, net - withdrawnConfirmed - withdrawnPending);
+
+  // Important : la commission n'est prélevée QU'AU MOMENT DU RETRAIT
+  // (voir fc_request_withdrawal), jamais ici — sinon elle serait comptée
+  // deux fois. Le solde disponible se calcule donc sur le montant BRUT
+  // des ventes, moins ce qui a déjà été demandé en retrait (montant brut
+  // demandé = net stocké + commission prélevée dessus, retrouvée via
+  // platform_commissions).
+  const grossWithdrawn = (w) => w.amount + (w.platform_commissions?.[0]?.amount || 0);
+  const withdrawnConfirmed = (withdrawals||[]).filter(w=>w.status==='confirmed').reduce((s,w)=>s+grossWithdrawn(w),0);
+  const withdrawnPending = (withdrawals||[]).filter(w=>w.status==='pending').reduce((s,w)=>s+grossWithdrawn(w),0);
+  availableBalance = Math.max(0, gross - withdrawnConfirmed - withdrawnPending);
+  const net = gross - Math.round(gross * rate / 100); // pour l'affichage informatif seulement
 
   document.getElementById('wh-available').innerHTML = availableBalance.toLocaleString('fr-FR') + ' <span style="font-size:1rem;font-weight:400;opacity:.6">FCFA</span>';
-  document.getElementById('wh-earned').innerHTML = net.toLocaleString('fr-FR') + ' <span style="font-size:1rem;font-weight:400;opacity:.6">FCFA</span>';
+  document.getElementById('wh-earned').innerHTML = gross.toLocaleString('fr-FR') + ' <span style="font-size:1rem;font-weight:400;opacity:.6">FCFA</span>';
   document.getElementById('wh-earned-sub').textContent = paid.length + ' ventes au total';
   document.getElementById('wh-withdrawn').innerHTML = withdrawnConfirmed.toLocaleString('fr-FR') + ' <span style="font-size:1rem;font-weight:400;opacity:.6">FCFA</span>';
   document.getElementById('wh-withdrawn-sub').textContent = (withdrawals||[]).filter(w=>w.status==='confirmed').length + ' retraits effectués';

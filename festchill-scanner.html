@@ -568,12 +568,25 @@ async function boot(){
 
   fcMountSidebar(profile);
 
-  const { data: events } = await supa
+  // Événements dont je suis créateur + ceux où je suis co-organisateur
+  // "accès complet" accepté (seul ce rôle peut scanner, pas "lecture seule").
+  const { data: collabs } = await supa
+    .from('event_collaborators')
+    .select('event_id')
+    .eq('organizer_id', profile.id)
+    .eq('status', 'accepted')
+    .eq('role', 'full');
+  const collabIds = (collabs || []).map(c => c.event_id);
+
+  let query = supa
     .from('events')
     .select('id, title, event_date, ticket_categories(quota, sold)')
-    .eq('organizer_id', profile.id)
-    .in('status', ['published','suspended'])
-    .order('event_date', { ascending: false });
+    .in('status', ['published','suspended']);
+  query = collabIds.length
+    ? query.or(`organizer_id.eq.${profile.id},id.in.(${collabIds.join(',')})`)
+    : query.eq('organizer_id', profile.id);
+
+  const { data: events } = await query.order('event_date', { ascending: false });
 
   myEvents = events || [];
   const sel = document.getElementById('event-select');
