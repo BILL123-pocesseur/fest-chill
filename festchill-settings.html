@@ -2,12 +2,17 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script>(function(){
   // Fest&Chill n'a plus qu'un seul thème (clair, chaud) — on force ça
   // sans dépendre d'un ancien réglage 'fc-theme' resté dans le navigateur.
   document.documentElement.setAttribute('data-theme','light');
   localStorage.setItem('fc-theme','light');
+  var light=true;
   var fcLang = localStorage.getItem('fc-lang')||'fr';
   document.documentElement.lang = fcLang;
   document.documentElement.dir = (fcLang === 'ar') ? 'rtl' : 'ltr';
