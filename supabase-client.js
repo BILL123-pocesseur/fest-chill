@@ -13,6 +13,62 @@ const SUPABASE_ANON_KEY = "sb_publishable_w5IDWcWmiiVGJAaG-N0F5w_k5B9NU8a";
 const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ------------------------------------------------------------
+// PHOTOS RÉELLES PAR CATÉGORIE (Unsplash) — libres de droits,
+// avec attribution obligatoire au photographe (règles Unsplash).
+// Mise en cache dans category_photos pour ne pas rappeler l'API
+// à chaque visite (limite gratuite : 50 requêtes/heure).
+// ------------------------------------------------------------
+const UNSPLASH_ACCESS_KEY = 'TMziHRVjMdDhLAgPv2GZe7Xx2--P45Dv10gpbJ5Py-c';
+const CATEGORY_PHOTO_QUERIES = {
+  'Concert / Musique': 'concert crowd lights',
+  'Conférence': 'conference audience speaker',
+  'Soirée / Club': 'nightclub party lights',
+  'Sport': 'sports stadium crowd',
+  'Théâtre / Art': 'theatre stage performance',
+  'Autre': 'festival celebration crowd',
+};
+
+async function fcGetCategoryPhoto(eventType) {
+  // 1. Déjà en cache ?
+  const { data: cached } = await supa.from('category_photos').select('*').eq('event_type', eventType).maybeSingle();
+  if (cached) return cached;
+
+  // 2. Sinon, on va chercher une photo chez Unsplash
+  const query = CATEGORY_PHOTO_QUERIES[eventType] || CATEGORY_PHOTO_QUERIES['Autre'];
+  try {
+    const res = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape&client_id=${UNSPLASH_ACCESS_KEY}`);
+    if (!res.ok) {
+      const errBody = await res.text();
+      console.error('Unsplash a refusé la requête :', res.status, errBody);
+      window.__fcLastPhotoError = `Unsplash ${res.status} : ${errBody}`;
+      return null;
+    }
+    const data = await res.json();
+    const photo = data?.results?.[0];
+    if (!photo) {
+      console.error('Unsplash : aucune photo trouvée pour', query, data);
+      window.__fcLastPhotoError = `Aucun résultat Unsplash pour "${query}"`;
+      return null;
+    }
+
+    const record = {
+      event_type: eventType,
+      photo_url: photo.urls.regular,
+      thumb_url: photo.urls.small,
+      photographer_name: photo.user?.name || 'Unsplash',
+      photographer_url: (photo.user?.links?.html || 'https://unsplash.com') + '?utm_source=festchill&utm_medium=referral',
+    };
+    const { error: upsertErr } = await supa.from('category_photos').upsert(record);
+    if (upsertErr) console.error('Erreur enregistrement photo en cache :', upsertErr);
+    return record;
+  } catch (e) {
+    console.error('Erreur réseau en cherchant la photo Unsplash :', e);
+    window.__fcLastPhotoError = 'Erreur réseau : ' + e.message;
+    return null; // pas grave, l'illustration de secours reste affichée
+  }
+}
+
+// ------------------------------------------------------------
 // AUTH
 // ------------------------------------------------------------
 

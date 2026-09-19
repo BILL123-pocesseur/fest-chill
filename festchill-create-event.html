@@ -517,8 +517,13 @@ async function submitEvent(status){
   let banner_url = null;
   try {
     const photo = await fcGetCategoryPhoto(event_type);
-    if (photo) banner_url = photo.photo_url;
-  } catch(e) { /* pas grave, l'illustration de secours reste affichée */ }
+    if (photo) {
+      banner_url = photo.photo_url;
+    } else if (window.__fcLastPhotoError) {
+      console.warn('Pas de photo cette fois :', window.__fcLastPhotoError);
+      showToast('Photo indisponible (illustration utilisée à la place)', FCI['alert-triangle']);
+    }
+  } catch(e) { console.error(e); }
 
   const { data: event, error } = await supa.from('events').insert({
     organizer_id: profile.id, slug, title, event_type, description,
