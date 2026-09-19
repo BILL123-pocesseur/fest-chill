@@ -389,8 +389,13 @@ tr{transition:background .2s}
             <input type="text" class="form-input" id="f-location" placeholder="Ex: Palais des Congrès, Cotonou" data-i18n-placeholder="create.location_placeholder">
           </div>
           <div class="form-full">
+            <label class="form-label">Lien Google Maps <span style="color:var(--muted);font-weight:400">(facultatif)</span></label>
+            <input type="url" class="form-input" id="f-location-url" placeholder="Colle ici le lien copié depuis Google Maps">
+            <div style="font-size:.74rem;color:var(--muted);margin-top:4px">Ouvre Google Maps → cherche le lieu → Partager → Copier le lien, et colle-le ici. Un bouton "Voir sur la carte" apparaîtra sur ta page événement.</div>
+          </div>
+          <div class="form-full">
             <label class="form-label" data-i18n="create.description_label">Description</label>
-            <textarea class="form-textarea" id="f-description" placeholder="Décris ton événement..." data-i18n-placeholder="create.description_placeholder"></textarea>
+            <textarea class="form-textarea" id="f-description" placeholder="Ex : Viens vibrer avec nous pour une soirée inoubliable ! Au programme : DJ live, jeux, bar sur place. Tenue correcte exigée. Ouverture des portes à 20h." data-i18n-placeholder="create.description_placeholder"></textarea>
           </div>
         </div>
       </div>
@@ -471,7 +476,11 @@ function addCategory(name='', price='', quota=''){
     </div>
     <div>
       <label class="form-label" data-i18n="create.cat_quota">Quota</label>
-      <input type="number" class="form-input" style="margin-bottom:0" value="${quota}" placeholder="100">
+      <input type="number" class="form-input cat-quota-input" style="margin-bottom:4px" value="${quota}" placeholder="100">
+      <label style="display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--muted);cursor:pointer">
+        <input type="checkbox" class="cat-unlimited-cb" style="margin:0" onchange="this.closest('.cat-row').querySelector('.cat-quota-input').disabled=this.checked">
+        Illimité
+      </label>
     </div>
     <button class="btn btn-ghost btn-sm" style="padding:11px" onclick="document.getElementById('${id}').remove()" title="Supprimer">✕</button>
   `;
@@ -492,14 +501,17 @@ async function submitEvent(status){
   const event_date = document.getElementById('f-date').value;
   const event_time = document.getElementById('f-time').value;
   const location = document.getElementById('f-location').value.trim();
+  const location_url = document.getElementById('f-location-url').value.trim() || null;
   const description = document.getElementById('f-description').value.trim();
 
   if (!title || !event_date || !location){ showFormError(fcT('create.error_required')); return; }
 
   const catRows = [...document.getElementById('categories-list').children];
   const categories = catRows.map(row => {
-    const inputs = row.querySelectorAll('input');
-    return { name: inputs[0].value.trim(), price: parseInt(inputs[1].value)||0, quota: parseInt(inputs[2].value)||0 };
+    const inputs = row.querySelectorAll('input[type="text"], input[type="number"]');
+    const unlimited = row.querySelector('.cat-unlimited-cb')?.checked;
+    const quota = unlimited ? 999999 : (parseInt(inputs[2].value)||0);
+    return { name: inputs[0].value.trim(), price: parseInt(inputs[1].value)||0, quota };
   }).filter(c => c.name && c.quota > 0);
 
   if (!categories.length){ showFormError(fcT('create.error_category')); return; }
@@ -527,7 +539,7 @@ async function submitEvent(status){
 
   const { data: event, error } = await supa.from('events').insert({
     organizer_id: profile.id, slug, title, event_type, description,
-    location, event_date, event_time, status, numbering_mode, banner_url
+    location, location_url, event_date, event_time, status, numbering_mode, banner_url
   }).select().single();
 
   if (error){ showFormError(fcT('common.error_prefix') + ' ' + error.message); btn.disabled = false; btn.innerHTML = '🚀 ' + fcT('create.publish'); return; }

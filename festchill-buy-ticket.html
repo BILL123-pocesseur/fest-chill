@@ -985,6 +985,9 @@ async function init(){
   document.getElementById('ev-date').textContent = fcFormatDate(event.event_date, {weekday:'long',day:'numeric',month:'long',year:'numeric'});
   document.getElementById('ev-time').textContent = event.event_time || '—';
   document.getElementById('ev-location').textContent = event.location || '—';
+  if (event.location_url){
+    document.getElementById('ev-location').innerHTML = `${event.location || '—'} <a href="${event.location_url}" target="_blank" rel="noopener" style="color:var(--purple);font-weight:700;font-size:.78rem;margin-left:6px">📍 Carte</a>`;
+  }
 
   const tabsEl = document.getElementById('cat-tabs');
   tabsEl.innerHTML = '';
@@ -1018,7 +1021,7 @@ async function switchCat(cat, btn){
 async function renderGrid(cat){
   const grid = document.getElementById('ticket-grid');
 
-  if (currentEvent.numbering_mode === 'automatic'){
+  if (currentEvent.numbering_mode === 'automatic' || cat.quota >= 999999){
     grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--muted);font-size:.85rem;border:1.5px dashed var(--border);border-radius:10px">
       🔢 Numéro attribué automatiquement à l'achat — pas besoin d'en choisir un.
     </div>`;

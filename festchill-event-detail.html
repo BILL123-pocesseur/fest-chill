@@ -1055,6 +1055,10 @@ async function render(){
   document.getElementById('ev-date').textContent = fcFormatDate(e.event_date, {weekday:'long',day:'numeric',month:'long',year:'numeric'});
   document.getElementById('ev-time').textContent = e.event_time || '—';
   document.getElementById('ev-location').textContent = e.location || '—';
+  if (e.location_url){
+    const locEl = document.getElementById('ev-location');
+    locEl.innerHTML = `${e.location || '—'} <a href="${e.location_url}" target="_blank" rel="noopener" style="color:var(--purple);font-weight:700;font-size:.78rem;margin-left:6px" onclick="event.stopPropagation()">📍 Voir sur la carte</a>`;
+  }
 
   const statusMap = { published:['En vente','var(--green)'], draft:['Brouillon','var(--glow)'], suspended:['Suspendu','var(--red)'], ended:['Terminé','var(--muted)'] };
   const [label, color] = statusMap[e.status] || ['—','var(--muted)'];

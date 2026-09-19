@@ -20,12 +20,12 @@ const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // ------------------------------------------------------------
 const UNSPLASH_ACCESS_KEY = 'TMziHRVjMdDhLAgPv2GZe7Xx2--P45Dv10gpbJ5Py-c';
 const CATEGORY_PHOTO_QUERIES = {
-  'Concert / Musique': 'concert crowd lights',
-  'Conférence': 'conference audience speaker',
-  'Soirée / Club': 'nightclub party lights',
-  'Sport': 'sports stadium crowd',
-  'Théâtre / Art': 'theatre stage performance',
-  'Autre': 'festival celebration crowd',
+  'Concert / Musique': 'live concert stage lights crowd silhouette',
+  'Conférence': 'business conference audience professional stage',
+  'Soirée / Club': 'nightclub party neon lights dancing crowd',
+  'Sport': 'stadium crowd sports fans cheering',
+  'Théâtre / Art': 'theater stage dramatic lighting performance',
+  'Autre': 'festival crowd celebration confetti lights',
 };
 
 async function fcGetCategoryPhoto(eventType) {
@@ -36,7 +36,7 @@ async function fcGetCategoryPhoto(eventType) {
   // 2. Sinon, on va chercher une photo chez Unsplash
   const query = CATEGORY_PHOTO_QUERIES[eventType] || CATEGORY_PHOTO_QUERIES['Autre'];
   try {
-    const res = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape&client_id=${UNSPLASH_ACCESS_KEY}`);
+    const res = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=6&orientation=landscape&order_by=relevant&content_filter=high&client_id=${UNSPLASH_ACCESS_KEY}`);
     if (!res.ok) {
       const errBody = await res.text();
       console.error('Unsplash a refusé la requête :', res.status, errBody);
@@ -44,7 +44,11 @@ async function fcGetCategoryPhoto(eventType) {
       return null;
     }
     const data = await res.json();
-    const photo = data?.results?.[0];
+    // Parmi les meilleurs résultats, on prend le 2e plutôt que le tout
+    // premier — souvent plus intéressant visuellement que le résultat
+    // le plus "évident" renvoyé en premier par la recherche.
+    const results = data?.results || [];
+    const photo = results[1] || results[0];
     if (!photo) {
       console.error('Unsplash : aucune photo trouvée pour', query, data);
       window.__fcLastPhotoError = `Aucun résultat Unsplash pour "${query}"`;
