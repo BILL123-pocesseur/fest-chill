@@ -652,6 +652,7 @@ tr{transition:background .2s}
         <div class="fc-meta-pill"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg> <span id="ev-time">—</span></div>
         <div class="fc-meta-pill"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.4 7-11.6A7 7 0 0 0 5 9.4C5 14.6 12 21 12 21Z"/><circle cx="12" cy="9.4" r="2.4"/></svg> <span id="ev-location">—</span></div>
       </div>
+      <div id="ev-sessions" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px"></div>
     </div>
   </div>
 
@@ -988,6 +989,11 @@ async function init(){
   if (event.location_url){
     document.getElementById('ev-location').innerHTML = `${event.location || '—'} <a href="${event.location_url}" target="_blank" rel="noopener" style="color:var(--purple);font-weight:700;font-size:.78rem;margin-left:6px">📍 Carte</a>`;
   }
+  supa.from('event_sessions').select('*').eq('event_id', event.id).order('position').then(({data}) => {
+    const el = document.getElementById('ev-sessions');
+    if (!data || !data.length) return;
+    el.innerHTML = data.map(s => `<span class="fc-meta-pill" style="background:rgba(232,67,46,.12);border-color:rgba(232,67,46,.25)">📆 ${s.label} — ${fcFormatDate(s.session_date, {day:'numeric',month:'short'})}${s.session_time ? ' · ' + s.session_time.slice(0,5) : ''}</span>`).join('');
+  });
 
   const tabsEl = document.getElementById('cat-tabs');
   tabsEl.innerHTML = '';
@@ -1005,8 +1011,24 @@ async function init(){
 }
 
 function updateRemaining(){
-  const remaining = categories.reduce((sum,c)=>sum + (c.quota - c.sold), 0);
-  document.getElementById('ev-remaining').textContent = remaining + ' places restantes';
+  const remaining = categories.reduce((sum,c)=>sum + Math.max(0, c.quota - c.sold), 0);
+  const totalQuota = categories.reduce((sum,c)=>sum + c.quota, 0);
+  const el = document.getElementById('ev-remaining');
+  el.textContent = remaining + ' places restantes';
+  const lowStock = totalQuota < 999999 && remaining > 0 && remaining <= Math.max(10, totalQuota * 0.15);
+  el.style.color = lowStock ? 'var(--red)' : '';
+  el.style.fontWeight = lowStock ? '800' : '';
+  if (lowStock) el.textContent = `🔥 Plus que ${remaining} place${remaining>1?'s':''} !`;
+}
+
+async function joinWaitlist(categoryId){
+  const name = document.getElementById('wl-name').value.trim();
+  const phone = document.getElementById('wl-phone').value.trim();
+  if (!name || !phone){ alert('Remplis ton nom et ton numéro.'); return; }
+  try {
+    await supa.rpc('fc_join_waitlist', { p_category_id: categoryId, p_name: name, p_phone: phone });
+    document.getElementById('ticket-grid').innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:24px 16px;color:var(--green);font-weight:700">✅ Tu es sur la liste — on te contacte si une place se libère.</div>`;
+  } catch(e) { alert('Erreur : ' + e.message); }
 }
 
 async function switchCat(cat, btn){
@@ -1020,6 +1042,20 @@ async function switchCat(cat, btn){
 
 async function renderGrid(cat){
   const grid = document.getElementById('ticket-grid');
+
+  if (cat.sold >= cat.quota){
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:24px 16px;color:var(--muted);font-size:.85rem;border:1.5px dashed var(--red);border-radius:10px;background:rgba(196,50,31,.05)">
+      <div style="font-weight:700;color:var(--red);margin-bottom:6px">😔 Cette catégorie est épuisée</div>
+      <div style="margin-bottom:14px">On te préviendra si une place se libère.</div>
+      <input type="text" class="form-input" id="wl-name" placeholder="Ton nom" style="margin-bottom:8px;max-width:260px;margin-left:auto;margin-right:auto">
+      <input type="text" class="form-input" id="wl-phone" placeholder="Ton numéro" style="margin-bottom:10px;max-width:260px;margin-left:auto;margin-right:auto">
+      <button class="btn btn-primary btn-sm" onclick="joinWaitlist('${cat.id}')">Rejoindre la liste d'attente</button>
+    </div>`;
+    selectedTicket = null;
+    resetDetail();
+    checkPayBtn();
+    return;
+  }
 
   if (currentEvent.numbering_mode === 'automatic' || cat.quota >= 999999){
     grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--muted);font-size:.85rem;border:1.5px dashed var(--border);border-radius:10px">
@@ -1299,6 +1335,9 @@ async function downloadTicketPDF(){
   doc.setTextColor(138, 122, 104);
   doc.text('QR unique — scannable une seule fois', 45, 143, { align: 'center' });
   doc.text(lastPurchase.qr_code, 45, 148, { align: 'center' });
+  doc.setFontSize(6.5);
+  doc.text('Après l\'événement, laisse ton avis :', 45, 153, { align: 'center' });
+  doc.text(`festchill.onrender.com/festchill-buy-ticket.html?review=${lastPurchase.qr_code}`, 45, 157, { align: 'center' });
 
   doc.save(`festchill-ticket-${lastPurchase.ticket_number ?? 'x'}.pdf`);
 }
@@ -1311,8 +1350,51 @@ async function downloadTicketPDF(){
   track.innerHTML += track.innerHTML;
 })();
 
+// Avis client après l'événement : ?review=<qr_code> dans l'URL
+async function checkForReviewLink(){
+  const params = new URLSearchParams(location.search);
+  const qr = params.get('review');
+  if (!qr) return;
+
+  document.body.innerHTML = `
+    <div style="max-width:420px;margin:60px auto;padding:24px;text-align:center">
+      <div style="font-family:var(--fd);font-weight:800;font-size:1.4rem;margin-bottom:8px">Comment c'était ? 🎉</div>
+      <div style="color:var(--muted);font-size:.9rem;margin-bottom:24px">Donne ton avis sur l'événement.</div>
+      <div id="review-stars" style="font-size:2.2rem;margin-bottom:18px;letter-spacing:6px;cursor:pointer">☆☆☆☆☆</div>
+      <textarea class="form-input" id="review-comment" placeholder="Un commentaire (facultatif)" style="width:100%;min-height:90px;margin-bottom:16px"></textarea>
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="submitReview('${qr}')">Envoyer mon avis</button>
+      <div id="review-msg" style="margin-top:14px;font-size:.85rem"></div>
+    </div>
+  `;
+
+  let rating = 0;
+  const starsEl = document.getElementById('review-stars');
+  starsEl.onclick = (e) => {
+    const rect = starsEl.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    rating = Math.max(1, Math.min(5, Math.ceil(pct * 5)));
+    starsEl.textContent = '⭐'.repeat(rating) + '☆'.repeat(5 - rating);
+  };
+  window.__reviewRating = () => rating;
+}
+
+async function submitReview(qr){
+  const rating = window.__reviewRating();
+  const comment = document.getElementById('review-comment').value.trim();
+  const msg = document.getElementById('review-msg');
+  if (!rating){ msg.textContent = 'Choisis une note (clique sur les étoiles).'; msg.style.color = 'var(--red)'; return; }
+  try {
+    await supa.rpc('fc_submit_review', { p_qr_code: qr, p_rating: rating, p_comment: comment || null });
+    document.querySelector('#review-stars').parentElement.innerHTML = `<div style="font-family:var(--fd);font-weight:800;font-size:1.3rem">Merci pour ton avis ! 🙏</div>`;
+  } catch(e) {
+    msg.textContent = 'Erreur : ' + e.message;
+    msg.style.color = 'var(--red)';
+  }
+}
+
 init();
 checkForReturningPayment();
+checkForReviewLink();
 </script>
 </body>
 </html>

@@ -397,6 +397,11 @@ tr{transition:background .2s}
             <label class="form-label" data-i18n="create.description_label">Description</label>
             <textarea class="form-textarea" id="f-description" placeholder="Ex : Viens vibrer avec nous pour une soirée inoubliable ! Au programme : DJ live, jeux, bar sur place. Tenue correcte exigée. Ouverture des portes à 20h." data-i18n-placeholder="create.description_placeholder"></textarea>
           </div>
+          <div class="form-full">
+            <label class="form-label">Dates supplémentaires <span style="color:var(--muted);font-weight:400">(facultatif — festival ou événement sur plusieurs jours)</span></label>
+            <div id="sessions-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px"></div>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="addSession()">+ Ajouter une date</button>
+          </div>
         </div>
       </div>
     </div>
@@ -457,6 +462,23 @@ async function boot(){
   addCategory('Normal', 3000, 100);
   addCategory('VIP', 10000, 50);
   updateNumberingMode();
+}
+
+let sessionCount = 0;
+function addSession(label='', date='', time=''){
+  sessionCount++;
+  const id = 'sess-' + sessionCount;
+  const wrap = document.createElement('div');
+  wrap.id = id;
+  wrap.className = 'session-row';
+  wrap.style.cssText = 'display:grid;grid-template-columns:1fr 150px 110px 36px;gap:8px;align-items:center';
+  wrap.innerHTML = `
+    <input type="text" class="form-input session-label" placeholder="Ex: Jour 1 — Ouverture" value="${label}" style="margin-bottom:0">
+    <input type="date" class="form-input session-date" value="${date}" style="margin-bottom:0">
+    <input type="time" class="form-input session-time" value="${time}" style="margin-bottom:0">
+    <button type="button" class="btn btn-ghost btn-sm" style="padding:11px" onclick="document.getElementById('${id}').remove()">✕</button>
+  `;
+  document.getElementById('sessions-list').appendChild(wrap);
 }
 
 function addCategory(name='', price='', quota=''){
@@ -549,6 +571,17 @@ async function submitEvent(status){
   );
 
   if (catError){ showFormError(fcT('create.error_created_but_categories') + ' ' + catError.message); return; }
+
+  // Dates supplémentaires (facultatif)
+  const sessionRows = [...document.getElementById('sessions-list').children];
+  const sessions = sessionRows.map((row,i) => ({
+    event_id: event.id,
+    label: row.querySelector('.session-label').value.trim(),
+    session_date: row.querySelector('.session-date').value,
+    session_time: row.querySelector('.session-time').value || null,
+    position: i,
+  })).filter(s => s.label && s.session_date);
+  if (sessions.length) await supa.from('event_sessions').insert(sessions);
 
   window.location.href = 'festchill-event-detail.html?id=' + event.id;
 }

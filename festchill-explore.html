@@ -2,6 +2,10 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Découvre tous les événements en vente sur Fest&Chill par catégorie et achète ton ticket en quelques secondes.">
 <meta name="theme-color" content="#FFFBF3">
@@ -43,8 +47,12 @@ h1 i{font-style:italic;color:var(--red-deep)}
 .ev-card:hover{transform:translateY(-5px);box-shadow:7px 9px 0 var(--yellow)}
 .ev-card:nth-child(3n+2):hover{box-shadow:7px 9px 0 var(--red)}
 .ev-card:nth-child(3n)::hover{box-shadow:7px 9px 0 var(--green)}
-.ev-banner{height:104px;background:var(--paper2);border-bottom:1.5px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:2rem;position:relative}
+.ev-banner{height:104px;background:var(--paper2);border-bottom:1.5px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:2rem;position:relative;overflow:hidden}
+.ev-photo-credit{position:absolute;bottom:4px;right:6px;font-size:.62rem;color:rgba(255,255,255,.85);background:rgba(0,0,0,.35);padding:2px 6px;border-radius:100px;text-decoration:none;z-index:2}
+.ev-photo-credit:hover{color:#fff}
 .ev-type-badge{position:absolute;top:10px;left:10px;background:var(--ink);color:var(--paper);font-size:.66rem;font-weight:700;padding:5px 10px;border-radius:100px}
+.ev-urgent-badge{position:absolute;top:10px;right:10px;background:var(--red);color:#fff;font-size:.62rem;font-weight:800;padding:5px 10px;border-radius:100px;animation:pulseUrgent 1.6s ease-in-out infinite}
+@keyframes pulseUrgent{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 .ev-body{padding:18px 18px 20px;display:flex;flex-direction:column;gap:8px;flex:1}
 .ev-title{font-family:var(--fs);font-weight:400;font-size:1.25rem;line-height:1.3}
 .ev-meta{font-size:.79rem;color:var(--muted);display:flex;flex-direction:column;gap:3px;font-weight:500}
@@ -100,7 +108,7 @@ async function boot(){
   const today = new Date().toISOString().slice(0,10);
   let q = supa
     .from('events')
-    .select('id, slug, title, event_type, location, event_date, event_time, organizer_id, ticket_categories(price), profiles(full_name)')
+    .select('id, slug, title, event_type, location, event_date, event_time, organizer_id, ticket_categories(price,quota,sold), profiles(full_name)')
     .eq('status', 'published');
 
   q = showingHistory
@@ -136,10 +144,15 @@ function render(){
     const prices = (e.ticket_categories||[]).map(c=>c.price).filter(p=>p!=null);
     const minPrice = prices.length ? Math.min(...prices) : null;
     const organizerName = e.profiles?.full_name || 'Organisateur Fest&Chill';
+    const totalQuota = (e.ticket_categories||[]).reduce((s,c)=>s+(c.quota||0),0);
+    const totalSold = (e.ticket_categories||[]).reduce((s,c)=>s+(c.sold||0),0);
+    const remaining = totalQuota - totalSold;
+    const lowStock = totalQuota > 0 && totalQuota < 999999 && remaining > 0 && remaining <= Math.max(10, totalQuota*0.15);
     return `<a class="ev-card" href="festchill-buy-ticket.html?event=${e.slug}">
-      <div class="ev-banner">
+      <div class="ev-banner" data-cat="${e.event_type || 'Autre'}">
         <span class="ev-type-badge">${e.event_type || 'Événement'}</span>
-        <span>${TYPE_ICON[e.event_type] || '🎫'}</span>
+        ${lowStock ? `<span class="ev-urgent-badge">🔥 Plus que ${remaining} places</span>` : ''}
+        <span class="ev-banner-icon">${TYPE_ICON[e.event_type] || '🎫'}</span>
       </div>
       <div class="ev-body">
         <div class="ev-title">${e.title}</div>
@@ -155,6 +168,32 @@ function render(){
       </div>
     </a>`;
   }).join('');
+
+  loadCategoryPhotos(list);
+}
+
+// Charge une vraie photo par catégorie (une seule requête par catégorie
+// distincte affichée, pas une par carte) et l'applique en fond.
+async function loadCategoryPhotos(list){
+  const distinctTypes = [...new Set(list.map(e => e.event_type || 'Autre'))];
+  for (const type of distinctTypes){
+    const photo = await fcGetCategoryPhoto(type);
+    if (!photo) continue;
+    document.querySelectorAll(`.ev-banner[data-cat="${CSS.escape(type)}"]`).forEach(banner => {
+      banner.style.backgroundImage = `linear-gradient(rgba(36,28,20,.15),rgba(36,28,20,.35)), url('${photo.thumb_url}')`;
+      banner.style.backgroundSize = 'cover';
+      banner.style.backgroundPosition = 'center';
+      banner.querySelector('.ev-banner-icon').style.display = 'none';
+      const credit = document.createElement('a');
+      credit.href = photo.photographer_url;
+      credit.target = '_blank';
+      credit.rel = 'noopener';
+      credit.className = 'ev-photo-credit';
+      credit.textContent = 'Photo : ' + photo.photographer_name;
+      credit.onclick = (ev) => ev.stopPropagation();
+      banner.appendChild(credit);
+    });
+  }
 }
 
 boot();
