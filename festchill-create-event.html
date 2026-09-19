@@ -167,6 +167,16 @@ tr:hover td{background:rgba(255,255,255,.02)}
   .main{margin-left:0}
   .stats-row,.three-col{grid-template-columns:repeat(2,1fr)}
 }
+.cat-row{display:grid;grid-template-columns:1fr 140px 120px 36px;gap:10px;align-items:end}
+@media(max-width:640px){
+  .cat-row{grid-template-columns:1fr 1fr;grid-template-areas:"name name" "price quota" "del del"}
+  .cat-row > div:nth-child(1){grid-area:name}
+  .cat-row > div:nth-child(2){grid-area:price}
+  .cat-row > div:nth-child(3){grid-area:quota}
+  .cat-row > button{grid-area:del;width:100%}
+  .main{padding:16px}
+  .form-input,.form-select{font-size:16px}
+}
 
 
 /* ============================================================
@@ -449,7 +459,7 @@ function addCategory(name='', price='', quota=''){
   const id = 'cat-' + catCount;
   const wrap = document.createElement('div');
   wrap.id = id;
-  wrap.style.cssText = 'display:grid;grid-template-columns:1fr 140px 120px 36px;gap:10px;align-items:end';
+  wrap.className = 'cat-row';
   wrap.innerHTML = `
     <div>
       <label class="form-label" data-i18n="create.cat_name">Nom</label>
@@ -502,9 +512,17 @@ async function submitEvent(status){
 
   const numbering_mode = document.querySelector('input[name="numbering-mode"]:checked').value;
 
+  // Va chercher une vraie photo pertinente pour la catégorie (mise en
+  // cache — voir fcGetCategoryPhoto), pour illustrer l'événement partout.
+  let banner_url = null;
+  try {
+    const photo = await fcGetCategoryPhoto(event_type);
+    if (photo) banner_url = photo.photo_url;
+  } catch(e) { /* pas grave, l'illustration de secours reste affichée */ }
+
   const { data: event, error } = await supa.from('events').insert({
     organizer_id: profile.id, slug, title, event_type, description,
-    location, event_date, event_time, status, numbering_mode
+    location, event_date, event_time, status, numbering_mode, banner_url
   }).select().single();
 
   if (error){ showFormError(fcT('common.error_prefix') + ' ' + error.message); btn.disabled = false; btn.innerHTML = '🚀 ' + fcT('create.publish'); return; }

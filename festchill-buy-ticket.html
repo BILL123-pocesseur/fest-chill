@@ -2,6 +2,10 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Acheter un ticket · Fest&Chill</title>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -254,7 +258,7 @@ tr{transition:background .2s}
 
 <div id="app" style="display:none">
   <!-- EVENT HERO — illustrated golden-hour festival scene -->
-  <div class="event-hero fc-hero">
+  <div class="event-hero fc-hero" id="event-banner">
     <svg class="illus-hero" viewBox="0 0 1600 400" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
   <defs>
     <linearGradient id="fcSky" x1="0" y1="0" x2="0" y2="1">
@@ -963,6 +967,15 @@ async function init(){
 
   currentEvent = event;
   categories = (event.ticket_categories || []).sort((a,b)=>a.position-b.position);
+
+  if (event.banner_url){
+    const banner = document.getElementById('event-banner');
+    banner.style.backgroundImage = `linear-gradient(rgba(36,28,20,.1),rgba(36,28,20,.45)), url('${event.banner_url}')`;
+    banner.style.backgroundSize = 'cover';
+    banner.style.backgroundPosition = 'center';
+    const illus = banner.querySelector('.illus-hero');
+    if (illus) illus.style.display = 'none';
+  }
 
   document.getElementById('load-state').style.display = 'none';
   document.getElementById('app').style.display = 'block';

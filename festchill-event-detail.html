@@ -321,7 +321,7 @@ tr{transition:background .2s}
 
   <div class="page">
     <!-- BANNER — illustrated golden-hour festival scene -->
-    <div class="event-banner fc-hero">
+    <div class="event-banner fc-hero" id="event-banner">
       <svg class="illus-hero" viewBox="0 0 1600 400" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
   <defs>
     <linearGradient id="fcSky" x1="0" y1="0" x2="0" y2="1">
@@ -1035,6 +1035,14 @@ async function boot(){
 
 async function render(){
   const e = currentEvent;
+  if (e.banner_url){
+    const banner = document.getElementById('event-banner');
+    banner.style.backgroundImage = `linear-gradient(rgba(36,28,20,.1),rgba(36,28,20,.45)), url('${e.banner_url}')`;
+    banner.style.backgroundSize = 'cover';
+    banner.style.backgroundPosition = 'center';
+    const illus = banner.querySelector('.illus-hero');
+    if (illus) illus.style.display = 'none';
+  }
   const cats = e.ticket_categories || [];
   const quota = cats.reduce((s,c)=>s+c.quota,0);
   const sold = cats.reduce((s,c)=>s+c.sold,0);
