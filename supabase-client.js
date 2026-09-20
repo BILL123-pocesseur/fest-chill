@@ -2353,18 +2353,13 @@ async function fcMountSidebar(profile) {
     if (profile.avatar_url) avatarEl.innerHTML = `<img src="${profile.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
   }
 
-  // Le lien "Administration" (et son étiquette de groupe "Admin") est codé en dur dans
-  // le HTML de chaque page, donc visible même par un simple organisateur — qui se
-  // retrouve alors renvoyé sans explication vers le dashboard en cliquant dessus
-  // (accès refusé, comme prévu, mais perçu comme un bug). On le masque ici pour
-  // quiconque n'a pas le rôle admin, un seul endroit à corriger pour toutes les pages.
-  if (profile.role !== 'admin') {
-    const adminLink = document.querySelector('.sidebar-nav a[href="festchill-admin.html"], nav a[href="festchill-admin.html"]');
-    if (adminLink) {
-      const label = adminLink.previousElementSibling;
-      if (label && label.classList.contains('nav-label')) label.remove();
-      adminLink.remove();
-    }
+  // Le lien "Administration" est masqué par défaut dans le HTML de
+  // chaque page (style="display:none"), pour ne JAMAIS apparaître,
+  // même une fraction de seconde, avant d'avoir confirmé le rôle —
+  // on ne le révèle ici que si le rôle admin est bien confirmé.
+  if (profile.role === 'admin') {
+    document.getElementById('admin-nav-link')?.style.removeProperty('display');
+    document.getElementById('admin-nav-label')?.style.removeProperty('display');
   }
 
   const footer = document.querySelector('.sidebar-footer');
