@@ -293,7 +293,9 @@ tr{transition:background .2s}
 
 
 @media(max-width:640px){
-  html{font-size:17px;-webkit-text-size-adjust:100%}
+  html{-webkit-text-size-adjust:100%;overflow-x:hidden}
+  body{overflow-x:hidden;max-width:100vw}
+  *{max-width:100%}
   body{font-size:1rem}
   .main{padding:14px!important}
   .topbar{padding:12px 14px!important}
@@ -306,6 +308,9 @@ tr{transition:background .2s}
   .section-card,.stat-card{padding:16px!important}
   h1,.page-title{font-size:1.4rem!important}
   .topbar-title{font-size:1rem!important}
+  .section-head{flex-wrap:wrap;gap:8px!important}
+  .section-head > div{flex-wrap:wrap;width:100%}
+  select,input[type="text"]{width:100%!important;min-width:0!important}
 }
 </style>
 </head>
@@ -319,17 +324,17 @@ tr{transition:background .2s}
   <nav class="sidebar-nav">
     <div class="nav-label">Vue d'ensemble</div>
     <a href="#" class="s-link active"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="20" x2="5" y2="11"/><line x1="12" y1="20" x2="12" y2="5"/><line x1="19" y1="20" x2="19" y2="14"/></svg></span> <span data-i18n="nav.dashboard_admin">Dashboard Admin</span></a>
-    <a href="#" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.2" r="3.2"/><path d="M3 19a6 6 0 0 1 12 0"/><path d="M15.5 5.5a3.2 3.2 0 0 1 0 6.2"/><path d="M17 13a6 6 0 0 1 4 5.6"/></svg></span> <span data-i18n="nav.organizers">Organisateurs</span></a>
-    <a href="#" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2.2"/><line x1="3.5" y1="10" x2="20.5" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg></span> <span data-i18n="nav.all_events">Tous les événements</span></a>
-    <a href="#" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.5a2 2 0 0 0 0 4V16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.5a2 2 0 0 0 0-4Z"/><line x1="10" y1="6" x2="10" y2="18" stroke-dasharray="2 2.4"/></svg></span> <span data-i18n="nav.all_tickets">Tous les tickets</span></a>
+    <a href="#sec-organizers" class="s-link" onclick="closeSidebarIfMobile()"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.2" r="3.2"/><path d="M3 19a6 6 0 0 1 12 0"/><path d="M15.5 5.5a3.2 3.2 0 0 1 0 6.2"/><path d="M17 13a6 6 0 0 1 4 5.6"/></svg></span> <span data-i18n="nav.organizers">Organisateurs</span></a>
+    <a href="#sec-events" class="s-link" onclick="closeSidebarIfMobile()"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2.2"/><line x1="3.5" y1="10" x2="20.5" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg></span> <span data-i18n="nav.all_events">Tous les événements</span></a>
+    <a href="#" class="s-link" style="opacity:.4;cursor:not-allowed" onclick="event.preventDefault();showToast('Bientôt disponible', FCI['alert-triangle'])" title="Pas encore disponible"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.5a2 2 0 0 0 0 4V16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.5a2 2 0 0 0 0-4Z"/><line x1="10" y1="6" x2="10" y2="18" stroke-dasharray="2 2.4"/></svg></span> <span data-i18n="nav.all_tickets">Tous les tickets</span></a>
     <div class="nav-label" data-i18n="nav.group_finance">Finances</div>
-    <a href="#" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M17 11.5h2.5a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5H17a2 2 0 0 1 0-4Z"/><line x1="3" y1="8.7" x2="21" y2="8.7"/></svg></span> <span data-i18n="nav.commissions">Commissions</span></a>
-    <a href="#" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="19" height="11" rx="2"/><circle cx="12" cy="12" r="3"/><line x1="6" y1="9.3" x2="6" y2="9.3"/><line x1="18" y1="14.7" x2="18" y2="14.7"/></svg></span> <span data-i18n="nav.payouts">Reversements</span></a>
-    <a href="#" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 16 10 10 14 14 20 6"/><polyline points="14.5 6 20 6 20 11.5"/></svg></span> <span data-i18n="nav.platform_revenue">Revenus plateforme</span></a>
+    <a href="#sec-commission" class="s-link" onclick="closeSidebarIfMobile()"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M17 11.5h2.5a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5H17a2 2 0 0 1 0-4Z"/><line x1="3" y1="8.7" x2="21" y2="8.7"/></svg></span> <span data-i18n="nav.commissions">Commissions</span></a>
+    <a href="#sec-transactions" class="s-link" onclick="closeSidebarIfMobile()"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="19" height="11" rx="2"/><circle cx="12" cy="12" r="3"/><line x1="6" y1="9.3" x2="6" y2="9.3"/><line x1="18" y1="14.7" x2="18" y2="14.7"/></svg></span> <span data-i18n="nav.payouts">Reversements</span></a>
+    <a href="#sec-revenue" class="s-link" onclick="closeSidebarIfMobile()"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 16 10 10 14 14 20 6"/><polyline points="14.5 6 20 6 20 11.5"/></svg></span> <span data-i18n="nav.platform_revenue">Revenus plateforme</span></a>
     <div class="nav-label">Gestion</div>
-    <a href="#" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15a6 6 0 0 1 12 0v2H6Z"/><line x1="4" y1="20" x2="20" y2="20"/><line x1="12" y1="6" x2="12" y2="3.5"/><line x1="7" y1="7.5" x2="5.5" y2="6"/><line x1="17" y1="7.5" x2="18.5" y2="6"/></svg></span> Alertes <span style="background:var(--red);color:var(--white);border-radius:100px;padding:1px 7px;font-size:.65rem;font-weight:700;margin-left:auto">3</span></a>
-    <a href="#" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 1 3.5 6.6L4 20l1.3-3.6A7.96 7.96 0 0 1 4 12Z"/></svg></span> <span data-i18n="nav.support">Support client</span></a>
-    <a href="#" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2.06 2.06 0 1 1-2.92 2.92l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56v.17a2.06 2.06 0 1 1-4.12 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2.06 2.06 0 1 1-2.92-2.92l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03h-.17a2.06 2.06 0 1 1 0-4.12h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2.06 2.06 0 1 1 2.92-2.92l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1.03-1.56v-.17a2.06 2.06 0 1 1 4.12 0v.09a1.7 1.7 0 0 0 1.03 1.56h.08a1.7 1.7 0 0 0 1.87-.34l.06-.06a2.06 2.06 0 1 1 2.92 2.92l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.03h.17a2.06 2.06 0 1 1 0 4.12h-.09a1.7 1.7 0 0 0-1.56 1.03Z"/></svg></span> <span data-i18n="nav.config">Configuration</span></a>
+    <a href="#alerts-zone" class="s-link" onclick="closeSidebarIfMobile()"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15a6 6 0 0 1 12 0v2H6Z"/><line x1="4" y1="20" x2="20" y2="20"/><line x1="12" y1="6" x2="12" y2="3.5"/><line x1="7" y1="7.5" x2="5.5" y2="6"/><line x1="17" y1="7.5" x2="18.5" y2="6"/></svg></span> Alertes <span style="background:var(--red);color:var(--white);border-radius:100px;padding:1px 7px;font-size:.65rem;font-weight:700;margin-left:auto">3</span></a>
+    <a href="#" class="s-link" style="opacity:.4;cursor:not-allowed" onclick="event.preventDefault();showToast('Bientôt disponible', FCI['alert-triangle'])" title="Pas encore disponible"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 1 3.5 6.6L4 20l1.3-3.6A7.96 7.96 0 0 1 4 12Z"/></svg></span> <span data-i18n="nav.support">Support client</span></a>
+    <a href="#sec-config" class="s-link" onclick="closeSidebarIfMobile()"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2.06 2.06 0 1 1-2.92 2.92l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56v.17a2.06 2.06 0 1 1-4.12 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2.06 2.06 0 1 1-2.92-2.92l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03h-.17a2.06 2.06 0 1 1 0-4.12h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2.06 2.06 0 1 1 2.92-2.92l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1.03-1.56v-.17a2.06 2.06 0 1 1 4.12 0v.09a1.7 1.7 0 0 0 1.03 1.56h.08a1.7 1.7 0 0 0 1.87-.34l.06-.06a2.06 2.06 0 1 1 2.92 2.92l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.03h.17a2.06 2.06 0 1 1 0 4.12h-.09a1.7 1.7 0 0 0-1.56 1.03Z"/></svg></span> <span data-i18n="nav.config">Configuration</span></a>
     <div class="nav-label">Accès</div>
     <a href="festchill-dashboard.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9.5a1 1 0 0 0 1 1h4v-6h2v6h4a1 1 0 0 0 1-1V10"/></svg></span> <span data-i18n="nav.organizer_view">Vue organisateur</span></a>
   </nav>
@@ -419,7 +424,7 @@ tr{transition:background .2s}
       <!-- LEFT -->
       <div>
         <!-- CHART -->
-        <div class="section-card" style="margin-bottom:16px">
+        <div class="section-card" id="sec-revenue" style="margin-bottom:16px">
           <div class="section-head">
             <span class="section-head-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 16 10 10 14 14 20 6"/><polyline points="14.5 6 20 6 20 11.5"/></svg> <span data-i18n="admin.revenue_30d">Revenus plateforme (30j)</span></span>
             <span style="font-size:.78rem;color:var(--gold);font-weight:700">+23% ce mois</span>
@@ -443,7 +448,7 @@ tr{transition:background .2s}
         </div>
 
         <!-- SOLDE COMMISSION RÉEL (retirable) -->
-        <div class="section-card" style="margin-bottom:16px">
+        <div class="section-card" id="sec-commission" style="margin-bottom:16px">
           <div class="section-head">
             <span class="section-head-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M17 11.5h2.5a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5H17a2 2 0 0 1 0-4Z"/><line x1="3" y1="8.7" x2="21" y2="8.7"/></svg> Solde commission plateforme</span>
             <button class="btn btn-primary btn-sm" onclick="openAdminWithdrawModal()">Retirer</button>
@@ -476,7 +481,7 @@ tr{transition:background .2s}
         </div>
 
         <!-- EVENTS TABLE -->
-        <div class="section-card" style="margin-bottom:16px">
+        <div class="section-card" id="sec-events" style="margin-bottom:16px">
           <div class="section-head">
             <span class="section-head-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2.2"/><line x1="3.5" y1="10" x2="20.5" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg> <span data-i18n="admin.active_events">Événements actifs</span></span>
             <div style="display:flex;gap:8px">
@@ -495,7 +500,7 @@ tr{transition:background .2s}
         </div>
 
         <!-- TRANSACTIONS RECENTES -->
-        <div class="section-card">
+        <div class="section-card" id="sec-transactions">
           <div class="section-head" style="gap:10px">
             <span class="section-head-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5.5" width="19" height="13" rx="2.2"/><line x1="2.5" y1="9.8" x2="21.5" y2="9.8"/><line x1="6" y1="14.5" x2="10" y2="14.5"/></svg> <span data-i18n="admin.recent_transactions">Transactions récentes</span></span>
             <div style="width:30px;flex-shrink:0;margin-left:auto"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
@@ -519,7 +524,7 @@ tr{transition:background .2s}
       <!-- RIGHT -->
       <div>
         <!-- TOP ORGANISATEURS -->
-        <div class="section-card" style="margin-bottom:16px">
+        <div class="section-card" id="sec-top-organizers" style="margin-bottom:16px">
           <div class="section-head" style="padding:14px 18px;gap:10px">
             <span class="section-head-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4.5h10v5a5 5 0 0 1-10 0Z"/><path d="M7 6H4.5A2.5 2.5 0 0 0 6 10.5"/><path d="M17 6h2.5A2.5 2.5 0 0 1 18 10.5"/><line x1="12" y1="14.5" x2="12" y2="18"/><line x1="8.5" y1="21" x2="15.5" y2="21"/><line x1="12" y1="18" x2="12" y2="21"/></svg> <span data-i18n="admin.top_organizers">Top organisateurs</span></span>
             <div style="width:34px;flex-shrink:0;margin-left:auto"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
@@ -536,7 +541,7 @@ tr{transition:background .2s}
         </div>
 
         <!-- TOUS LES ORGANISATEURS -->
-        <div class="section-card" style="margin-bottom:16px">
+        <div class="section-card" id="sec-organizers" style="margin-bottom:16px">
           <div class="section-head" style="padding:14px 18px">
             <span class="section-head-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.2" r="3.2"/><path d="M3 19a6 6 0 0 1 12 0"/><path d="M15.5 5.5a3.2 3.2 0 0 1 0 6.2"/><path d="M17 13a6 6 0 0 1 4 5.6"/></svg> <span data-i18n="admin.recent_organizers">Organisateurs récents</span></span>
             <button class="btn btn-ghost btn-sm" id="organizers-count-btn" data-i18n="admin.see_all">Voir tous</button>
@@ -545,7 +550,7 @@ tr{transition:background .2s}
         </div>
 
         <!-- PLATFORM CONFIG -->
-        <div class="section-card">
+        <div class="section-card" id="sec-config">
           <div class="section-head" style="padding:14px 18px">
             <span class="section-head-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2.06 2.06 0 1 1-2.92 2.92l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56v.17a2.06 2.06 0 1 1-4.12 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2.06 2.06 0 1 1-2.92-2.92l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03h-.17a2.06 2.06 0 1 1 0-4.12h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2.06 2.06 0 1 1 2.92-2.92l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1.03-1.56v-.17a2.06 2.06 0 1 1 4.12 0v.09a1.7 1.7 0 0 0 1.03 1.56h.08a1.7 1.7 0 0 0 1.87-.34l.06-.06a2.06 2.06 0 1 1 2.92 2.92l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.03h.17a2.06 2.06 0 1 1 0 4.12h-.09a1.7 1.7 0 0 0-1.56 1.03Z"/></svg> <span data-i18n="admin.platform_config">Configuration plateforme</span></span>
           </div>
@@ -997,6 +1002,12 @@ function showToast(msg,icon=FCI['check-circle']){
 function toggleMobileSidebar(){
   document.querySelector('.sidebar').classList.toggle('open');
   document.querySelector('.sidebar-overlay').classList.toggle('show');
+}
+function closeSidebarIfMobile(){
+  if (window.innerWidth <= 900){
+    document.querySelector('.sidebar').classList.remove('open');
+    document.querySelector('.sidebar-overlay').classList.remove('show');
+  }
 }
 </script>
 </body>

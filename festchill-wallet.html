@@ -297,7 +297,9 @@ tr{transition:background .2s}
 
 
 @media(max-width:640px){
-  html{font-size:17px;-webkit-text-size-adjust:100%}
+  html{-webkit-text-size-adjust:100%;overflow-x:hidden}
+  body{overflow-x:hidden;max-width:100vw}
+  *{max-width:100%}
   body{font-size:1rem}
   .main{padding:14px!important}
   .topbar{padding:12px 14px!important}
@@ -310,6 +312,9 @@ tr{transition:background .2s}
   .section-card,.stat-card{padding:16px!important}
   h1,.page-title{font-size:1.4rem!important}
   .topbar-title{font-size:1rem!important}
+  .section-head{flex-wrap:wrap;gap:8px!important}
+  .section-head > div{flex-wrap:wrap;width:100%}
+  select,input[type="text"]{width:100%!important;min-width:0!important}
 }
 </style>
 </head>
