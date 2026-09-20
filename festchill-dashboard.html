@@ -28,7 +28,12 @@
     s.setProperty('--purple',hex);s.setProperty('--violet',toHex(violet));s.setProperty('--glow',toHex(glow));
     s.setProperty('--accent-rgb',rgb.r+','+rgb.g+','+rgb.b);
   }
-})();</script>
+})();
+function toggleMobileSidebar(){
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.querySelector('.sidebar-overlay').classList.toggle('show');
+}
+</script>
 <title>Dashboard — Fest&Chill</title>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -79,6 +84,7 @@ body{font-family:var(--fb);background:var(--ink);color:var(--text);display:flex;
 html[dir="rtl"] .sidebar{left:auto;right:0;border-right:none;border-left:1px solid var(--border)}
 html[dir="rtl"] .main{margin-left:0;margin-right:var(--sidebar)}
 html[dir="rtl"] body{direction:rtl}
+.sidebar-toggle-btn{display:none;background:transparent;border:1.5px solid var(--border);border-radius:8px;width:38px;height:38px;align-items:center;justify-content:center;cursor:pointer;color:var(--text);margin-right:10px;flex-shrink:0}
 .topbar{padding:14px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--topbar-bg);backdrop-filter:blur(12px);position:sticky;top:0;z-index:40}
 .topbar-title{font-family:var(--fd);font-weight:700;font-size:1.05rem}
 .page{padding:28px}
@@ -166,8 +172,12 @@ tr:hover td{background:rgba(255,255,255,.02)}
 
 @media(max-width:1100px){.two-col{grid-template-columns:1fr}}
 @media(max-width:900px){
-  .sidebar{transform:translateX(-100%)}
+  .sidebar{transform:translateX(-100%);transition:transform .25s ease}
+  .sidebar.open{transform:translateX(0)}
   .main{margin-left:0}
+  .sidebar-toggle-btn{display:flex!important}
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:49}
+  .sidebar-overlay.show{display:block}
   .stats-row,.three-col{grid-template-columns:repeat(2,1fr)}
 }
 
@@ -308,6 +318,7 @@ tr{transition:background .2s}
 </style>
 <body>
 
+<div class="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
 <aside class="sidebar">
   <div class="sidebar-logo"><a href="festchill-landing.html">Fest<span>&</span>Chill</a></div>
   <nav class="sidebar-nav">
@@ -337,7 +348,7 @@ tr{transition:background .2s}
 
 
 <main class="main">
-  <div class="topbar">
+  <div class="topbar"><button class="sidebar-toggle-btn" onclick="toggleMobileSidebar()" aria-label="Menu"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     <div class="topbar-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9.5a1 1 0 0 0 1 1h4v-6h2v6h4a1 1 0 0 0 1-1V10"/></svg> <span data-i18n="topbar.dashboard">Tableau de bord</span></div>
     <a href="festchill-create-event.html" class="btn btn-primary btn-sm" data-i18n="common.create_event_btn">+ Créer un événement</a>
   </div>
@@ -474,6 +485,11 @@ boot();
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 4000);
 })();
+
+function toggleMobileSidebar(){
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.querySelector('.sidebar-overlay').classList.toggle('show');
+}
 </script>
 </body>
 </html>
