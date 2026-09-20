@@ -2393,8 +2393,8 @@ async function fcMountSidebar(profile) {
     `;
     menu.innerHTML = `
       <div id="fc-user-menu-email" style="padding:12px 14px;border-bottom:1px solid var(--border);font-size:.76rem;color:var(--muted);word-break:break-all;"></div>
-      <a href="festchill-settings.html?panel=securite" data-i18n="menu.manage_account" style="display:block;padding:10px 14px;font-size:.85rem;color:var(--white);text-decoration:none;">Gérer le compte</a>
-      <a href="festchill-settings.html?panel=profil" data-i18n="menu.view_profile" style="display:block;padding:10px 14px;font-size:.85rem;color:var(--white);text-decoration:none;">Voir le profil</a>
+      <a href="festchill-settings.html?panel=securite" data-i18n="menu.manage_account" style="display:block;padding:10px 14px;font-size:.85rem;color:var(--text);text-decoration:none;">Gérer le compte</a>
+      <a href="festchill-settings.html?panel=profil" data-i18n="menu.view_profile" style="display:block;padding:10px 14px;font-size:.85rem;color:var(--text);text-decoration:none;">Voir le profil</a>
       <button id="fc-user-menu-logout" data-i18n="menu.logout" style="display:block;width:100%;text-align:left;padding:10px 14px;font-size:.85rem;border:none;border-top:1px solid var(--border);background:none;cursor:pointer;color:var(--red);font-family:inherit;">Se déconnecter</button>
     `;
     footer.appendChild(menu);
