@@ -108,7 +108,7 @@ async function boot(){
   const today = new Date().toISOString().slice(0,10);
   let q = supa
     .from('events')
-    .select('id, slug, title, event_type, location, event_date, event_time, organizer_id, ticket_categories(price,quota,sold), profiles(full_name)')
+    .select('id, slug, title, event_type, location, event_date, event_time, organizer_id, ticket_categories(price,quota,sold), profiles(full_name,certified)')
     .eq('status', 'published');
 
   q = showingHistory
@@ -160,7 +160,7 @@ function render(){
           <span>📅 ${fcFormatDate(e.event_date, {day:'numeric',month:'short',year:'numeric'})}${e.event_time ? ' · ' + e.event_time : ''}</span>
           <span>📍 ${e.location || 'Lieu à confirmer'}</span>
         </div>
-        <div class="ev-organizer">Par ${organizerName}</div>
+        <div class="ev-organizer">Par ${organizerName}${e.profiles?.certified ? ' <span title="Organisateur certifié" style="color:var(--green)">✅</span>' : ''}</div>
         <div class="ev-footer">
           <span class="ev-price">${minPrice!=null ? 'Dès ' + minPrice.toLocaleString('fr-FR') + ' F' : 'Prix à venir'}</span>
           <span class="ev-cta">Voir →</span>
