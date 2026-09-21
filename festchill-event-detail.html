@@ -56,7 +56,7 @@
   --topbar-bg:rgba(255,251,243,.85);--accent-rgb:196,50,31;
 }
 body{font-family:var(--fb);background:var(--ink);color:var(--text);display:flex;min-height:100vh}
-.sidebar{width:var(--sidebar);background:var(--deep);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;z-index:50}
+.sidebar{width:var(--sidebar);background:var(--deep);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;height:100dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;z-index:50}
 /* Arabe (RTL) : la sidebar passe à droite, le contenu se décale en miroir. */
 html[dir="rtl"] .sidebar{left:auto;right:0;border-right:none;border-left:1px solid var(--border)}
 html[dir="rtl"] .main{margin-left:0;margin-right:var(--sidebar)}
@@ -76,6 +76,7 @@ html[dir="rtl"] body{direction:rtl}
 .user-name{font-size:.82rem;font-weight:600;color:var(--text)}
 .user-role{font-size:.72rem;color:var(--muted)}
 .main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column}
+.sidebar-toggle-btn{display:none;background:transparent;border:1.5px solid var(--border);border-radius:8px;width:38px;height:38px;align-items:center;justify-content:center;cursor:pointer;color:var(--text);margin-right:10px;flex-shrink:0}
 .topbar{padding:14px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--topbar-bg);backdrop-filter:blur(12px);position:sticky;top:0;z-index:40}
 .topbar-title{font-family:var(--fd);font-weight:700;font-size:1.05rem}
 .page{padding:28px}
@@ -168,8 +169,12 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .toast.show{transform:none;opacity:1}
 
 @media(max-width:900px){
-  .sidebar{transform:translateX(-100%)}
+  .sidebar{transform:translateX(-100%);transition:transform .25s ease}
+  .sidebar.open{transform:translateX(0)}
   .main{margin-left:0}
+  .sidebar-toggle-btn{display:flex!important}
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:49}
+  .sidebar-overlay.show{display:block}
   .stats-row{grid-template-columns:repeat(2,1fr)}
   .two-col{grid-template-columns:1fr}
   .prog-cats{grid-template-columns:1fr 1fr}
@@ -280,10 +285,32 @@ tr{transition:background .2s}
 
 .illus{width:100%;height:auto;display:block}
 
+
+@media(max-width:640px){
+  html{-webkit-text-size-adjust:100%;overflow-x:hidden}
+  body{overflow-x:hidden;max-width:100vw}
+  *{max-width:100%}
+  body{font-size:1rem}
+  .main{padding:14px!important}
+  .topbar{padding:12px 14px!important;flex-wrap:wrap;height:auto!important}
+  .page,.page-inner{padding:0!important}
+  .stats-row,.three-col,.two-col,.card-grid{grid-template-columns:1fr!important}
+  .form-input,.form-select,.form-textarea,select,input,textarea{font-size:16px!important;padding:12px!important}
+  .btn{padding:12px 18px!important;font-size:.92rem!important;min-height:44px}
+  .btn-sm{min-height:38px;padding:9px 14px!important}
+  table{display:block;overflow-x:auto;white-space:nowrap}
+  .section-card,.stat-card{padding:16px!important}
+  h1,.page-title{font-size:1.4rem!important}
+  .topbar-title{font-size:1rem!important}
+  .section-head{flex-wrap:wrap;gap:8px!important}
+  .section-head > div{flex-wrap:wrap;width:100%}
+  select,input[type="text"]{width:100%!important;min-width:0!important}
+}
 </style>
 </head>
 <body>
 
+<div class="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
 <aside class="sidebar">
   <div class="sidebar-logo"><a href="festchill-landing.html">Fest<span>&</span>Chill</a></div>
   <nav class="sidebar-nav">
@@ -298,8 +325,8 @@ tr{transition:background .2s}
     <div class="nav-label" data-i18n="nav.group_tools">Outils</div>
     <a href="festchill-scanner.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.2A1.7 1.7 0 0 1 5.7 6.5h2.1l1-1.7h6.4l1 1.7h2.1A1.7 1.7 0 0 1 20 8.2v9.1a1.7 1.7 0 0 1-1.7 1.7H5.7A1.7 1.7 0 0 1 4 17.3Z"/><circle cx="12" cy="12.4" r="3.4"/></svg></span> <span data-i18n="nav.scanner">Scanner QR</span></a>
     <a href="festchill-settings.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2.06 2.06 0 1 1-2.92 2.92l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56v.17a2.06 2.06 0 1 1-4.12 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2.06 2.06 0 1 1-2.92-2.92l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03h-.17a2.06 2.06 0 1 1 0-4.12h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2.06 2.06 0 1 1 2.92-2.92l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1.03-1.56v-.17a2.06 2.06 0 1 1 4.12 0v.09a1.7 1.7 0 0 0 1.03 1.56h.08a1.7 1.7 0 0 0 1.87-.34l.06-.06a2.06 2.06 0 1 1 2.92 2.92l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.03h.17a2.06 2.06 0 1 1 0 4.12h-.09a1.7 1.7 0 0 0-1.56 1.03Z"/></svg></span> <span data-i18n="nav.settings">Paramètres</span></a>
-    <div class="nav-label" data-i18n="nav.group_admin">Admin</div>
-    <a href="festchill-admin.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 4.5 6.3v5.4c0 4.7 3.2 8.6 7.5 9.8 4.3-1.2 7.5-5.1 7.5-9.8V6.3Z"/><path d="M9.2 12.2l1.9 1.9 3.7-3.9"/></svg></span> <span data-i18n="nav.admin">Administration</span></a>
+    <div class="nav-label" data-i18n="nav.group_admin" id="admin-nav-label" style="display:none">Admin</div>
+    <a href="festchill-admin.html" class="s-link" id="admin-nav-link" style="display:none"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 4.5 6.3v5.4c0 4.7 3.2 8.6 7.5 9.8 4.3-1.2 7.5-5.1 7.5-9.8V6.3Z"/><path d="M9.2 12.2l1.9 1.9 3.7-3.9"/></svg></span> <span data-i18n="nav.admin">Administration</span></a>
   </nav>
   <div class="sidebar-footer">
     <div class="user-pill">
@@ -310,7 +337,7 @@ tr{transition:background .2s}
 </aside>
 
 <main class="main">
-  <div class="topbar">
+  <div class="topbar"><button class="sidebar-toggle-btn" onclick="toggleMobileSidebar()" aria-label="Menu"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     <div style="display:flex;align-items:center;gap:12px">
       <a href="festchill-dashboard.html" style="color:var(--muted);text-decoration:none;font-size:.9rem"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="10.5 6 5 12 10.5 18"/></svg> Retour</a>
       <span style="color:var(--border)">|</span>
@@ -919,6 +946,8 @@ tr{transition:background .2s}
   </div>
 </main>
 
+<footer style="text-align:center;padding:28px 6%;color:var(--muted);font-size:.8rem;border-top:1px solid var(--border,rgba(0,0,0,.08))">© 2026 Fest&Chill · <a href="festchill-privacy.html" style="color:inherit">Confidentialité</a> · <a href="festchill-terms.html" style="color:inherit">CGU</a></footer>
+
 <div class="toast" id="toast"><span id="toast-icon"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 10.8 15.3 16 9.5"/></svg></span><span id="toast-msg"></span></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -1384,6 +1413,11 @@ function showToast(msg,icon=FCI['check-circle']){
   t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),3000);
 }
+
+function toggleMobileSidebar(){
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.querySelector('.sidebar-overlay').classList.toggle('show');
+}
 </script>
-<footer style="text-align:center;padding:28px 6%;color:var(--muted);font-size:.8rem;border-top:1px solid var(--border,rgba(0,0,0,.08))">© 2026 Fest&Chill · <a href="festchill-privacy.html" style="color:inherit">Confidentialité</a> · <a href="festchill-terms.html" style="color:inherit">CGU</a></footer>\n</body>
+</body>
 </html>

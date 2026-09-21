@@ -62,7 +62,7 @@ function toggleMobileSidebar(){
 }
 body{font-family:var(--fb);background:var(--ink);color:var(--text);display:flex;min-height:100vh}
 
-.sidebar{width:var(--sidebar);background:var(--deep);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;z-index:50}
+.sidebar{width:var(--sidebar);background:var(--deep);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;height:100dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;z-index:50}
 /* Arabe (RTL) : la sidebar passe à droite, le contenu se décale en miroir. */
 html[dir="rtl"] .sidebar{left:auto;right:0;border-right:none;border-left:1px solid var(--border)}
 html[dir="rtl"] .main{margin-left:0;margin-right:var(--sidebar)}

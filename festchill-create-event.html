@@ -61,7 +61,7 @@ function toggleMobileSidebar(){
   --topbar-bg:rgba(255,251,243,.85);--accent-rgb:196,50,31;
 }
 body{font-family:var(--fb);background:var(--ink);color:var(--text);display:flex;min-height:100vh}
-.sidebar{width:var(--sidebar);background:var(--deep);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;z-index:50}
+.sidebar{width:var(--sidebar);background:var(--deep);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;height:100dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;z-index:50}
 .sidebar-logo{padding:22px 20px;border-bottom:1px solid var(--border)}
 .sidebar-logo a{font-family:var(--fd);font-weight:800;font-size:1.1rem;color:var(--text);text-decoration:none}
 .sidebar-logo span{color:var(--glow)}
@@ -178,12 +178,13 @@ tr:hover td{background:rgba(255,255,255,.02)}
   .stats-row,.three-col{grid-template-columns:repeat(2,1fr)}
 }
 .cat-row{display:grid;grid-template-columns:1fr 140px 120px 36px;gap:10px;align-items:end}
+.cat-del-btn{padding:11px!important;width:36px;flex-shrink:0}
 @media(max-width:640px){
-  .cat-row{grid-template-columns:1fr 1fr;grid-template-areas:"name name" "price quota" "del del"}
+  .cat-row{grid-template-columns:1fr 1fr 36px;grid-template-areas:"name name name" "price quota del"}
   .cat-row > div:nth-child(1){grid-area:name}
   .cat-row > div:nth-child(2){grid-area:price}
   .cat-row > div:nth-child(3){grid-area:quota}
-  .cat-row > button{grid-area:del;width:100%}
+  .cat-row > button,.cat-row > span{grid-area:del;width:36px;padding:10px 0!important}
   .main{padding:16px}
   .form-input,.form-select{font-size:16px}
 }
@@ -491,8 +492,8 @@ async function boot(){
   profile = await fcRequireAuth();
   if (!profile) return;
   fcMountSidebar(profile);
-  addCategory('Normal', 3000, 100);
-  addCategory('VIP', 10000, 50);
+  addCategory('Normal', 3000, 100, true);
+  addCategory('VIP', 10000, 50, true);
   updateNumberingMode();
 }
 
@@ -513,7 +514,7 @@ function addSession(label='', date='', time=''){
   document.getElementById('sessions-list').appendChild(wrap);
 }
 
-function addCategory(name='', price='', quota=''){
+function addCategory(name='', price='', quota='', locked=false){
   catCount++;
   const id = 'cat-' + catCount;
   const wrap = document.createElement('div');
@@ -530,15 +531,14 @@ function addCategory(name='', price='', quota=''){
     </div>
     <div>
       <label class="form-label" data-i18n="create.cat_quota">Quota</label>
-      <input type="number" class="form-input cat-quota-input" style="margin-bottom:4px" value="${quota}" placeholder="100">
-      <label style="display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--muted);cursor:pointer">
-        <input type="checkbox" class="cat-unlimited-cb" style="margin:0" onchange="this.closest('.cat-row').querySelector('.cat-quota-input').disabled=this.checked">
-        Illimité
-      </label>
+      <input type="text" class="form-input cat-quota-input" style="margin-bottom:0" value="${quota}" placeholder="100 ou Illimité">
     </div>
-    <button class="btn btn-ghost btn-sm" style="padding:11px" onclick="document.getElementById('${id}').remove()" title="Supprimer">✕</button>
+    ${locked
+      ? `<span style="padding:11px;color:var(--muted);font-size:.8rem;text-align:center" title="Catégorie par défaut — pas supprimable">🔒</span>`
+      : `<button class="btn btn-ghost btn-sm cat-del-btn" onclick="document.getElementById('${id}').remove()" title="Supprimer">✕</button>`}
   `;
   document.getElementById('categories-list').appendChild(wrap);
+}
 }
 
 function showFormError(msg){
@@ -563,8 +563,8 @@ async function submitEvent(status){
   const catRows = [...document.getElementById('categories-list').children];
   const categories = catRows.map(row => {
     const inputs = row.querySelectorAll('input[type="text"], input[type="number"]');
-    const unlimited = row.querySelector('.cat-unlimited-cb')?.checked;
-    const quota = unlimited ? 999999 : (parseInt(inputs[2].value)||0);
+    const quotaRaw = (inputs[2]?.value || '').trim();
+    const quota = /^illimit|^unlimited|^∞/i.test(quotaRaw) ? 999999 : (parseInt(quotaRaw) || 0);
     return { name: inputs[0].value.trim(), price: parseInt(inputs[1].value)||0, quota };
   }).filter(c => c.name && c.quota > 0);
 
