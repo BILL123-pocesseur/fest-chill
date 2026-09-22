@@ -177,6 +177,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   .sidebar-overlay.show{display:block}
   .stats-row{grid-template-columns:repeat(2,1fr)}
   .two-col{grid-template-columns:1fr}
+  .two-col>*{min-width:0}
   .prog-cats{grid-template-columns:1fr 1fr}
 }
 
@@ -295,6 +296,11 @@ tr{transition:background .2s}
   .topbar{padding:12px 14px!important;flex-wrap:wrap;height:auto!important}
   .page,.page-inner{padding:0!important}
   .stats-row,.three-col,.two-col,.card-grid{grid-template-columns:1fr!important}
+  /* Empêche les enfants d'une grille/flex (ex : le tableau des tickets, les
+     cartes avec grid-template-columns fixé en inline style) de forcer toute
+     la page plus large que l'écran — sans ça, du texte se retrouve
+     simplement coupé au bord au lieu de rester visible. */
+  .two-col,.two-col>*,.share-card,.prog-card,.section-card,.stat-card,.qr-card{min-width:0}
   .form-input,.form-select,.form-textarea,select,input,textarea{font-size:16px!important;padding:12px!important}
   .btn{padding:12px 18px!important;font-size:.92rem!important;min-height:44px}
   .btn-sm{min-height:38px;padding:9px 14px!important}
@@ -852,8 +858,8 @@ tr{transition:background .2s}
               <button class="btn btn-ghost btn-sm" onclick="showToast('Export CSV téléchargé !',FCI['download'])"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11.5"/><polyline points="7.5 11 12 15.5 16.5 11"/><path d="M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7"/></svg> Exporter</button>
             </div>
           </div>
-          <div style="max-height:420px;overflow-y:auto">
-            <table>
+          <div style="max-height:420px;overflow:auto;-webkit-overflow-scrolling:touch">
+            <table style="min-width:560px">
               <thead>
                 <tr>
                   <th data-i18n="tickets.col_number">N° Ticket</th>

@@ -479,6 +479,7 @@ tr{transition:background .2s}
                 <select class="form-select" id="payout-new-operator">
                   <option value="mtn">MTN Mobile Money</option>
                   <option value="moov">Moov Money</option>
+                  <option value="celtiis">Celtiis Cash</option>
                 </select>
                 <input class="form-input" id="payout-new-phone" placeholder="+229 XX XX XX XX">
               </div>
@@ -1307,7 +1308,7 @@ function renderPayoutMethods(methods){
     <div class="mm-card">
       <div class="mm-icon"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><line x1="11" y1="18.3" x2="13" y2="18.3"/></svg></div>
       <div class="mm-info">
-        <div class="mm-name">${m.operator === 'mtn' ? 'MTN Mobile Money' : 'Moov Money'}</div>
+        <div class="mm-name">${fcOperatorLabel(m.operator)}</div>
         <div class="mm-num">${m.phone}</div>
       </div>
       ${m.is_primary
@@ -1441,7 +1442,7 @@ async function boot(){
 
   const initials = (profile.full_name || '??').slice(0,2).toUpperCase();
   renderAvatar(initials, profile.avatar_url);
-  document.getElementById('profile-name-display').textContent = profile.full_name || 'Sans nom';
+  fcSetNameWithBadge(document.getElementById('profile-name-display'), profile.full_name || 'Sans nom', profile.certified);
   document.getElementById('profile-email-display').textContent = session.user.email || '';
   document.getElementById('f-fullname').value = profile.full_name || '';
   document.getElementById('f-email').value = session.user.email || '';
@@ -1472,8 +1473,8 @@ async function saveProfile(){
   profile.full_name = full_name;
   profile.phone = phone;
   showToast('Profil mis à jour avec succès !', FCI['check-circle']);
-  document.getElementById('side-name').textContent = full_name;
-  document.getElementById('profile-name-display').textContent = full_name;
+  fcSetNameWithBadge(document.getElementById('side-name'), full_name, profile.certified);
+  fcSetNameWithBadge(document.getElementById('profile-name-display'), full_name, profile.certified);
 }
 
 async function sendPasswordReset(){

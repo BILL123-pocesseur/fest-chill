@@ -2341,13 +2341,50 @@ async function fcSaveNotifPrefs(prefs) {
   await fcSaveProfilePref({ notif_prefs: prefs });
 }
 
+// Libellé affichable d'un opérateur mobile money (mtn / moov / celtiis).
+// "long" pour les listes/formulaires (ex : Paramètres), "short" pour les
+// endroits plus compacts (wallet, paiement d'un ticket).
+const FC_OPERATOR_LABELS = {
+  mtn:     { long: 'MTN Mobile Money', short: 'MTN Money' },
+  moov:    { long: 'Moov Money',       short: 'Moov Money' },
+  celtiis: { long: 'Celtiis Cash',     short: 'Celtiis Cash' },
+};
+function fcOperatorLabel(op, style) {
+  const entry = FC_OPERATOR_LABELS[op] || FC_OPERATOR_LABELS.mtn;
+  return style === 'short' ? entry.short : entry.long;
+}
+
+// Badge "compte certifié" (pastille bleue + coche blanche), au format SVG,
+// à poser juste après un nom d'organisateur certifié.
+function fcVerifiedBadge() {
+  return '<svg viewBox="0 0 24 24" width="15" height="15" aria-label="Compte certifié" role="img" '
+    + 'style="display:inline-block;vertical-align:-2px;margin-left:4px;flex-shrink:0">'
+    + '<circle cx="12" cy="12" r="10" fill="#1D9BF0"/>'
+    + '<path d="M8 12.5l2.5 2.5 5.5-5.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+    + '</svg>';
+}
+
+// Pose un nom (en texte, jamais en HTML — évite toute injection depuis
+// full_name) dans `el`, suivi du badge certifié si `certified` est vrai.
+function fcSetNameWithBadge(el, name, certified) {
+  if (!el) return;
+  el.textContent = '';
+  el.appendChild(document.createTextNode(name || 'Organisateur'));
+  if (certified) {
+    const badge = document.createElement('span');
+    badge.innerHTML = fcVerifiedBadge();
+    badge.title = 'Compte certifié';
+    el.appendChild(badge);
+  }
+}
+
 // Remplit automatiquement la sidebar (#side-avatar / #side-name) et
 // branche le petit menu compte (email / profil / déconnexion),
 // sur toute page qui a fait fcRequireAuth().
 async function fcMountSidebar(profile) {
   const nameEl = document.getElementById('side-name');
   const avatarEl = document.getElementById('side-avatar');
-  if (nameEl) nameEl.textContent = profile.full_name || 'Organisateur';
+  if (nameEl) fcSetNameWithBadge(nameEl, profile.full_name, profile.certified);
   if (avatarEl) {
     avatarEl.textContent = (profile.full_name || '??').slice(0, 2).toUpperCase();
     if (profile.avatar_url) avatarEl.innerHTML = `<img src="${profile.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;

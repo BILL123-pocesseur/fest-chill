@@ -315,6 +315,7 @@ tr{transition:background .2s}
   .section-head{flex-wrap:wrap;gap:8px!important}
   .section-head > div{flex-wrap:wrap;width:100%}
   select,input[type="text"]{width:100%!important;min-width:0!important}
+  .op-grid{grid-template-columns:1fr!important}
 }
 </style>
 </head>
@@ -546,9 +547,10 @@ tr{transition:background .2s}
     <div class="modal-sub">Ce numéro pourra recevoir tes retraits une fois enregistré.</div>
 
     <div class="form-label" data-i18n="wallet.operator_label">Opérateur</div>
-    <div class="op-grid">
+    <div class="op-grid" style="grid-template-columns:1fr 1fr 1fr">
       <button class="op-btn sel" id="add-op-mtn" onclick="selAddOp('mtn')"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><line x1="11" y1="18.3" x2="13" y2="18.3"/></svg> MTN Money</button>
       <button class="op-btn" id="add-op-moov" onclick="selAddOp('moov')"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><line x1="11" y1="18.3" x2="13" y2="18.3"/></svg> Moov Money</button>
+      <button class="op-btn" id="add-op-celtiis" onclick="selAddOp('celtiis')"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><line x1="11" y1="18.3" x2="13" y2="18.3"/></svg> Celtiis Cash</button>
     </div>
 
     <div class="form-label">Numéro de téléphone</div>
@@ -848,7 +850,7 @@ async function openModal(){
     sel.disabled = false;
     hint.style.display = 'none';
     sel.innerHTML = payoutMethods.map(m => {
-      const opLabel = m.operator === 'moov' ? 'Moov Money' : 'MTN Money';
+      const opLabel = fcOperatorLabel(m.operator, 'short');
       return `<option value="${m.phone}" data-operator="${m.operator}">${opLabel} — ${m.phone}${m.is_primary ? ' (Principal)' : ''}</option>`;
     }).join('');
     onWithdrawPhoneChange();
@@ -875,7 +877,7 @@ function renderWalletMobileMoney(methods){
       <div style="font-size:1.5rem"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><line x1="11" y1="18.3" x2="13" y2="18.3"/></svg></div>
       <div style="flex:1">
         <div style="font-weight:700;color:var(--text)">${m.phone}</div>
-        <div style="font-size:.75rem;color:var(--muted)">${m.operator === 'mtn' ? 'MTN Money' : 'Moov Money'}${m.is_primary ? ' — Principal' : ''}</div>
+        <div style="font-size:.75rem;color:var(--muted)">${fcOperatorLabel(m.operator, 'short')}${m.is_primary ? ' — Principal' : ''}</div>
       </div>
       <span class="badge ${m.is_primary ? 'b-green' : 'b-gold'}">${m.is_primary ? 'Principal' : 'Secondaire'}</span>
     </div>`).join('');
@@ -890,6 +892,7 @@ function selAddOp(op){
   addOp = op;
   document.getElementById('add-op-mtn').classList.toggle('sel', op === 'mtn');
   document.getElementById('add-op-moov').classList.toggle('sel', op === 'moov');
+  document.getElementById('add-op-celtiis').classList.toggle('sel', op === 'celtiis');
 }
 
 function openAddNumberModal(){
