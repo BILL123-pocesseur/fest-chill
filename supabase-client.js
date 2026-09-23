@@ -2341,6 +2341,16 @@ async function fcSaveNotifPrefs(prefs) {
   await fcSaveProfilePref({ notif_prefs: prefs });
 }
 
+// Échappe du texte utilisateur avant de l'insérer en HTML (innerHTML) —
+// à utiliser partout où un champ modifiable par un organisateur/acheteur
+// (titre d'événement, commentaire, etc.) doit garder des <br> ou du
+// formatage minimal sans permettre l'injection de balises/scripts.
+function fcEscapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
 // Libellé affichable d'un opérateur mobile money (mtn / moov / celtiis).
 // "long" pour les listes/formulaires (ex : Paramètres), "short" pour les
 // endroits plus compacts (wallet, paiement d'un ticket).

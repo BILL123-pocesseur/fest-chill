@@ -1109,7 +1109,7 @@ async function render(){
   const fillRate = quota ? Math.round(sold/quota*100) : 0;
 
   document.getElementById('ev-type-text').textContent = e.event_type || 'Événement';
-  document.getElementById('ev-title').innerHTML = e.title.replace(/\n/g,'<br>');
+  document.getElementById('ev-title').innerHTML = fcEscapeHtml(e.title).replace(/\n/g,'<br>');
   document.getElementById('ev-date').textContent = fcFormatDate(e.event_date, {weekday:'long',day:'numeric',month:'long',year:'numeric'});
   document.getElementById('ev-time').textContent = e.event_time || '—';
   document.getElementById('ev-location').textContent = e.location || '—';
