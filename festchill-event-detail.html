@@ -112,7 +112,8 @@ html[dir="rtl"] body{direction:rtl}
 
 /* SHARE */
 .share-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;margin-bottom:20px}
-.share-link{display:flex;gap:10px;margin-top:14px}
+.share-link{display:flex;gap:10px;margin-top:14px;min-width:0}
+.share-link>a{min-width:0}
 .share-link input{flex:1;padding:10px 14px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--glow);font-family:var(--fb);font-size:.85rem;outline:none}
 .share-btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
 .share-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font-family:var(--fb);font-size:.8rem;font-weight:600;transition:all .15s}
@@ -300,7 +301,7 @@ tr{transition:background .2s}
      cartes avec grid-template-columns fixé en inline style) de forcer toute
      la page plus large que l'écran — sans ça, du texte se retrouve
      simplement coupé au bord au lieu de rester visible. */
-  .two-col,.two-col>*,.share-card,.prog-card,.section-card,.stat-card,.qr-card{min-width:0}
+  .two-col,.two-col>*,.share-card,.share-card>*,.prog-card,.section-card,.stat-card,.qr-card{min-width:0}
   .form-input,.form-select,.form-textarea,select,input,textarea{font-size:16px!important;padding:12px!important}
   .btn{padding:12px 18px!important;font-size:.92rem!important;min-height:44px}
   .btn-sm{min-height:38px;padding:9px 14px!important}
