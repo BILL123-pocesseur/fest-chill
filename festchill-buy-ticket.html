@@ -1245,8 +1245,17 @@ async function checkForReturningPayment(){
     await new Promise(r => setTimeout(r, 2500));
     const { data } = await supa.rpc('check_order_status', { p_order_id: orderId });
     const res = Array.isArray(data) ? data[0] : data;
-    if (res?.payment_status === 'paid') { await checkOrderStatusNow(); localStorage.removeItem('fc-pending-order'); return; }
-    if (res?.payment_status === 'failed') { await checkOrderStatusNow(); localStorage.removeItem('fc-pending-order'); return; }
+    if (res?.payment_status === 'paid' || res?.payment_status === 'failed') {
+      await checkOrderStatusNow();
+      localStorage.removeItem('fc-pending-order');
+      // Retire ?order=... de l'URL : sinon le bouton "Autre ticket" (qui
+      // recharge la page) retombe sur ce même order_id et rouvre le même
+      // écran de résultat en boucle, sans jamais revenir au choix des tickets.
+      const url = new URL(location.href);
+      url.searchParams.delete('order');
+      history.replaceState({}, '', url);
+      return;
+    }
   }
   // Toujours en attente après ~20s : on laisse le bouton manuel prendre le relai
   document.getElementById('success-title').textContent = 'Paiement en cours de vérification';
@@ -1280,6 +1289,16 @@ async function checkOrderStatusNow(){
     document.getElementById('success-sub').textContent = "Ton ticket est prêt — télécharge-le ou garde-le à l'écran";
     document.getElementById('s-qr-label').textContent = 'QR Code unique';
     document.getElementById('s-qr-sub').textContent = 'Scannable 1 seule fois';
+
+    // Remplit le récapitulatif du ticket (événement, date, catégorie, n°,
+    // prix) — ces champs restaient sur "—" auparavant : ils n'étaient
+    // jamais renseignés après un retour de paiement FedaPay.
+    document.getElementById('s-event').textContent = res.event_title || '—';
+    document.getElementById('s-date').textContent = res.event_date ? fcFormatDate(res.event_date, {day:'numeric',month:'long',year:'numeric'}) : '—';
+    document.getElementById('s-cat').textContent = res.category_name || '—';
+    document.getElementById('s-num').textContent = res.ticket_number ?? '—';
+    document.getElementById('s-phone').textContent = lastPurchase.buyer_phone || '—';
+    document.getElementById('s-price').textContent = res.price != null ? res.price.toLocaleString('fr-FR') + ' FCFA' : '—';
 
     const qrEl = document.getElementById('s-qr');
     qrEl.innerHTML = '';

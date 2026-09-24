@@ -339,6 +339,12 @@ tr{transition:background .2s}
   select,input[type="text"]{width:100%!important;min-width:0!important}
   .topbar{flex-wrap:wrap;height:auto!important}
   .topbar > .btn{width:100%;justify-content:center;order:3;margin-top:8px}
+  /* La carte "numéro Mobile Money" alignait icône + nom/numéro + 2 boutons
+     sur UNE seule ligne — trop pour un écran de téléphone, d'où le texte
+     coupé au bord. Elle passe maintenant à la ligne dès que ça ne rentre
+     plus (icône+nom en haut, boutons en dessous). */
+  .mm-card{flex-wrap:wrap;row-gap:10px}
+  .mm-info{min-width:150px}
 }
 </style>
 </head>
