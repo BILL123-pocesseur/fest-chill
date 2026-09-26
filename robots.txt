@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Disallow: /festchill-dashboard.html
+Disallow: /festchill-wallet.html
+Disallow: /festchill-transactions.html
+Disallow: /festchill-settings.html
+Disallow: /festchill-create-event.html
+Disallow: /festchill-scanner.html
+Disallow: /festchill-tickets.html
+Disallow: /festchill-admin.html
+Disallow: /festchill-events.html
+Disallow: /festchill-event-detail.html
+Disallow: /404.html
+
+Sitemap: https://festchill.onrender.com/sitemap.xml
