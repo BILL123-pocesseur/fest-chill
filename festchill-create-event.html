@@ -418,6 +418,13 @@ tr{transition:background .2s}
             <input type="time" class="form-input" id="f-time" value="20:00">
           </div>
           <div class="form-full">
+            <label class="form-label">Durée <span style="color:var(--muted);font-weight:400">— sur combien de jours consécutifs le ticket est-il valable ?</span></label>
+            <div id="duration-days-group" style="display:flex;gap:8px;flex-wrap:wrap">
+              <input type="hidden" id="f-duration-days" value="1">
+            </div>
+            <div style="font-size:.76rem;color:var(--muted);margin-top:6px">Le même QR code sert plusieurs fois : 1 seul scan accepté par jour, jusqu'à épuisement du nombre de jours choisi. (Différent des "Dates supplémentaires" ci-dessous, qui servent juste à afficher un programme.)</div>
+          </div>
+          <div class="form-full">
             <label class="form-label" data-i18n="create.location_label">Lieu *</label>
             <input type="text" class="form-input" id="f-location" placeholder="Ex: Palais des Congrès, Cotonou" data-i18n-placeholder="create.location_placeholder">
           </div>
@@ -495,6 +502,31 @@ async function boot(){
   addCategory('Normal', 3000, 100, true);
   addCategory('VIP', 10000, 50, true);
   updateNumberingMode();
+  renderDurationDaysButtons();
+}
+
+function renderDurationDaysButtons(){
+  const group = document.getElementById('duration-days-group');
+  const hidden = document.getElementById('f-duration-days');
+  [1,2,3,4,5].forEach(n => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn btn-ghost btn-sm';
+    b.textContent = n === 1 ? '1 jour' : n + ' jours';
+    b.dataset.days = n;
+    if (n === 1) b.style.cssText = 'background:var(--gold);color:#1a1a1a;border-color:var(--gold)';
+    b.onclick = () => selectDurationDays(n);
+    group.appendChild(b);
+  });
+}
+
+function selectDurationDays(n){
+  document.getElementById('f-duration-days').value = n;
+  [...document.getElementById('duration-days-group').children].forEach(b => {
+    if (b.tagName !== 'BUTTON') return;
+    const active = Number(b.dataset.days) === n;
+    b.style.cssText = active ? 'background:var(--gold);color:#1a1a1a;border-color:var(--gold)' : '';
+  });
 }
 
 let sessionCount = 0;
@@ -553,6 +585,7 @@ async function submitEvent(status){
   const event_type = document.getElementById('f-type').value;
   const event_date = document.getElementById('f-date').value;
   const event_time = document.getElementById('f-time').value;
+  const duration_days = parseInt(document.getElementById('f-duration-days').value) || 1;
   const location = document.getElementById('f-location').value.trim();
   const location_url = document.getElementById('f-location-url').value.trim() || null;
   const description = document.getElementById('f-description').value.trim();
@@ -592,7 +625,7 @@ async function submitEvent(status){
 
   const { data: event, error } = await supa.from('events').insert({
     organizer_id: profile.id, slug, title, event_type, description,
-    location, location_url, event_date, event_time, status, numbering_mode, banner_url
+    location, location_url, event_date, event_time, status, numbering_mode, banner_url, duration_days
   }).select().single();
 
   if (error){ showFormError(fcT('common.error_prefix') + ' ' + error.message); btn.disabled = false; btn.innerHTML = '🚀 ' + fcT('create.publish'); return; }

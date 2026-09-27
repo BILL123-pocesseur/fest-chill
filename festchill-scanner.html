@@ -708,7 +708,8 @@ async function processResult(code){
   } else if (res.result === 'already_used'){
     invalidCount++; updateStats();
     card.className = 'result-card invalid';
-    card.innerHTML = resultHTML(FCI['dot-red'],'DÉJÀ UTILISÉ','Ce ticket a déjà été scanné — entrée refusée', [
+    const sub = res.total_days > 1 ? `Ce ticket a déjà été utilisé ses ${res.total_days} jours — entrée refusée` : 'Ce ticket a déjà été scanné — entrée refusée';
+    card.innerHTML = resultHTML(FCI['dot-red'],'DÉJÀ UTILISÉ',sub, [
       ['N° Ticket', 'N°'+res.ticket_number], ['Catégorie', res.category_name],
       ['Scanné le', fcFormatDateTime(res.scanned_at)]
     ], true);
@@ -730,13 +731,29 @@ async function processResult(code){
     ], true);
     flashScreen('red');
     addLog(false, res.ticket_number, res.category_name, 'ANNULÉ', now);
+  } else if (res.result === 'already_used_today'){
+    invalidCount++; updateStats();
+    card.className = 'result-card invalid';
+    card.innerHTML = resultHTML(FCI['dot-red'],'DÉJÀ SCANNÉ AUJOURD\'HUI','Ce ticket a déjà servi une fois aujourd\'hui — entrée refusée', [
+      ['N° Ticket', 'N°'+res.ticket_number], ['Catégorie', res.category_name],
+      ['Jour', res.day_number+' / '+res.total_days], ['Dernier scan', fcFormatDateTime(res.scanned_at)]
+    ], true);
+    flashScreen('red');
+    addLog(false, res.ticket_number, res.category_name, 'Déjà scanné aujourd\'hui', now);
   } else if (res.result === 'valid'){
     validCount++; updateStats();
     card.className = 'result-card valid';
-    card.innerHTML = resultHTML(FCI['check-circle'],'ENTRÉE AUTORISÉE','Ticket valide — première utilisation', [
+    const multiDay = res.total_days > 1;
+    const sub = multiDay
+      ? (res.day_number >= res.total_days ? 'Ticket valide — dernier jour, accès complet utilisé' : `Ticket valide — jour ${res.day_number} sur ${res.total_days}`)
+      : 'Ticket valide — première utilisation';
+    const rows = [
       ['N° Ticket', 'N°'+res.ticket_number], ['Catégorie', res.category_name],
-      ['Titulaire', res.buyer_name || '—'], ['Événement', res.event_title], ['Heure scan', now]
-    ], false);
+      ['Titulaire', res.buyer_name || '—'], ['Événement', res.event_title],
+    ];
+    if (multiDay) rows.push(['Jour', res.day_number+' / '+res.total_days]);
+    rows.push(['Heure scan', now]);
+    card.innerHTML = resultHTML(FCI['check-circle'],'ENTRÉE AUTORISÉE',sub, rows, false);
     flashScreen('green');
     addLog(true, res.ticket_number, res.category_name, res.buyer_name || '—', now);
   }
