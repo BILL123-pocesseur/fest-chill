@@ -384,7 +384,10 @@ tr{transition:background .2s}
       <button class="btn btn-ghost btn-sm" data-f="published" onclick="setFilter('published')" data-i18n="status.published">En vente</button>
       <button class="btn btn-ghost btn-sm" data-f="draft" onclick="setFilter('draft')" data-i18n="events.filter_draft">Brouillons</button>
       <button class="btn btn-ghost btn-sm" data-f="suspended" onclick="setFilter('suspended')" data-i18n="events.filter_suspended">Suspendus</button>
-      <button class="btn btn-ghost btn-sm" data-f="ended" onclick="setFilter('ended')" data-i18n="events.filter_ended">Terminés</button>
+      <button class="btn btn-ghost btn-sm" data-f="history" onclick="setFilter('history')">🕐 Historique</button>
+    </div>
+    <div id="clear-history-row" style="display:none;margin-bottom:16px;text-align:right">
+      <button class="btn btn-ghost btn-sm" onclick="clearHistory()">🗑️ Vider l'historique</button>
     </div>
 
     <div class="card-grid" id="events-grid">
@@ -443,7 +446,7 @@ async function boot(){
 
   let query = supa
     .from('events')
-    .select('id, title, slug, status, event_date, location, event_type, organizer_id, ticket_categories(quota, sold, price)');
+    .select('id, title, slug, status, event_date, duration_days, hidden_from_history, location, event_type, organizer_id, ticket_categories(quota, sold, price)');
   query = collabIds.length
     ? query.or(`organizer_id.eq.${profile.id},id.in.(${collabIds.join(',')})`)
     : query.eq('organizer_id', profile.id);
@@ -453,6 +456,7 @@ async function boot(){
   allEvents = (events || []).map(e => ({
     ...e,
     myRole: e.organizer_id === profile.id ? 'owner' : roleByEvent[e.id],
+    isPast: fcEventDayStatus(e.event_date, e.duration_days).phase === 'ended',
   }));
   render();
   loadPendingInvites();
@@ -518,13 +522,21 @@ function setFilter(f){
 
 function render(){
   const grid = document.getElementById('events-grid');
-  const list = currentFilter === 'all' ? allEvents : allEvents.filter(e => e.status === currentFilter);
+  // Un événement passé (date dépassée, en tenant compte de sa durée) sort
+  // automatiquement des vues actives et va dans "Historique" — plus besoin
+  // de le marquer "ended" à la main, et il n'encombre plus "Tous"/"En vente".
+  const historyList = allEvents.filter(e => (e.isPast || e.status === 'ended') && !e.hidden_from_history);
+  document.getElementById('clear-history-row').style.display = currentFilter === 'history' && historyList.length ? 'block' : 'none';
+
+  const list = currentFilter === 'history'
+    ? historyList
+    : (currentFilter === 'all' ? allEvents : allEvents.filter(e => e.status === currentFilter)).filter(e => !e.isPast && e.status !== 'ended');
 
   if (!list.length){
-    const emptyMsg = currentFilter === 'all' ? fcT('dashboard.no_events') : fcT('events.no_events_category');
+    const emptyMsg = currentFilter === 'history' ? "Aucun événement passé pour l'instant." : (currentFilter === 'all' ? fcT('dashboard.no_events') : fcT('events.no_events_category'));
     grid.innerHTML = `<div style="grid-column:1/-1;padding:50px;text-align:center;color:var(--muted)">
       ${emptyMsg}<br>
-      <a href="festchill-create-event.html" class="btn btn-primary btn-sm" style="margin-top:14px">${fcT('common.create_event_btn').replace('+ ','')}</a>
+      ${currentFilter === 'history' ? '' : `<a href="festchill-create-event.html" class="btn btn-primary btn-sm" style="margin-top:14px">${fcT('common.create_event_btn').replace('+ ','')}</a>`}
     </div>`;
     return;
   }
@@ -536,18 +548,19 @@ function render(){
     const quota = (e.ticket_categories||[]).reduce((s,c)=>s+c.quota,0);
     const revenue = (e.ticket_categories||[]).reduce((s,c)=>s+c.sold*c.price,0);
     const fill = quota ? Math.round(sold/quota*100) : 0;
-    const canManage = e.myRole === 'owner' || e.myRole === 'full';
+    const canManage = (e.myRole === 'owner' || e.myRole === 'full') && !e.isPast && e.status !== 'ended';
     const roleBadge = e.myRole === 'owner' ? '' : e.myRole === 'full'
       ? '<span class="badge b-purple" style="margin-left:6px">🤝 Co-organisateur</span>'
       : '<span class="badge b-gray" style="margin-left:6px">👁️ Lecture seule</span>';
+    const statusBadge = (e.isPast && e.status !== 'ended') ? '<span class="badge b-gray">⚪ Terminé</span>' : (badges[e.status]||'');
     return `<div class="section-card" style="padding:20px;position:relative">
       <a href="festchill-event-detail.html?id=${e.id}" style="text-decoration:none;color:inherit;display:block">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
           <span style="font-size:.72rem;color:var(--glow);font-weight:700">${e.event_type||'Événement'}</span>
-          <span>${badges[e.status]||''}${roleBadge}</span>
+          <span>${statusBadge}${roleBadge}</span>
         </div>
         <div style="font-family:var(--fd);font-weight:700;font-size:1.05rem;margin-bottom:6px">${e.title}</div>
-        <div style="font-size:.78rem;color:var(--muted);margin-bottom:14px">📅 ${fcFormatDate(e.event_date, {day:'numeric',month:'short',year:'numeric'})} · 📍 ${e.location||'—'}</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:14px">📅 ${fcFormatEventDateRange(e.event_date, e.duration_days)} · 📍 ${e.location||'—'}</div>
         <div class="prog-bar" style="height:6px;background:rgba(255,255,255,.06);border-radius:100px;overflow:hidden;margin-bottom:8px"><div class="prog-fill" style="height:100%;width:${fill}%;background:linear-gradient(90deg,var(--purple),var(--glow))"></div></div>
         <div style="display:flex;justify-content:space-between;font-size:.78rem">
           <span style="color:var(--muted)">${sold}/${quota} ${fcT('events.sold_label')}</span>
@@ -557,6 +570,15 @@ function render(){
       ${canManage ? `<button class="btn btn-ghost btn-sm" style="margin-top:12px;width:100%;justify-content:center" onclick="openInviteModal('${e.id}')">+ Inviter un co-organisateur</button>` : ''}
     </div>`;
   }).join('');
+}
+
+async function clearHistory(){
+  const ids = allEvents.filter(e => (e.isPast || e.status === 'ended') && !e.hidden_from_history).map(e => e.id);
+  if (!ids.length) return;
+  if (!confirm(`Vider l'historique (${ids.length} événement${ids.length>1?'s':''}) ? Les données de vente restent conservées, ils disparaissent juste de cette liste.`)) return;
+  await supa.from('events').update({ hidden_from_history: true }).in('id', ids);
+  allEvents = allEvents.map(e => ids.includes(e.id) ? { ...e, hidden_from_history: true } : e);
+  render();
 }
 
 const FCI = {

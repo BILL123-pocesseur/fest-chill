@@ -2117,6 +2117,33 @@ function fcFormatDateTime(date = new Date(), opts = {}) {
   return new Date(date).toLocaleString(locale, { timeZone: fcGetTimezone(), ...opts });
 }
 
+// Formate la période d'un événement : une seule date s'il dure 1 jour,
+// une plage "28-30 nov 2026" s'il dure plusieurs jours consécutifs.
+function fcFormatEventDateRange(dateStr, durationDays) {
+  const n = Number(durationDays) || 1;
+  if (n <= 1) return fcFormatDate(dateStr, {day:'numeric',month:'long',year:'numeric'});
+  const start = new Date(dateStr + 'T00:00:00');
+  const end = new Date(start); end.setDate(end.getDate() + n - 1);
+  const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
+  const startLabel = fcFormatDate(start.toISOString().slice(0,10), sameMonth ? {day:'numeric'} : {day:'numeric',month:'long'});
+  const endLabel = fcFormatDate(end.toISOString().slice(0,10), {day:'numeric',month:'long',year:'numeric'});
+  return `${startLabel} - ${endLabel}`;
+}
+
+// Où en est un événement multi-jours aujourd'hui :
+// - upcoming : pas encore commencé
+// - ongoing  : en cours (dayNumber/totalDays = quel jour on est)
+// - ended    : dernier jour déjà passé
+function fcEventDayStatus(dateStr, durationDays) {
+  const n = Number(durationDays) || 1;
+  const start = new Date(dateStr + 'T00:00:00');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diffDays = Math.round((today - start) / 86400000);
+  if (diffDays < 0) return { phase: 'upcoming', dayNumber: 0, totalDays: n };
+  if (diffDays >= n) return { phase: 'ended', dayNumber: n, totalDays: n };
+  return { phase: 'ongoing', dayNumber: diffDays + 1, totalDays: n };
+}
+
 // ------------------------------------------------------------
 // Sauvegarde une préférence sur le profil Supabase de l'utilisateur
 // connecté, en tâche de fond (n'empêche jamais l'UI de réagir).

@@ -106,14 +106,19 @@ async function toggleHistory(){
 
 async function boot(){
   const today = new Date().toISOString().slice(0,10);
+  // On ne peut pas comparer "event_date + duration_days" directement dans
+  // le filtre Supabase, donc on élargit la fenêtre côté requête (30 jours
+  // = durée max autorisée pour un événement) puis on affine précisément
+  // côté client avec fcEventDayStatus, qui tient compte de duration_days.
+  const past30 = new Date(); past30.setDate(past30.getDate() - 30);
   let q = supa
     .from('events')
-    .select('id, slug, title, event_type, location, event_date, event_time, organizer_id, ticket_categories(price,quota,sold), profiles(full_name,certified)')
+    .select('id, slug, title, event_type, location, event_date, event_time, duration_days, organizer_id, ticket_categories(price,quota,sold), profiles(full_name,certified)')
     .eq('status', 'published');
 
   q = showingHistory
     ? q.lt('event_date', today).order('event_date', { ascending: false })
-    : q.gte('event_date', today).order('event_date', { ascending: true });
+    : q.gte('event_date', past30.toISOString().slice(0,10)).order('event_date', { ascending: true });
 
   const { data, error } = await q;
 
@@ -121,7 +126,12 @@ async function boot(){
     document.getElementById('grid').innerHTML = '<div class="state-msg">Impossible de charger les événements pour le moment. Réessaie dans un instant.</div>';
     return;
   }
-  allEvents = data || [];
+  // Affine : un événement multi-jours commencé avant aujourd'hui mais pas
+  // encore terminé doit rester côté "à venir", pas "passés".
+  allEvents = (data || []).filter(e => {
+    const status = fcEventDayStatus(e.event_date, e.duration_days).phase;
+    return showingHistory ? status === 'ended' : status !== 'ended';
+  });
   renderFilters();
   render();
 }
@@ -143,22 +153,26 @@ function render(){
   grid.innerHTML = list.map(e => {
     const prices = (e.ticket_categories||[]).map(c=>c.price).filter(p=>p!=null);
     const minPrice = prices.length ? Math.min(...prices) : null;
-    const organizerName = e.profiles?.full_name || 'Organisateur Fest&Chill';
+    const organizerName = fcEscapeHtml(e.profiles?.full_name || 'Organisateur Fest&Chill');
     const totalQuota = (e.ticket_categories||[]).reduce((s,c)=>s+(c.quota||0),0);
     const totalSold = (e.ticket_categories||[]).reduce((s,c)=>s+(c.sold||0),0);
     const remaining = totalQuota - totalSold;
     const lowStock = totalQuota > 0 && totalQuota < 999999 && remaining > 0 && remaining <= Math.max(10, totalQuota*0.15);
+    const dayStatus = fcEventDayStatus(e.event_date, e.duration_days);
+    const dateLabel = fcFormatEventDateRange(e.event_date, e.duration_days);
+    const dayBadge = dayStatus.phase === 'ongoing' && dayStatus.totalDays > 1
+      ? ` <span style="color:var(--gold);font-weight:700">· Jour ${dayStatus.dayNumber}/${dayStatus.totalDays}</span>` : '';
     return `<a class="ev-card" href="festchill-buy-ticket.html?event=${e.slug}">
       <div class="ev-banner" data-cat="${e.event_type || 'Autre'}">
-        <span class="ev-type-badge">${e.event_type || 'Événement'}</span>
+        <span class="ev-type-badge">${fcEscapeHtml(e.event_type || 'Événement')}</span>
         ${lowStock ? `<span class="ev-urgent-badge">🔥 Plus que ${remaining} places</span>` : ''}
         <span class="ev-banner-icon">${TYPE_ICON[e.event_type] || '🎫'}</span>
       </div>
       <div class="ev-body">
-        <div class="ev-title">${e.title}</div>
+        <div class="ev-title">${fcEscapeHtml(e.title)}</div>
         <div class="ev-meta">
-          <span>📅 ${fcFormatDate(e.event_date, {day:'numeric',month:'short',year:'numeric'})}${e.event_time ? ' · ' + e.event_time : ''}</span>
-          <span>📍 ${e.location || 'Lieu à confirmer'}</span>
+          <span>📅 ${dateLabel}${dayBadge}${e.event_time ? ' · ' + e.event_time : ''}</span>
+          <span>📍 ${fcEscapeHtml(e.location || 'Lieu à confirmer')}</span>
         </div>
         <div class="ev-organizer">Par ${organizerName}${e.profiles?.certified ? fcVerifiedBadge() : ''}</div>
         <div class="ev-footer">

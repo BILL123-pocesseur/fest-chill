@@ -441,7 +441,7 @@ async function boot(){
 async function loadAll(){
   const { data: events } = await supa
     .from('events')
-    .select('id, title, slug, status, event_date, ticket_categories(quota, sold, price)')
+    .select('id, title, slug, status, event_date, duration_days, ticket_categories(quota, sold, price)')
     .eq('organizer_id', profile.id)
     .order('event_date', { ascending: false });
 
@@ -449,7 +449,7 @@ async function loadAll(){
   const rate = cfg?.commission_rate ?? 10;
 
   const evs = events || [];
-  const upcoming = evs.filter(e => e.status === 'published' && new Date(e.event_date) >= new Date());
+  const upcoming = evs.filter(e => e.status === 'published' && fcEventDayStatus(e.event_date, e.duration_days).phase !== 'ended');
   let totalSold = 0, totalRevenue = 0;
   evs.forEach(e => (e.ticket_categories||[]).forEach(c => { totalSold += c.sold; totalRevenue += c.sold*c.price; }));
   const netRevenue = Math.round(totalRevenue * (1 - rate/100));

@@ -857,7 +857,8 @@ tr{transition:background .2s}
     <button class="btn btn-primary" onclick="location.reload()">Autre ticket</button>
   </div>
   <div class="success-actions" id="success-actions-valid" style="display:none">
-    <button class="btn btn-gold" onclick="downloadTicketPDF()"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11.5"/><polyline points="7.5 11 12 15.5 16.5 11"/><path d="M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7"/></svg> Télécharger (PDF)</button>
+    <button class="btn btn-gold" onclick="downloadTicketPDF()"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11.5"/><polyline points="7.5 11 12 15.5 16.5 11"/><path d="M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7"/></svg> Reçu complet (PDF)</button>
+    <button class="btn btn-ghost" onclick="downloadQrOnly()" style="margin-top:8px"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z"/></svg> QR code seul (image)</button>
     <button class="btn btn-primary" onclick="location.reload()">Autre ticket</button>
   </div>
 </div>
@@ -1280,8 +1281,9 @@ async function checkOrderStatusNow(){
   if (res.payment_status === 'paid'){
     lastPurchase = {
       ...lastPurchase, qr_code: res.qr_code, price: res.price,
-      event_title: res.event_title, event_date: res.event_date,
+      event_title: res.event_title, event_date: res.event_date, duration_days: res.duration_days,
       category_name: res.category_name, ticket_number: res.ticket_number,
+      buyer_name: res.buyer_name, buyer_phone: res.buyer_phone,
     };
 
     document.getElementById('success-icon').innerHTML = '<svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 14.5 4.8c.5-.7 1.6-.4 1.7.4l1.6 12a1 1 0 0 1-1.3 1.1L4 20Z"/><line x1="8" y1="4" x2="9" y2="5.6"/><line x1="3" y1="9" x2="4.8" y2="9.6"/><line x1="18" y1="2.5" x2="18" y2="4.2"/></svg>';
@@ -1297,7 +1299,7 @@ async function checkOrderStatusNow(){
     document.getElementById('s-date').textContent = res.event_date ? fcFormatDate(res.event_date, {day:'numeric',month:'long',year:'numeric'}) : '—';
     document.getElementById('s-cat').textContent = res.category_name || '—';
     document.getElementById('s-num').textContent = res.ticket_number ?? '—';
-    document.getElementById('s-phone').textContent = lastPurchase.buyer_phone || '—';
+    document.getElementById('s-phone').textContent = [lastPurchase.buyer_name, lastPurchase.buyer_phone].filter(Boolean).join(' · ') || '—';
     document.getElementById('s-price').textContent = res.price != null ? res.price.toLocaleString('fr-FR') + ' FCFA' : '—';
 
     const qrEl = document.getElementById('s-qr');
@@ -1323,13 +1325,14 @@ async function checkOrderStatusNow(){
 async function downloadTicketPDF(){
   if (!lastPurchase) return;
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit: 'mm', format: [90, 150] });
+  const PAGE_H = 172;
+  const doc = new jsPDF({ unit: 'mm', format: [90, PAGE_H] });
 
   const qrDataUrl = await QRCode.toDataURL(lastPurchase.qr_code, { width: 300, margin: 1 });
 
   // Couleurs Fest&Chill (fond papier chaud, accents rouge/jaune/vert)
   doc.setFillColor(255, 251, 243);
-  doc.rect(0, 0, 90, 150, 'F');
+  doc.rect(0, 0, 90, PAGE_H, 'F');
   doc.setFillColor(196, 50, 31);
   doc.rect(0, 0, 90, 6, 'F');
 
@@ -1341,7 +1344,7 @@ async function downloadTicketPDF(){
   doc.setFontSize(9);
   doc.setTextColor(138, 122, 104);
   if (lastPurchase.event_date) {
-    doc.text(fcFormatDate(lastPurchase.event_date, {day:'numeric',month:'long',year:'numeric'}), 8, 34);
+    doc.text(fcFormatEventDateRange(lastPurchase.event_date, lastPurchase.duration_days), 8, 34);
   }
 
   doc.setDrawColor(235, 223, 201);
@@ -1349,21 +1352,34 @@ async function downloadTicketPDF(){
 
   doc.setTextColor(36, 28, 20);
   doc.setFontSize(10);
-  doc.text(`Catégorie : ${lastPurchase.category_name || '—'}`, 8, 48);
-  doc.text(`Ticket N° : ${lastPurchase.ticket_number ?? '—'}`, 8, 55);
-  doc.text(`Prix : ${(lastPurchase.price ?? 0).toLocaleString('fr-FR')} FCFA`, 8, 62);
-  if (lastPurchase.buyer_phone) doc.text(`Acheteur : ${lastPurchase.buyer_phone}`, 8, 69);
+  let y = 48;
+  doc.text(`Catégorie : ${lastPurchase.category_name || '—'}`, 8, y); y += 7;
+  doc.text(`Ticket N° : ${lastPurchase.ticket_number ?? '—'}`, 8, y); y += 7;
+  doc.text(`Prix : ${(lastPurchase.price ?? 0).toLocaleString('fr-FR')} FCFA`, 8, y); y += 7;
+  if (lastPurchase.buyer_name) { doc.text(`Nom : ${lastPurchase.buyer_name}`, 8, y); y += 7; }
+  if (lastPurchase.buyer_phone) { doc.text(`Téléphone : ${lastPurchase.buyer_phone}`, 8, y); y += 7; }
 
-  doc.addImage(qrDataUrl, 'PNG', 15, 78, 60, 60);
+  const qrY = y + 6;
+  doc.addImage(qrDataUrl, 'PNG', 15, qrY, 60, 60);
   doc.setFontSize(7);
   doc.setTextColor(138, 122, 104);
-  doc.text('QR unique — scannable une seule fois', 45, 143, { align: 'center' });
-  doc.text(lastPurchase.qr_code, 45, 148, { align: 'center' });
+  const n = Number(lastPurchase.duration_days) || 1;
+  doc.text(n > 1 ? `QR valable ${n} jours — 1 scan par jour` : 'QR unique — scannable une seule fois', 45, qrY + 66, { align: 'center' });
+  doc.text(lastPurchase.qr_code, 45, qrY + 71, { align: 'center' });
   doc.setFontSize(6.5);
-  doc.text('Après l\'événement, laisse ton avis :', 45, 153, { align: 'center' });
-  doc.text(`festchill.onrender.com/festchill-buy-ticket.html?review=${lastPurchase.qr_code}`, 45, 157, { align: 'center' });
+  doc.text('Après l\'événement, laisse ton avis :', 45, qrY + 76, { align: 'center' });
+  doc.text(`festchill.onrender.com/festchill-buy-ticket.html?review=${lastPurchase.qr_code}`, 45, qrY + 80, { align: 'center' });
 
   doc.save(`festchill-ticket-${lastPurchase.ticket_number ?? 'x'}.pdf`);
+}
+
+async function downloadQrOnly(){
+  if (!lastPurchase) return;
+  const qrDataUrl = await QRCode.toDataURL(lastPurchase.qr_code, { width: 800, margin: 2 });
+  const a = document.createElement('a');
+  a.href = qrDataUrl;
+  a.download = `festchill-qr-${lastPurchase.ticket_number ?? 'x'}.png`;
+  a.click();
 }
 
 // Duplique les 4 cartes une fois pour un défilement horizontal continu,
