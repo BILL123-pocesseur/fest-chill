@@ -7,11 +7,6 @@
     <changefreq>weekly</changefreq>
   </url>
   <url>
-    <loc>https://festchill.onrender.com/festchill-landing.html</loc>
-    <priority>0.9</priority>
-    <changefreq>weekly</changefreq>
-  </url>
-  <url>
     <loc>https://festchill.onrender.com/festchill-explore.html</loc>
     <priority>0.9</priority>
     <changefreq>daily</changefreq>
