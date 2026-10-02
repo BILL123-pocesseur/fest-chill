@@ -325,6 +325,7 @@ tr{transition:background .2s}
     <div class="nav-label">Vue d'ensemble</div>
     <a href="#" class="s-link active"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="20" x2="5" y2="11"/><line x1="12" y1="20" x2="12" y2="5"/><line x1="19" y1="20" x2="19" y2="14"/></svg></span> <span data-i18n="nav.dashboard_admin">Dashboard Admin</span></a>
     <a href="#sec-organizers" class="s-link" onclick="closeSidebarIfMobile()"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.2" r="3.2"/><path d="M3 19a6 6 0 0 1 12 0"/><path d="M15.5 5.5a3.2 3.2 0 0 1 0 6.2"/><path d="M17 13a6 6 0 0 1 4 5.6"/></svg></span> <span data-i18n="nav.organizers">Organisateurs</span></a>
+    <a href="#sec-security" class="s-link" onclick="closeSidebarIfMobile()"><span class="ic">🔐</span> <span>Sécurité &amp; accès</span></a>
     <a href="#sec-events" class="s-link" onclick="closeSidebarIfMobile()"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2.2"/><line x1="3.5" y1="10" x2="20.5" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg></span> <span data-i18n="nav.all_events">Tous les événements</span></a>
     <a href="#" class="s-link" style="opacity:.4;cursor:not-allowed" onclick="event.preventDefault();showToast('Bientôt disponible', FCI['alert-triangle'])" title="Pas encore disponible"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.5a2 2 0 0 0 0 4V16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.5a2 2 0 0 0 0-4Z"/><line x1="10" y1="6" x2="10" y2="18" stroke-dasharray="2 2.4"/></svg></span> <span data-i18n="nav.all_tickets">Tous les tickets</span></a>
     <div class="nav-label" data-i18n="nav.group_finance">Finances</div>
@@ -557,6 +558,20 @@ tr{transition:background .2s}
           <div id="recent-organizers"><div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem" data-i18n="common.loading">Chargement…</div></div>
         </div>
 
+        <!-- SÉCURITÉ & ACCÈS -->
+        <div class="section-card" id="sec-security" style="margin-bottom:16px">
+          <div class="section-head" style="padding:14px 18px;flex-wrap:wrap;gap:10px">
+            <span class="section-head-title">🔐 Sécurité &amp; accès</span>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button class="btn btn-success btn-sm" id="sec-tab-users" onclick="secTab('users')">Utilisateurs</button>
+              <button class="btn btn-ghost btn-sm" id="sec-tab-sessions" onclick="secTab('sessions')">Connexions</button>
+              <button class="btn btn-ghost btn-sm" id="sec-tab-audit" onclick="secTab('audit')">Journal admin</button>
+            </div>
+          </div>
+          <div style="padding:0 18px 12px"><input type="text" id="sec-search" placeholder="Rechercher un nom ou un email…" oninput="secRender()" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text)"></div>
+          <div id="sec-body" style="overflow-x:auto"><div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem">Chargement…</div></div>
+        </div>
+
         <!-- PLATFORM CONFIG -->
         <div class="section-card" id="sec-config">
           <div class="section-head" style="padding:14px 18px">
@@ -721,7 +736,7 @@ async function boot(){
 
 async function loadAll(){
   document.getElementById('last-update').textContent = fcT('admin.last_update') + ' : ' + fcFormatTime();
-  await Promise.all([loadStats(), loadEvents(), loadOrders(), loadOrganizers(), loadConfig(), loadAlerts(), loadChart(), loadAdminCommissionBalance(), loadCertificationCandidates()]);
+  await Promise.all([loadStats(), loadEvents(), loadOrders(), loadOrganizers(), loadConfig(), loadAlerts(), loadChart(), loadAdminCommissionBalance(), loadCertificationCandidates(), secLoad()]);
   document.querySelectorAll('.stat-num').forEach(fcCountUp);
 }
 
@@ -940,7 +955,7 @@ async function loadOrganizers(){
       <div class="u-avatar">${(o.full_name||'??').slice(0,2).toUpperCase()}</div>
       <div class="u-info"><div class="u-name">${o.full_name||fcT('admin.no_name')}</div><div class="u-sub">${fcT('admin.registered_on')} ${fcFormatDate(o.created_at)} · ${o.is_verified?fcT('admin.verified'):fcT('admin.not_verified')}</div></div>
       <div class="u-actions">
-        ${o.status==='suspended'
+        ${(o.status==='suspended' || o.status==='blocked')
           ? `<button class="btn btn-success btn-sm" onclick="setOrganizerStatus('${o.id}','active')">${fcT('admin.reactivate')}</button>`
           : `${!o.is_verified ? `<button class="btn btn-success btn-sm" onclick="verifyOrganizer('${o.id}')">${FCI['check']}</button>` : '<span class="badge b-green">'+fcT('status.active')+'</span>'}
              <button class="btn btn-danger btn-sm" onclick="setOrganizerStatus('${o.id}','suspended')">${FCI['x']}</button>`}
@@ -954,9 +969,127 @@ async function verifyOrganizer(id){
   loadOrganizers();
 }
 async function setOrganizerStatus(id, status){
-  await supa.from('profiles').update({ status }).eq('id', id);
+  try { await fcAdminSetBlocked(id, status === 'suspended'); }
+  catch(e){ showToast('Erreur : ' + e.message, FCI['x-circle']); return; }
   showToast(status==='suspended' ? fcT('admin.account_blocked') : fcT('admin.account_reactivated'), status==='suspended' ? FCI['lock'] : FCI['check-circle']);
   loadOrganizers();
+}
+
+// ------------------------------------------------------------
+// SÉCURITÉ & ACCÈS (toutes les actions sont revérifiées côté serveur)
+// ------------------------------------------------------------
+let secData = { users: [], sessions: [], audit: [] };
+let secCurrent = 'users';
+const SEC_ACTIONS = {
+  reset_pin:'PIN réinitialisé', block_account:'Compte bloqué', unblock_account:'Compte débloqué',
+  invalidate_password:'Mot de passe supprimé', revoke_sessions:'Déconnexion forcée', delete_account:'Compte supprimé'
+};
+function secEsc(v){ return fcEscapeHtml(v == null ? '' : String(v)); }
+function secFmt(d){ return d ? fcFormatDateTime(new Date(d)) : '—'; }
+
+async function secTab(tab){
+  secCurrent = tab;
+  ['users','sessions','audit'].forEach(t => {
+    const b = document.getElementById('sec-tab-'+t);
+    b.className = 'btn btn-sm ' + (t===tab ? 'btn-success' : 'btn-ghost');
+  });
+  await secLoad();
+}
+
+async function secLoad(){
+  const body = document.getElementById('sec-body');
+  try {
+    if (secCurrent==='users') secData.users = await fcAdminListUsers();
+    else if (secCurrent==='sessions') secData.sessions = await fcAdminListSessions(null, 300);
+    else secData.audit = await fcAdminListAudit(150);
+    secRender();
+  } catch(e){
+    body.innerHTML = '<div style="padding:20px;color:var(--red);font-size:.85rem">Erreur : '+secEsc(e.message)+'</div>';
+  }
+}
+
+function secRender(){
+  const body = document.getElementById('sec-body');
+  const q = (document.getElementById('sec-search').value||'').toLowerCase().trim();
+  const th = 'text-align:left;padding:8px 12px;font-size:.7rem;color:var(--muted);text-transform:uppercase;white-space:nowrap';
+  const td = 'padding:9px 12px;font-size:.8rem;border-top:1px solid var(--border);vertical-align:middle';
+
+  if (secCurrent==='users'){
+    const rows = secData.users.filter(u => !q || (u.u_name||'').toLowerCase().includes(q) || (u.u_email||'').toLowerCase().includes(q));
+    body.innerHTML = '<table style="width:100%;border-collapse:collapse"><thead><tr>'
+      + ['Utilisateur','Statut','PIN','Dernière connexion','Appareils','Actions'].map(h=>'<th style="'+th+'">'+h+'</th>').join('')
+      + '</tr></thead><tbody>' + rows.map(u => {
+        const isAdm = u.u_role==='admin';
+        const st = u.u_status==='blocked' ? '<span class="badge b-red">Bloqué</span>'
+                 : u.u_status==='suspended' ? '<span class="badge b-gold">Suspendu (par lui-même)</span>'
+                 : '<span class="badge b-green">Actif</span>';
+        const pin = u.u_pin_locked_until
+          ? '<span class="badge b-red">Bloqué jusqu\'au '+secEsc(secFmt(u.u_pin_locked_until))+'</span>'
+          : (u.u_pin_enabled ? '<span class="badge b-green">Activé</span>' : '<span class="badge b-gray">Aucun</span>');
+        const id = secEsc(u.u_id);
+        const actions = isAdm ? '<span class="badge b-gray">Administrateur</span>' : [
+          '<button class="btn btn-ghost btn-sm" onclick="secAct(\'pin\',\''+id+'\')">Débloquer PIN</button>',
+          u.u_status==='blocked'
+            ? '<button class="btn btn-success btn-sm" onclick="secAct(\'unblock\',\''+id+'\')">Débloquer compte</button>'
+            : '<button class="btn btn-danger btn-sm" onclick="secAct(\'block\',\''+id+'\')">Bloquer</button>',
+          '<button class="btn btn-ghost btn-sm" onclick="secAct(\'password\',\''+id+'\')">Supprimer mot de passe</button>',
+          '<button class="btn btn-ghost btn-sm" onclick="secAct(\'logout\',\''+id+'\')">Déconnecter</button>',
+          '<button class="btn btn-danger btn-sm" onclick="secAct(\'delete\',\''+id+'\')">Supprimer</button>'
+        ].join(' ');
+        return '<tr><td style="'+td+'"><div style="font-weight:700">'+secEsc(u.u_name||'Sans nom')+'</div><div style="color:var(--muted);font-size:.72rem">'+secEsc(u.u_email||'')+'</div></td>'
+          + '<td style="'+td+'">'+st+'</td><td style="'+td+'">'+pin+'</td>'
+          + '<td style="'+td+';white-space:nowrap">'+secEsc(secFmt(u.u_last_sign_in))+'</td>'
+          + '<td style="'+td+'">'+secEsc(u.u_active_sessions)+'</td>'
+          + '<td style="'+td+'"><div style="display:flex;gap:4px;flex-wrap:wrap">'+actions+'</div></td></tr>';
+      }).join('') + '</tbody></table>';
+  } else if (secCurrent==='sessions'){
+    const rows = secData.sessions.filter(r => !q || (r.s_name||'').toLowerCase().includes(q) || (r.s_email||'').toLowerCase().includes(q));
+    body.innerHTML = '<table style="width:100%;border-collapse:collapse"><thead><tr>'
+      + ['Utilisateur','Appareil','Première connexion','Dernière activité','État'].map(h=>'<th style="'+th+'">'+h+'</th>').join('')
+      + '</tr></thead><tbody>' + (rows.map(r =>
+        '<tr><td style="'+td+'"><div style="font-weight:700">'+secEsc(r.s_name||'Sans nom')+'</div><div style="color:var(--muted);font-size:.72rem">'+secEsc(r.s_email||'')+'</div></td>'
+        + '<td style="'+td+'">'+secEsc(r.s_device||'—')+'<div style="color:var(--muted);font-size:.72rem">'+secEsc(r.s_browser||'')+'</div></td>'
+        + '<td style="'+td+';white-space:nowrap">'+secEsc(secFmt(r.s_created_at))+'</td>'
+        + '<td style="'+td+';white-space:nowrap">'+secEsc(secFmt(r.s_last_seen))+'</td>'
+        + '<td style="'+td+'">'+(r.s_revoked?'<span class="badge b-gray">Révoquée</span>':'<span class="badge b-green">Active</span>')+'</td></tr>').join('')
+        || '<tr><td colspan="5" style="'+td+';text-align:center;color:var(--muted)">Aucune connexion</td></tr>') + '</tbody></table>';
+  } else {
+    body.innerHTML = '<table style="width:100%;border-collapse:collapse"><thead><tr>'
+      + ['Date','Admin','Action','Utilisateur concerné'].map(h=>'<th style="'+th+'">'+h+'</th>').join('')
+      + '</tr></thead><tbody>' + (secData.audit.map(a =>
+        '<tr><td style="'+td+';white-space:nowrap">'+secEsc(secFmt(a.a_created_at))+'</td><td style="'+td+'">'+secEsc(a.a_admin||'—')+'</td>'
+        + '<td style="'+td+'">'+secEsc(SEC_ACTIONS[a.a_action]||a.a_action)+'</td>'
+        + '<td style="'+td+'">'+secEsc(a.a_target || (a.a_details && a.a_details.name) || '—')+'</td></tr>').join('')
+        || '<tr><td colspan="4" style="'+td+';text-align:center;color:var(--muted)">Aucune action enregistrée</td></tr>') + '</tbody></table>';
+  }
+}
+
+async function secAct(kind, id){
+  const u = secData.users.find(x => x.u_id === id);
+  const name = u ? (u.u_name || u.u_email || 'cet utilisateur') : 'cet utilisateur';
+  const confirms = {
+    pin: 'Supprimer le code PIN de ' + name + ' et lever son blocage ? Il pourra en créer un nouveau.',
+    block: 'Bloquer le compte de ' + name + ' ? Il sera déconnecté et ne pourra plus se connecter.',
+    unblock: 'Débloquer le compte de ' + name + ' ?',
+    password: 'Supprimer le mot de passe de ' + name + ' ? Il devra utiliser « Mot de passe oublié » pour en créer un nouveau.',
+    logout: 'Déconnecter ' + name + ' de tous ses appareils ?',
+    delete: 'SUPPRIMER DÉFINITIVEMENT le compte de ' + name + ' et ses événements ? Cette action est irréversible.'
+  };
+  if (!confirm(confirms[kind])) return;
+  if (kind==='delete' && !confirm('Dernière confirmation : supprimer ' + name + ' ?')) return;
+  try {
+    if (kind==='pin') await fcAdminResetPin(id);
+    else if (kind==='block') await fcAdminSetBlocked(id, true);
+    else if (kind==='unblock') await fcAdminSetBlocked(id, false);
+    else if (kind==='password') await fcAdminInvalidatePassword(id);
+    else if (kind==='logout') await fcAdminRevokeSessions(id);
+    else if (kind==='delete') await fcAdminDeleteAccount(id);
+    showToast('Action effectuée', FCI['check-circle']);
+    await secLoad();
+    loadOrganizers();
+  } catch(e){
+    showToast('Erreur : ' + e.message, FCI['x-circle']);
+  }
 }
 
 async function loadConfig(){
@@ -1035,7 +1168,7 @@ function showToast(msg,icon=FCI['check-circle']){
   document.getElementById('toast-msg').textContent=msg;
   document.getElementById('toast-icon').innerHTML=icon;
   t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),3000);
+  setTimeout(()=>t.classList.remove('show'),Math.max(3000,String(msg).length*70));
 }
 
 function toggleMobileSidebar(){

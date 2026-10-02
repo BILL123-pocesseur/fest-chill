@@ -408,9 +408,9 @@ tr{transition:background .2s}
           </div>
           <div class="section-body">
             <div class="profile-avatar-wrap">
-              <div class="profile-avatar-big" id="profile-avatar-big" onclick="document.getElementById('avatar-file-input').click()">
+              <div class="profile-avatar-big" id="profile-avatar-big" onclick="onAvatarClick(event)">
                 –
-                <div class="avatar-edit"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5.5 18.5 10 8 20.5H3.5V16Z"/><line x1="12" y1="7.5" x2="16.5" y2="12"/></svg></div>
+                <div class="avatar-edit" onclick="event.stopPropagation();document.getElementById('avatar-file-input').click()"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5.5 18.5 10 8 20.5H3.5V16Z"/><line x1="12" y1="7.5" x2="16.5" y2="12"/></svg></div>
               </div>
               <input type="file" id="avatar-file-input" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="handleAvatarUpload(event)">
               <div class="profile-info-text">
@@ -1153,12 +1153,16 @@ function renderMfaStatus(){
 let wpinEnabled = false;
 
 async function renderWpinStatus(){
+  let st = null;
   try {
-    wpinEnabled = await fcHasWithdrawalPin();
+    st = await fcGetPinStatus();
+    wpinEnabled = !!st.enabled;
   } catch(e) { wpinEnabled = false; }
-  document.getElementById('wpin-status-text').textContent = wpinEnabled
-    ? 'Activé — demandé avant chaque retrait'
-    : 'Désactivé — aucun code demandé avant un retrait';
+  document.getElementById('wpin-status-text').textContent = (st && st.locked)
+    ? st.message
+    : (wpinEnabled
+        ? 'Activé — demandé avant chaque retrait'
+        : 'Désactivé — aucun code demandé avant un retrait');
   document.getElementById('wpin-toggle-btn').textContent = wpinEnabled ? 'Désactiver' : 'Configurer';
 }
 
@@ -1409,6 +1413,12 @@ async function saveNotifPrefs(){
   showToast('Préférences de notification sauvegardées !', FCI['check-circle']);
 }
 
+// Clic sur la photo = l'agrandir (si elle existe) ; clic sur le crayon = la changer
+function onAvatarClick(ev){
+  if (profile && profile.avatar_url) fcOpenPhotoViewer(profile.avatar_url, profile.full_name);
+  else document.getElementById('avatar-file-input').click();
+}
+
 function renderAvatar(initials, avatarUrl){
   const el = document.getElementById('profile-avatar-big');
   const editBtn = el.querySelector('.avatar-edit').outerHTML;
@@ -1432,6 +1442,7 @@ async function handleAvatarUpload(event){
   try {
     const url = await fcUploadAvatar(file);
     const initials = (profile.full_name || '??').slice(0,2).toUpperCase();
+    profile.avatar_url = url;
     renderAvatar(initials, url);
     showToast('Photo de profil mise à jour !', FCI['check-circle']);
   } catch(e) {
@@ -1514,7 +1525,7 @@ function showToast(msg, icon=FCI['check-circle']){
   document.getElementById('toast-msg').textContent = msg;
   document.getElementById('toast-icon').innerHTML = icon;
   t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 3000);
+  setTimeout(()=>t.classList.remove('show'), Math.max(3000, String(msg).length*70));
 }
 
 function toggleMobileSidebar(){

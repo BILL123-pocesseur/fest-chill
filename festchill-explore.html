@@ -174,7 +174,8 @@ function render(){
           <span>📅 ${dateLabel}${dayBadge}${e.event_time ? ' · ' + e.event_time : ''}</span>
           <span>📍 ${fcEscapeHtml(e.location || 'Lieu à confirmer')}</span>
         </div>
-        <div class="ev-organizer">Par ${organizerName}${e.profiles?.certified ? fcVerifiedBadge() : ''}</div>
+        <div class="ev-organizer">Par ${organizerName}${e.profiles?.certified ? fcVerifiedBadge() : ''}
+          <button type="button" onclick="event.preventDefault();event.stopPropagation();fcShowOrganizerInfo('${e.organizer_id}')" style="margin-left:6px;padding:2px 9px;border-radius:100px;border:1px solid var(--border);background:transparent;color:inherit;font-size:.7rem;font-weight:700;cursor:pointer">ⓘ Infos</button></div>
         <div class="ev-footer">
           <span class="ev-price">${minPrice!=null ? 'Dès ' + minPrice.toLocaleString('fr-FR') + ' F' : 'Prix à venir'}</span>
           <span class="ev-cta">Voir →</span>

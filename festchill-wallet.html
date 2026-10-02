@@ -929,7 +929,9 @@ async function processWithdraw(){
   // Sécurité : code PIN de retrait (voir schema-update-9.sql)
   let pin = null;
   try {
-    const hasPin = await fcHasWithdrawalPin();
+    const pinStatus = await fcGetPinStatus();
+    if (pinStatus.locked) { showToast(pinStatus.message, FCI['lock']); return; }
+    const hasPin = pinStatus.enabled;
     if (hasPin) {
       pin = prompt('Entre ton code PIN à 5 chiffres pour confirmer le retrait :');
       if (pin === null) return; // annulé
@@ -970,7 +972,7 @@ function showToast(msg,icon=FCI['check-circle']){
   document.getElementById('toast-msg').textContent=msg;
   document.getElementById('toast-icon').innerHTML=icon;
   t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),3000);
+  setTimeout(()=>t.classList.remove('show'),Math.max(3000,String(msg).length*70));
 }
 
 function toggleMobileSidebar(){

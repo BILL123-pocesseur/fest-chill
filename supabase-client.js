@@ -133,6 +133,12 @@ async function fcRequireAuth({ adminOnly = false } = {}) {
     return null;
   }
   const profile = await fcGetProfile();
+  if (profile?.status === "blocked") {
+    await supa.auth.signOut();
+    sessionStorage.setItem('fc-redirect-notice', "Ton compte est bloqué. Contacte l'administrateur de Fest&Chill.");
+    window.location.href = "festchill-landing.html";
+    return null;
+  }
   if (adminOnly && profile?.role !== "admin") {
     // On explique pourquoi (sinon ça ressemble à un bug plutôt qu'à un accès refusé).
     sessionStorage.setItem('fc-redirect-notice', "Accès administrateur requis pour cette page.");
@@ -2259,6 +2265,106 @@ async function fcUploadAvatar(file) {
 // toujours par des RPC Postgres qui font le hachage côté serveur.
 // ------------------------------------------------------------
 
+
+// ------------------------------------------------------------
+// VISIONNEUSE DE PHOTO (clic sur une photo de profil = agrandissement)
+// et FICHE PUBLIQUE ORGANISATEUR. Styles en ligne, adaptés mobile.
+// ------------------------------------------------------------
+function fcOpenPhotoViewer(url, name) {
+  if (!url) return;
+  const old = document.getElementById('fc-photo-viewer'); if (old) old.remove();
+  const ov = document.createElement('div');
+  ov.id = 'fc-photo-viewer';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;cursor:zoom-out';
+  ov.onclick = () => ov.remove();
+  const img = document.createElement('img');
+  img.src = url; img.alt = name || 'Photo de profil';
+  img.style.cssText = 'max-width:min(94vw,640px);max-height:80vh;border-radius:16px;object-fit:contain;box-shadow:0 20px 60px rgba(0,0,0,.6)';
+  img.onclick = (e) => e.stopPropagation();
+  const cap = document.createElement('div');
+  cap.textContent = name || '';
+  cap.style.cssText = 'color:#fff;font-weight:700;margin-top:14px;font-size:1rem';
+  const x = document.createElement('button');
+  x.textContent = '✕'; x.setAttribute('aria-label', 'Fermer');
+  x.style.cssText = 'position:absolute;top:14px;right:14px;width:40px;height:40px;border-radius:50%;border:none;background:rgba(255,255,255,.18);color:#fff;font-size:1.1rem;cursor:pointer';
+  x.onclick = () => ov.remove();
+  ov.append(img, cap, x);
+  document.body.appendChild(ov);
+  const onKey = (e) => { if (e.key === 'Escape') { ov.remove(); document.removeEventListener('keydown', onKey); } };
+  document.addEventListener('keydown', onKey);
+}
+
+async function fcShowOrganizerInfo(organizerId) {
+  if (!organizerId) return;
+  const old = document.getElementById('fc-org-modal'); if (old) old.remove();
+  const ov = document.createElement('div');
+  ov.id = 'fc-org-modal';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.onclick = () => ov.remove();
+  const box = document.createElement('div');
+  box.style.cssText = 'width:min(94vw,380px);max-height:90vh;overflow:auto;background:var(--surface,#fff);color:var(--text,#222);border:1px solid var(--border,#ddd);border-radius:18px;padding:24px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.35)';
+  box.onclick = (e) => e.stopPropagation();
+  box.innerHTML = '<div style="color:var(--muted,#888);font-size:.9rem">Chargement…</div>';
+  ov.appendChild(box); document.body.appendChild(ov);
+
+  const closeBtn = '<button onclick="document.getElementById(\'fc-org-modal\').remove()" style="margin-top:18px;padding:10px 22px;border-radius:10px;border:1px solid var(--border,#ddd);background:transparent;color:inherit;font-weight:700;cursor:pointer">Fermer</button>';
+  try {
+    const { data, error } = await supa.rpc('fc_public_organizer_info', { p_organizer_id: organizerId });
+    if (error) throw error;
+    const o = Array.isArray(data) ? data[0] : data;
+    if (!o) { box.innerHTML = '<div style="font-size:.95rem">Informations indisponibles pour cet organisateur.</div>' + closeBtn; return; }
+    const name = fcEscapeHtml(o.full_name || 'Organisateur Fest&Chill');
+    const initials = fcEscapeHtml((o.full_name || '??').slice(0, 2).toUpperCase());
+    const avatar = o.avatar_url
+      ? '<img src="' + fcEscapeHtml(o.avatar_url) + '" alt="" id="fc-org-avatar" style="width:92px;height:92px;border-radius:50%;object-fit:cover;cursor:zoom-in;border:3px solid var(--border,#ddd)">'
+      : '<div style="width:92px;height:92px;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.8rem;color:#fff;background:linear-gradient(135deg,#C4321F,#E8A33D)">' + initials + '</div>';
+    const row = (label, value, href) => value
+      ? '<div style="margin-top:12px;text-align:left"><div style="font-size:.7rem;text-transform:uppercase;color:var(--muted,#888);font-weight:700">' + label + '</div>'
+        + '<a href="' + href + '" style="color:inherit;font-weight:600;word-break:break-all;text-decoration:none">' + fcEscapeHtml(value) + '</a></div>' : '';
+    box.innerHTML = '<div style="display:flex;justify-content:center">' + avatar + '</div>'
+      + '<div style="font-weight:800;font-size:1.15rem;margin-top:12px">' + name + (o.certified ? ' ' + fcVerifiedBadge() : '') + '</div>'
+      + '<div style="font-size:.8rem;color:var(--muted,#888);margin-top:4px">' + (o.events_count || 0) + ' événement(s) en vente</div>'
+      + row('Téléphone', o.phone, 'tel:' + String(o.phone || '').replace(/[^0-9+]/g, ''))
+      + row('E-mail', o.email, 'mailto:' + encodeURIComponent(o.email || ''))
+      + closeBtn;
+    const av = document.getElementById('fc-org-avatar');
+    if (av) av.onclick = () => fcOpenPhotoViewer(o.avatar_url, o.full_name);
+  } catch (e) {
+    box.innerHTML = '<div style="font-size:.95rem">Impossible de charger les informations.</div>' + closeBtn;
+  }
+}
+
+// ------------------------------------------------------------
+// ADMINISTRATION (réservé aux admins — vérifié côté serveur)
+// ------------------------------------------------------------
+async function fcAdminListUsers() {
+  const { data, error } = await supa.rpc('fc_admin_list_users');
+  if (error) throw error; return data || [];
+}
+async function fcAdminListSessions(userId, limit) {
+  const { data, error } = await supa.rpc('fc_admin_list_sessions', { p_user_id: userId || null, p_limit: limit || 200 });
+  if (error) throw error; return data || [];
+}
+async function fcAdminListAudit(limit) {
+  const { data, error } = await supa.rpc('fc_admin_list_audit', { p_limit: limit || 100 });
+  if (error) throw error; return data || [];
+}
+async function fcAdminResetPin(userId) {
+  const { error } = await supa.rpc('fc_admin_reset_pin', { p_organizer_id: userId }); if (error) throw error;
+}
+async function fcAdminSetBlocked(userId, blocked) {
+  const { error } = await supa.rpc('fc_admin_set_account_blocked', { p_user_id: userId, p_blocked: blocked }); if (error) throw error;
+}
+async function fcAdminInvalidatePassword(userId) {
+  const { error } = await supa.rpc('fc_admin_invalidate_password', { p_user_id: userId }); if (error) throw error;
+}
+async function fcAdminRevokeSessions(userId) {
+  const { error } = await supa.rpc('fc_admin_revoke_sessions', { p_user_id: userId }); if (error) throw error;
+}
+async function fcAdminDeleteAccount(userId) {
+  const { error } = await supa.rpc('fc_admin_delete_account', { p_user_id: userId }); if (error) throw error;
+}
+
 // Est-ce que l'organisateur connecté a déjà activé un code PIN ?
 async function fcHasWithdrawalPin() {
   const { data, error } = await supa.rpc('fc_has_withdrawal_pin');
@@ -2266,16 +2372,33 @@ async function fcHasWithdrawalPin() {
   return !!data;
 }
 
-// Définir ou remplacer le code PIN (5 chiffres)
-async function fcSetWithdrawalPin(pin) {
-  const { error } = await supa.rpc('fc_set_withdrawal_pin', { p_pin: pin });
-  if (error) throw error;
+// Lit la réponse {ok, message} des fonctions PIN et lève une erreur claire si refus
+function fcUnwrapPinResult(data) {
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row || row.ok === false) throw new Error((row && row.message) || 'Opération refusée');
+  return row;
 }
 
-// Désactiver le code PIN (il faut le PIN actuel)
-async function fcDisableWithdrawalPin(pin) {
-  const { error } = await supa.rpc('fc_disable_withdrawal_pin', { p_pin: pin });
+// État du PIN : { enabled, locked, locked_until, message, attempts_left }
+async function fcGetPinStatus() {
+  const { data, error } = await supa.rpc('fc_get_pin_status');
   if (error) throw error;
+  return (Array.isArray(data) ? data[0] : data) || { enabled: false, locked: false, attempts_left: 5 };
+}
+
+// Définir ou remplacer le code PIN (5 chiffres). Si un PIN est déjà actif,
+// l'ancien PIN est obligatoire (oldPin).
+async function fcSetWithdrawalPin(pin, oldPin) {
+  const { data, error } = await supa.rpc('fc_set_withdrawal_pin', { p_pin: pin, p_old_pin: oldPin || null });
+  if (error) throw error;
+  fcUnwrapPinResult(data);
+}
+
+// Désactiver le PIN (il faut le PIN actuel)
+async function fcDisableWithdrawalPin(pin) {
+  const { data, error } = await supa.rpc('fc_disable_withdrawal_pin', { p_pin: pin });
+  if (error) throw error;
+  fcUnwrapPinResult(data);
 }
 
 // ------------------------------------------------------------
@@ -2300,10 +2423,11 @@ async function fcCreateFedaPayTransaction(orderId, returnUrl) {
 // Demande de retrait — vérifie le PIN côté serveur si activé, crée la
 // demande, puis déclenche le vrai envoi d'argent via FedaPay.
 async function fcRequestWithdrawal(amount, operator, phone, pin) {
-  const { data: withdrawalId, error } = await supa.rpc('fc_request_withdrawal', {
+  const { data: wdData, error } = await supa.rpc('fc_request_withdrawal', {
     p_amount: amount, p_operator: operator, p_phone: phone, p_pin: pin || null,
   });
   if (error) throw error;
+  const withdrawalId = fcUnwrapPinResult(wdData).withdrawal_id;
 
   const { data, error: payoutError } = await supa.functions.invoke('fedapay-payout', {
     body: { withdrawal_id: withdrawalId },
@@ -2333,10 +2457,11 @@ async function fcGetAdminCommissionBalance() {
 }
 
 async function fcRequestAdminWithdrawal(amount, operator, phone, pin) {
-  const { data: withdrawalId, error } = await supa.rpc('fc_request_admin_withdrawal', {
+  const { data: wdData, error } = await supa.rpc('fc_request_admin_withdrawal', {
     p_amount: amount, p_operator: operator, p_phone: phone, p_pin: pin || null,
   });
   if (error) throw error;
+  const withdrawalId = fcUnwrapPinResult(wdData).withdrawal_id;
 
   const { data, error: payoutError } = await supa.functions.invoke('fedapay-payout', {
     body: { withdrawal_id: withdrawalId },
@@ -2424,7 +2549,11 @@ async function fcMountSidebar(profile) {
   if (nameEl) fcSetNameWithBadge(nameEl, profile.full_name, profile.certified);
   if (avatarEl) {
     avatarEl.textContent = (profile.full_name || '??').slice(0, 2).toUpperCase();
-    if (profile.avatar_url) avatarEl.innerHTML = `<img src="${profile.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    if (profile.avatar_url) {
+      avatarEl.innerHTML = `<img src="${profile.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+      avatarEl.style.cursor = 'zoom-in';
+      avatarEl.onclick = () => fcOpenPhotoViewer(profile.avatar_url, profile.full_name);
+    }
   }
 
   // Le lien "Administration" est masqué par défaut dans le HTML de

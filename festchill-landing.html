@@ -157,6 +157,38 @@ footer{padding:26px 5%;border-top:1px solid var(--border);text-align:center;colo
       <label class="form-label">Mot de passe</label>
       <input type="password" class="form-input" id="login-password" placeholder="••••••••">
       <button class="btn btn-primary btn-block" onclick="doLogin()">Se connecter</button>
+      <div style="text-align:center;margin-top:14px;font-size:.84rem">
+        <a href="#" onclick="showForgot();return false" style="color:var(--purple);font-weight:700">Mot de passe oublié ?</a>
+      </div>
+    </div>
+
+    <!-- MOT DE PASSE OUBLIÉ -->
+    <div id="panel-forgot" style="display:none">
+      <div class="auth-title">Mot de passe oublié 🔑</div>
+      <div class="auth-sub" id="forgot-sub">Entre ton email : on t'envoie un code à 6 chiffres pour choisir un nouveau mot de passe.</div>
+
+      <div id="forgot-step1">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-input" id="forgot-email" placeholder="toi@email.com">
+        <button class="btn btn-primary btn-block" id="forgot-send-btn" onclick="doForgotSend()">Envoyer le code</button>
+      </div>
+
+      <div id="forgot-step2" style="display:none">
+        <label class="form-label">Code reçu par email</label>
+        <input type="text" class="form-input" id="forgot-code" placeholder="123456" inputmode="numeric" maxlength="6" style="letter-spacing:6px;font-size:1.3rem;text-align:center">
+        <label class="form-label">Nouveau mot de passe</label>
+        <input type="password" class="form-input" id="forgot-new-password" placeholder="6 caractères minimum">
+        <label class="form-label">Confirmer le mot de passe</label>
+        <input type="password" class="form-input" id="forgot-new-password2" placeholder="Retape le mot de passe">
+        <button class="btn btn-primary btn-block" onclick="doForgotConfirm()">Changer mon mot de passe</button>
+        <div style="text-align:center;margin-top:14px;font-size:.82rem;color:var(--muted)">
+          Pas reçu ? <a href="#" id="forgot-resend" onclick="doForgotSend(true);return false" style="color:var(--purple);font-weight:700">Renvoyer le code</a>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:14px;font-size:.84rem">
+        <a href="#" onclick="switchTab('login');return false" style="color:var(--muted);font-weight:700">← Retour à la connexion</a>
+      </div>
     </div>
 
     <!-- SIGNUP -->
@@ -198,6 +230,8 @@ footer{padding:26px 5%;border-top:1px solid var(--border);text-align:center;colo
 <script src="supabase-client.js"></script>
 <script>
 async function boot(){
+  const notice = sessionStorage.getItem('fc-redirect-notice');
+  if (notice){ sessionStorage.removeItem('fc-redirect-notice'); showError(notice); }
   const session = await fcGetSession();
   if (session) window.location.href = 'festchill-dashboard.html';
 }
@@ -207,6 +241,7 @@ function switchTab(tab){
   document.getElementById('tab-signup').classList.toggle('active', tab==='signup');
   document.getElementById('panel-login').style.display = tab==='login' ? 'block' : 'none';
   document.getElementById('panel-signup').style.display = tab==='signup' ? 'block' : 'none';
+  document.getElementById('panel-forgot').style.display = 'none';
   hideMessages();
   document.getElementById('auth').scrollIntoView({ behavior:'smooth' });
 }
@@ -232,7 +267,75 @@ async function doLogin(){
   if (!email || !password){ showError('Remplis email et mot de passe.'); return; }
   const { error } = await fcSignInWithEmail(email, password);
   if (error){ showError(translateAuthError(error.message)); return; }
+  // Compte bloqué par un administrateur ? On refuse la connexion.
+  const prof = await fcGetProfile();
+  if (prof && prof.status === 'blocked'){
+    await supa.auth.signOut();
+    showError("Ce compte est bloqué. Contacte l'administrateur de Fest&Chill pour le réactiver.");
+    return;
+  }
   window.location.href = 'festchill-dashboard.html';
+}
+
+// ------------------------------------------------------------
+// MOT DE PASSE OUBLIÉ — code à 6 chiffres envoyé par email
+// ------------------------------------------------------------
+let forgotEmail = null;
+let forgotCooldownUntil = 0;
+
+function showForgot(){
+  document.getElementById('panel-login').style.display = 'none';
+  document.getElementById('panel-signup').style.display = 'none';
+  document.getElementById('panel-forgot').style.display = 'block';
+  document.getElementById('forgot-step1').style.display = 'block';
+  document.getElementById('forgot-step2').style.display = 'none';
+  const typed = document.getElementById('login-email').value.trim();
+  if (typed) document.getElementById('forgot-email').value = typed;
+  hideMessages();
+}
+
+async function doForgotSend(isResend){
+  const email = isResend ? forgotEmail : document.getElementById('forgot-email').value.trim();
+  if (!email || !email.includes('@')){ showError('Entre une adresse email valide.'); return; }
+  const wait = Math.ceil((forgotCooldownUntil - Date.now()) / 1000);
+  if (wait > 0){ showError('Patiente ' + wait + ' secondes avant de redemander un code.'); return; }
+
+  const { error } = await supa.auth.resetPasswordForEmail(email);
+  if (error){
+    if (/rate|seconds|too many/i.test(error.message)) showError('Trop de demandes. Patiente une minute puis réessaie.');
+    else showError(error.message);
+    return;
+  }
+  forgotCooldownUntil = Date.now() + 60000;
+  forgotEmail = email;
+  document.getElementById('forgot-step1').style.display = 'none';
+  document.getElementById('forgot-step2').style.display = 'block';
+  document.getElementById('forgot-sub').textContent = "Si un compte existe pour " + email + ", un code à 6 chiffres vient d'être envoyé (vérifie aussi tes spams).";
+  showSuccess(isResend ? 'Nouveau code envoyé !' : 'Code envoyé !');
+}
+
+async function doForgotConfirm(){
+  const code = document.getElementById('forgot-code').value.trim();
+  const pw = document.getElementById('forgot-new-password').value;
+  const pw2 = document.getElementById('forgot-new-password2').value;
+  if (!/^[0-9]{6}$/.test(code)){ showError('Entre le code à 6 chiffres reçu par email.'); return; }
+  if (pw.length < 6){ showError('Le mot de passe doit faire au moins 6 caractères.'); return; }
+  if (pw !== pw2){ showError('Les deux mots de passe ne sont pas identiques.'); return; }
+
+  const { error: vErr } = await supa.auth.verifyOtp({ email: forgotEmail, token: code, type: 'recovery' });
+  if (vErr){ showError('Code incorrect ou expiré — clique sur "Renvoyer le code".'); return; }
+
+  const { error: uErr } = await supa.auth.updateUser({ password: pw });
+  if (uErr){
+    await supa.auth.signOut();
+    showError(uErr.message.includes('different') ? "Choisis un mot de passe différent de l'ancien." : translateAuthError(uErr.message));
+    return;
+  }
+  // Pas de session ouverte automatiquement : on demande de se reconnecter.
+  await supa.auth.signOut();
+  switchTab('login');
+  document.getElementById('login-email').value = forgotEmail;
+  showSuccess('Mot de passe changé ! Connecte-toi avec le nouveau.');
 }
 
 async function doSignup(){
