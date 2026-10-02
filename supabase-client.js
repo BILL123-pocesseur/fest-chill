@@ -2266,6 +2266,81 @@ async function fcUploadAvatar(file) {
 // ------------------------------------------------------------
 
 
+
+// ------------------------------------------------------------
+// SAISIE DE CODE PIN (fenêtre masquée avec œil afficher/masquer)
+// fcAskPin({title, subtitle, fields:[{label}], confirmLabel, confirmMatch})
+// -> Promise<string[] | null>  (null = annulé)
+// ------------------------------------------------------------
+const FC_EYE_ON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
+const FC_EYE_OFF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.7 10.7 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6A16.6 16.6 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 4.3-.9"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+
+// Bascule affichage/masquage du champ juste avant le bouton
+function fcTogglePinEye(btn) {
+  const input = btn.parentElement.querySelector('input');
+  const show = input.type === 'password';
+  input.type = show ? 'tel' : 'password';
+  if (show) input.style.webkitTextSecurity = 'none';
+  btn.innerHTML = show ? FC_EYE_OFF : FC_EYE_ON;
+  input.focus();
+}
+
+function fcPinFieldHtml(id, placeholder) {
+  return '<div style="position:relative;margin-bottom:8px">'
+    + '<input class="form-input" type="password" inputmode="numeric" autocomplete="off" maxlength="5" id="' + id + '" placeholder="' + placeholder + '" style="width:100%;padding-right:46px;box-sizing:border-box">'
+    + '<button type="button" onclick="fcTogglePinEye(this)" aria-label="Afficher ou masquer le code" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:none;background:transparent;color:var(--muted,#888);cursor:pointer;display:flex;align-items:center;justify-content:center">' + FC_EYE_ON + '</button></div>';
+}
+
+function fcAskPin(opts) {
+  return new Promise((resolve) => {
+    const old = document.getElementById('fc-pin-modal'); if (old) old.remove();
+    const ov = document.createElement('div');
+    ov.id = 'fc-pin-modal';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10001;display:flex;align-items:center;justify-content:center;padding:16px';
+    const box = document.createElement('div');
+    box.style.cssText = 'width:min(94vw,360px);max-height:92vh;overflow:auto;background:var(--surface,#fff);color:var(--text,#222);border:1px solid var(--border,#ddd);border-radius:18px;padding:22px;box-shadow:0 24px 60px rgba(0,0,0,.35)';
+    const fieldsHtml = opts.fields.map((f, i) =>
+      '<label style="display:block;font-size:.78rem;font-weight:700;margin:10px 0 5px">' + fcEscapeHtml(f.label) + '</label>'
+      + fcPinFieldHtml('fc-pin-f' + i, '• • • • •')).join('');
+    box.innerHTML = '<div style="font-weight:800;font-size:1.1rem">' + fcEscapeHtml(opts.title || 'Code PIN') + '</div>'
+      + (opts.subtitle ? '<div style="font-size:.82rem;color:var(--muted,#888);margin-top:6px;line-height:1.45">' + fcEscapeHtml(opts.subtitle) + '</div>' : '')
+      + fieldsHtml
+      + '<div id="fc-pin-err" style="color:#C4321F;font-size:.8rem;min-height:18px;margin-top:2px"></div>'
+      + '<div style="display:flex;gap:8px;margin-top:10px"><button type="button" id="fc-pin-ok" style="flex:1;padding:11px;border:none;border-radius:10px;background:#C4321F;color:#fff;font-weight:700;cursor:pointer">' + fcEscapeHtml(opts.confirmLabel || 'Valider') + '</button>'
+      + '<button type="button" id="fc-pin-cancel" style="padding:11px 16px;border-radius:10px;border:1px solid var(--border,#ddd);background:transparent;color:inherit;font-weight:700;cursor:pointer">Annuler</button></div>';
+    ov.appendChild(box); document.body.appendChild(ov);
+
+    const done = (v) => { ov.remove(); resolve(v); };
+    const inputs = opts.fields.map((_, i) => document.getElementById('fc-pin-f' + i));
+    inputs.forEach(inp => inp.addEventListener('input', () => { inp.value = inp.value.replace(/[^0-9]/g, '').slice(0, 5); }));
+    inputs[0].focus();
+    const submit = () => {
+      const vals = inputs.map(i => i.value.trim());
+      const err = document.getElementById('fc-pin-err');
+      if (vals.some(v => !/^[0-9]{5}$/.test(v))) { err.textContent = 'Le code PIN doit contenir exactement 5 chiffres.'; return; }
+      if (opts.confirmMatch && vals[0] !== vals[1]) { err.textContent = 'Les deux codes ne sont pas identiques.'; return; }
+      done(vals);
+    };
+    document.getElementById('fc-pin-ok').onclick = submit;
+    document.getElementById('fc-pin-cancel').onclick = () => done(null);
+    inputs.forEach(inp => inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); }));
+  });
+}
+
+// Photos haute définition : agrandit une image Unsplash (largeur + qualité)
+function fcHdPhoto(url, width) {
+  if (!url || !/images\.unsplash\.com/.test(url)) return url;
+  try {
+    const u = new URL(url);
+    u.searchParams.set('w', String(width || 1200));
+    u.searchParams.set('q', '85');
+    u.searchParams.set('fm', 'jpg');
+    u.searchParams.set('fit', 'crop');
+    u.searchParams.set('auto', 'format');
+    return u.toString();
+  } catch (e) { return url; }
+}
+
 // ------------------------------------------------------------
 // VISIONNEUSE DE PHOTO (clic sur une photo de profil = agrandissement)
 // et FICHE PUBLIQUE ORGANISATEUR. Styles en ligne, adaptés mobile.
@@ -2390,13 +2465,6 @@ async function fcGetPinStatus() {
 // l'ancien PIN est obligatoire (oldPin).
 async function fcSetWithdrawalPin(pin, oldPin) {
   const { data, error } = await supa.rpc('fc_set_withdrawal_pin', { p_pin: pin, p_old_pin: oldPin || null });
-  if (error) throw error;
-  fcUnwrapPinResult(data);
-}
-
-// Désactiver le PIN (il faut le PIN actuel)
-async function fcDisableWithdrawalPin(pin) {
-  const { data, error } = await supa.rpc('fc_disable_withdrawal_pin', { p_pin: pin });
   if (error) throw error;
   fcUnwrapPinResult(data);
 }

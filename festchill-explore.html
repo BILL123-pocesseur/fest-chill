@@ -85,7 +85,7 @@ h1 i{font-style:italic;color:var(--red-deep)}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="supabase-client.js"></script>
+<script src="supabase-client.js?v=20261003"></script>
 <script>
 let allEvents = [];
 let currentType = 'all';
@@ -174,8 +174,7 @@ function render(){
           <span>📅 ${dateLabel}${dayBadge}${e.event_time ? ' · ' + e.event_time : ''}</span>
           <span>📍 ${fcEscapeHtml(e.location || 'Lieu à confirmer')}</span>
         </div>
-        <div class="ev-organizer">Par ${organizerName}${e.profiles?.certified ? fcVerifiedBadge() : ''}
-          <button type="button" onclick="event.preventDefault();event.stopPropagation();fcShowOrganizerInfo('${e.organizer_id}')" style="margin-left:6px;padding:2px 9px;border-radius:100px;border:1px solid var(--border);background:transparent;color:inherit;font-size:.7rem;font-weight:700;cursor:pointer">ⓘ Infos</button></div>
+        <div class="ev-organizer">Par ${organizerName}${e.profiles?.certified ? fcVerifiedBadge() : ''}</div>
         <div class="ev-footer">
           <span class="ev-price">${minPrice!=null ? 'Dès ' + minPrice.toLocaleString('fr-FR') + ' F' : 'Prix à venir'}</span>
           <span class="ev-cta">Voir →</span>
@@ -195,18 +194,10 @@ async function loadCategoryPhotos(list){
     const photo = await fcGetCategoryPhoto(type);
     if (!photo) continue;
     document.querySelectorAll(`.ev-banner[data-cat="${CSS.escape(type)}"]`).forEach(banner => {
-      banner.style.backgroundImage = `linear-gradient(rgba(36,28,20,.15),rgba(36,28,20,.35)), url('${photo.thumb_url}')`;
+      banner.style.backgroundImage = `linear-gradient(rgba(36,28,20,.12),rgba(36,28,20,.3)), url('${fcHdPhoto(photo.photo_url || photo.thumb_url, 900)}')`;
       banner.style.backgroundSize = 'cover';
       banner.style.backgroundPosition = 'center';
       banner.querySelector('.ev-banner-icon').style.display = 'none';
-      const credit = document.createElement('a');
-      credit.href = photo.photographer_url;
-      credit.target = '_blank';
-      credit.rel = 'noopener';
-      credit.className = 'ev-photo-credit';
-      credit.textContent = 'Photo : ' + photo.photographer_name;
-      credit.onclick = (ev) => ev.stopPropagation();
-      banner.appendChild(credit);
     });
   }
 }

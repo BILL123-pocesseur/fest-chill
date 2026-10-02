@@ -682,21 +682,18 @@ tr{transition:background .2s}
                 <div class="security-title">Code PIN de retrait</div>
                 <div class="security-sub" id="wpin-status-text">—</div>
                 <div id="wpin-form" style="display:none;margin-top:12px;max-width:320px">
-                  <input class="form-input" type="password" inputmode="numeric" maxlength="5" id="wpin-new" placeholder="Nouveau code (5 chiffres)" style="margin-bottom:8px">
-                  <div style="display:flex;gap:8px">
-                    <button class="btn btn-primary btn-sm" onclick="submitWithdrawPin()">Enregistrer</button>
-                    <button class="btn btn-ghost btn-sm" onclick="toggleWpinForm()">Annuler</button>
+                  <div id="wpin-old-wrap" style="display:none">
+                    <div id="wpin-old-slot"></div>
                   </div>
-                </div>
-                <div id="wpin-disable-form" style="display:none;margin-top:12px;max-width:320px">
-                  <input class="form-input" type="password" inputmode="numeric" maxlength="5" id="wpin-current" placeholder="Code PIN actuel">
-                  <div style="display:flex;gap:8px;margin-top:8px">
-                    <button class="btn btn-primary btn-sm" style="background:var(--red)" onclick="submitWithdrawPinDisable()">Désactiver</button>
-                    <button class="btn btn-ghost btn-sm" onclick="toggleWpinDisableForm()">Annuler</button>
+                  <div id="wpin-new-slot"></div>
+                  <div id="wpin-confirm-slot"></div>
+                  <div style="display:flex;gap:8px;margin-top:4px">
+                    <button class="btn btn-primary btn-sm" id="wpin-save-btn" onclick="submitWithdrawPin()">Enregistrer</button>
+                    <button class="btn btn-ghost btn-sm" onclick="closeWpinForm()">Annuler</button>
                   </div>
                 </div>
               </div>
-              <button class="btn btn-ghost btn-sm" id="wpin-toggle-btn" onclick="toggleWpinForm()">Configurer</button>
+              <button class="btn btn-ghost btn-sm" id="wpin-toggle-btn" onclick="toggleWpinForm()">Créer mon code PIN</button>
             </div>
             <div class="security-item">
               <div class="security-icon sec-green"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 10.8 15.3 16 9.5"/></svg></div>
@@ -919,7 +916,7 @@ tr{transition:background .2s}
 <div class="toast" id="toast"><span id="toast-icon"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 10.8 15.3 16 9.5"/></svg></span><span id="toast-msg"></span></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="supabase-client.js"></script>
+<script src="supabase-client.js?v=20261003"></script>
 <script>
 const FCI = {
   'check': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"20 6 9 17 4 12\"/></svg>",
@@ -1151,6 +1148,20 @@ function renderMfaStatus(){
 // CODE PIN DE RETRAIT — voir schema-update-9.sql
 // ------------------------------------------------------------
 let wpinEnabled = false;
+let wpinLockedMsg = null;
+let wpinBusy = false;
+
+// Les champs (avec l'œil afficher/masquer) sont fabriqués par fcPinFieldHtml
+function buildWpinFields(){
+  document.getElementById('wpin-old-slot').innerHTML = fcPinFieldHtml('wpin-old', 'Ancien code PIN');
+  document.getElementById('wpin-new-slot').innerHTML = fcPinFieldHtml('wpin-new', wpinEnabled ? 'Nouveau code PIN (5 chiffres)' : 'Code PIN (5 chiffres)');
+  document.getElementById('wpin-confirm-slot').innerHTML = fcPinFieldHtml('wpin-confirm', 'Confirmer le code PIN');
+  ['wpin-old','wpin-new','wpin-confirm'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => { el.value = el.value.replace(/[^0-9]/g, '').slice(0, 5); });
+    el.addEventListener('keydown', (e) => { if (e.key === 'Enter') submitWithdrawPin(); });
+  });
+}
 
 async function renderWpinStatus(){
   let st = null;
@@ -1158,52 +1169,59 @@ async function renderWpinStatus(){
     st = await fcGetPinStatus();
     wpinEnabled = !!st.enabled;
   } catch(e) { wpinEnabled = false; }
-  document.getElementById('wpin-status-text').textContent = (st && st.locked)
-    ? st.message
+  wpinLockedMsg = (st && st.locked) ? st.message : null;
+  document.getElementById('wpin-status-text').textContent = wpinLockedMsg
+    ? wpinLockedMsg
     : (wpinEnabled
         ? 'Activé — demandé avant chaque retrait'
-        : 'Désactivé — aucun code demandé avant un retrait');
-  document.getElementById('wpin-toggle-btn').textContent = wpinEnabled ? 'Désactiver' : 'Configurer';
+        : "Pas encore créé — obligatoire pour pouvoir retirer ton argent");
+  document.getElementById('wpin-toggle-btn').textContent = wpinEnabled ? 'Modifier mon code PIN' : 'Créer mon code PIN';
+}
+
+function closeWpinForm(){
+  document.getElementById('wpin-form').style.display = 'none';
+  document.getElementById('wpin-old-slot').innerHTML = '';
+  document.getElementById('wpin-new-slot').innerHTML = '';
+  document.getElementById('wpin-confirm-slot').innerHTML = '';
 }
 
 function toggleWpinForm(){
-  if (wpinEnabled){ toggleWpinDisableForm(); return; }
   const form = document.getElementById('wpin-form');
-  const open = form.style.display === 'none' || !form.style.display;
-  form.style.display = open ? 'block' : 'none';
-  if (open) document.getElementById('wpin-new').value = '';
-}
-
-function toggleWpinDisableForm(){
-  const form = document.getElementById('wpin-disable-form');
-  const open = form.style.display === 'none' || !form.style.display;
-  form.style.display = open ? 'block' : 'none';
-  if (open) document.getElementById('wpin-current').value = '';
+  const isOpen = form.style.display === 'block';
+  if (isOpen){ closeWpinForm(); return; }
+  if (wpinEnabled && wpinLockedMsg){ showToast(wpinLockedMsg, FCI['lock']); return; }
+  buildWpinFields();
+  document.getElementById('wpin-old-wrap').style.display = wpinEnabled ? 'block' : 'none';
+  form.style.display = 'block';
+  document.getElementById(wpinEnabled ? 'wpin-old' : 'wpin-new').focus();
 }
 
 async function submitWithdrawPin(){
+  if (wpinBusy) return;
+  const oldPin = wpinEnabled ? document.getElementById('wpin-old').value.trim() : null;
   const pin = document.getElementById('wpin-new').value.trim();
-  if (!/^[0-9]{5}$/.test(pin)){ showToast('Le code doit contenir exactement 5 chiffres', FCI['alert-triangle']); return; }
-  try {
-    await fcSetWithdrawalPin(pin);
-    await renderWpinStatus();
-    toggleWpinForm();
-    showToast('Code PIN de retrait activé !', FCI['check-circle']);
-  } catch(e){
-    showToast('Erreur : ' + e.message, FCI['x-circle']);
-  }
-}
+  const confirmPin = document.getElementById('wpin-confirm').value.trim();
+  const five = /^[0-9]{5}$/;
+  if (wpinEnabled && !five.test(oldPin)){ showToast('Entre ton ancien code PIN (5 chiffres)', FCI['alert-triangle']); return; }
+  if (!five.test(pin)){ showToast('Le code PIN doit contenir exactement 5 chiffres', FCI['alert-triangle']); return; }
+  if (pin !== confirmPin){ showToast('Les deux codes ne sont pas identiques', FCI['alert-triangle']); return; }
+  if (wpinEnabled && pin === oldPin){ showToast("Choisis un code différent de l'ancien", FCI['alert-triangle']); return; }
 
-async function submitWithdrawPinDisable(){
-  const pin = document.getElementById('wpin-current').value.trim();
-  if (!/^[0-9]{5}$/.test(pin)){ showToast('Entre ton code PIN actuel (5 chiffres)', FCI['alert-triangle']); return; }
+  const wasEnabled = wpinEnabled;
+  wpinBusy = true;
+  document.getElementById('wpin-save-btn').disabled = true;
   try {
-    await fcDisableWithdrawalPin(pin);
+    await fcSetWithdrawalPin(pin, oldPin);
+    closeWpinForm();                 // le formulaire disparaît
     await renderWpinStatus();
-    toggleWpinDisableForm();
-    showToast('Code PIN désactivé', FCI['check-circle']);
+    showToast(wasEnabled ? 'Code PIN modifié avec succès !' : 'Code PIN créé avec succès !', FCI['check-circle']);
   } catch(e){
-    showToast('Erreur : ' + e.message, FCI['x-circle']);
+    showToast(e.message || 'Erreur', FCI['x-circle']);
+    await renderWpinStatus();
+    if (wpinLockedMsg) closeWpinForm();
+  } finally {
+    wpinBusy = false;
+    const btn = document.getElementById('wpin-save-btn'); if (btn) btn.disabled = false;
   }
 }
 

@@ -650,7 +650,6 @@ tr{transition:background .2s}
     </div>
     <div class="fc-hero-content">
       <div class="fc-hero-title" id="ev-title">—</div>
-      <button type="button" id="ev-org-btn" style="display:none;margin:6px 0 10px;padding:7px 14px;border-radius:100px;border:1px solid rgba(255,255,255,.55);background:rgba(0,0,0,.28);color:#fff;font-size:.8rem;font-weight:700;cursor:pointer">ⓘ Infos de l'organisateur</button>
       <div class="fc-hero-meta">
         <div class="fc-meta-pill"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2.2"/><line x1="3.5" y1="10" x2="20.5" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg> <span id="ev-date">—</span></div>
         <div class="fc-meta-pill"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg> <span id="ev-time">—</span></div>
@@ -867,7 +866,7 @@ tr{transition:background .2s}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="supabase-client.js"></script>
+<script src="supabase-client.js?v=20261003"></script>
 <script>
 const FCI = {
   'check': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"20 6 9 17 4 12\"/></svg>",
@@ -977,7 +976,7 @@ async function init(){
 
   if (event.banner_url){
     const banner = document.getElementById('event-banner');
-    banner.style.backgroundImage = `linear-gradient(rgba(36,28,20,.1),rgba(36,28,20,.45)), url('${event.banner_url}')`;
+    banner.style.backgroundImage = `linear-gradient(rgba(36,28,20,.1),rgba(36,28,20,.45)), url('${fcHdPhoto(event.banner_url, 1600)}')`;
     banner.style.backgroundSize = 'cover';
     banner.style.backgroundPosition = 'center';
     const illus = banner.querySelector('.illus-hero');
@@ -989,7 +988,7 @@ async function init(){
 
   document.getElementById('ev-type').innerHTML = '<svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18.3a2.7 2.7 0 1 1-2.7-2.7A2.7 2.7 0 0 1 9 18.3Z"/><path d="M19 16.3a2.7 2.7 0 1 1-2.7-2.7 2.7 2.7 0 0 1 2.7 2.7Z"/><path d="M9 18.3V6.5l10-2v11.8"/></svg> ' + (event.event_type || 'Événement');
   document.getElementById('ev-title').textContent = event.title;
-  { const ob = document.getElementById('ev-org-btn'); if (ob && event.organizer_id){ ob.style.display = 'inline-block'; ob.onclick = () => fcShowOrganizerInfo(event.organizer_id); } }
+  { const ow = document.getElementById('ev-org-wrap'); if (ow && event.organizer_id){ ow.style.display = 'inline'; document.getElementById('ev-org-link').onclick = (ev) => { ev.preventDefault(); fcShowOrganizerInfo(event.organizer_id); }; } }
   document.getElementById('ev-date').textContent = fcFormatDate(event.event_date, {weekday:'long',day:'numeric',month:'long',year:'numeric'});
   document.getElementById('ev-time').textContent = event.event_time || '—';
   document.getElementById('ev-location').textContent = event.location || '—';
@@ -1438,6 +1437,6 @@ init();
 checkForReturningPayment();
 checkForReviewLink();
 </script>
-<footer style="text-align:center;padding:28px 6%;color:var(--muted);font-size:.8rem;border-top:1px solid var(--border,rgba(0,0,0,.08))">© 2026 Fest&Chill · <a href="festchill-privacy.html" style="color:inherit">Confidentialité</a> · <a href="festchill-terms.html" style="color:inherit">CGU</a></footer>
+<footer style="text-align:center;padding:28px 6%;color:var(--muted);font-size:.8rem;border-top:1px solid var(--border,rgba(0,0,0,.08))">© 2026 Fest&Chill · <a href="festchill-privacy.html" style="color:inherit">Confidentialité</a> · <a href="festchill-terms.html" style="color:inherit">CGU</a><span id="ev-org-wrap" style="display:none"> · <a href="#" id="ev-org-link" style="color:inherit">Infos de l'organisateur</a></span></footer>
 </body>
 </html>

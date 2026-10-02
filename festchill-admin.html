@@ -768,13 +768,26 @@ async function processAdminWithdraw(){
 
   let pin = null;
   try {
-    const hasPin = await fcHasWithdrawalPin();
-    if (hasPin) {
-      pin = prompt('Entre ton code PIN à 5 chiffres pour confirmer :');
-      if (pin === null) return;
-      if (!/^[0-9]{5}$/.test(pin)) { showToast('Code PIN invalide (5 chiffres)', FCI['alert-triangle']); return; }
+    const st = await fcGetPinStatus();
+    if (st.locked) { showToast(st.message, FCI['lock']); return; }
+    if (!st.enabled) {
+      const vals = await fcAskPin({
+        title: 'Crée ton code PIN',
+        subtitle: 'Obligatoire pour sécuriser tes retraits. Choisis 5 chiffres que toi seul connais.',
+        fields: [{ label: 'Nouveau code PIN' }, { label: 'Confirme le code PIN' }],
+        confirmLabel: 'Créer mon code PIN',
+        confirmMatch: true
+      });
+      if (!vals) return;
+      await fcSetWithdrawalPin(vals[0]);
+      pin = vals[0];
+      showToast('Code PIN créé avec succès !', FCI['check-circle']);
+    } else {
+      const vals = await fcAskPin({ title: 'Confirme avec ton code PIN', fields: [{ label: 'Code PIN' }], confirmLabel: 'Confirmer le retrait' });
+      if (!vals) return;
+      pin = vals[0];
     }
-  } catch(e) {}
+  } catch(e) { showToast(e.message || 'Erreur PIN', FCI['x-circle']); return; }
 
   closeAdminWithdrawModal();
   try {
