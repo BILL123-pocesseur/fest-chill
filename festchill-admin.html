@@ -1049,9 +1049,10 @@ function secRender(){
             : '<button class="btn btn-danger btn-sm" onclick="secAct(\'block\',\''+id+'\')">Bloquer</button>',
           '<button class="btn btn-ghost btn-sm" onclick="secAct(\'password\',\''+id+'\')">Supprimer mot de passe</button>',
           '<button class="btn btn-ghost btn-sm" onclick="secAct(\'logout\',\''+id+'\')">Déconnecter</button>',
+          '<button class="btn btn-ghost btn-sm" onclick="secAct(\'commission\',\''+id+'\')">Commission</button>',
           '<button class="btn btn-danger btn-sm" onclick="secAct(\'delete\',\''+id+'\')">Supprimer</button>'
         ].join(' ');
-        return '<tr><td style="'+td+'"><div style="font-weight:700">'+secEsc(u.u_name||'Sans nom')+'</div><div style="color:var(--muted);font-size:.72rem">'+secEsc(u.u_email||'')+'</div></td>'
+        return '<tr><td style="'+td+'"><div style="font-weight:700">'+secEsc(u.u_name||'Sans nom')+'</div><div style="color:var(--muted);font-size:.72rem">'+secEsc(u.u_email||'')+'</div>'+(u.u_commission!=null?'<div style="color:var(--gold);font-size:.72rem;font-weight:700">Commission perso : '+secEsc(u.u_commission)+' %</div>':'')+'</td>'
           + '<td style="'+td+'">'+st+'</td><td style="'+td+'">'+pin+'</td>'
           + '<td style="'+td+';white-space:nowrap">'+secEsc(secFmt(u.u_last_sign_in))+'</td>'
           + '<td style="'+td+'">'+secEsc(u.u_active_sessions)+'</td>'
@@ -1082,6 +1083,20 @@ function secRender(){
 async function secAct(kind, id){
   const u = secData.users.find(x => x.u_id === id);
   const name = u ? (u.u_name || u.u_email || 'cet utilisateur') : 'cet utilisateur';
+  if (kind === 'commission'){
+    const cur = (u && u.u_commission != null) ? u.u_commission : '';
+    const a = prompt('Commission personnalisée pour ' + name + ' (en %, entre 0 et 30).\nLaisse vide pour revenir au taux normal de la plateforme.', cur);
+    if (a === null) return;
+    const rate = a.trim() === '' ? null : Number(a.replace(',', '.'));
+    if (rate !== null && (isNaN(rate) || rate < 0 || rate > 30)){ showToast('Taux invalide (0 à 30)', FCI['x-circle']); return; }
+    try {
+      const { error } = await supa.rpc('fc_admin_set_commission', { p_user_id: id, p_rate: rate });
+      if (error) throw error;
+      showToast(rate === null ? 'Taux normal rétabli' : 'Commission de ' + rate + ' % enregistrée', FCI['check-circle']);
+      await secLoad();
+    } catch(e){ showToast('Erreur : ' + e.message, FCI['x-circle']); }
+    return;
+  }
   const confirms = {
     pin: 'Supprimer le code PIN de ' + name + ' et lever son blocage ? Il pourra en créer un nouveau.',
     block: 'Bloquer le compte de ' + name + ' ? Il sera déconnecté et ne pourra plus se connecter.',
@@ -1235,5 +1250,6 @@ function closeSidebarIfMobile(){
   }
 }
 </script>
+<script src="admin-tools.js?v=20261004"></script>
 </body>
 </html>

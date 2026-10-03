@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Tous les événements d'un organisateur sur Fest&Chill.">
+<meta name="theme-color" content="#FFFBF3">
+<meta property="og:title" content="Organisateur — Fest&Chill">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎟️</text></svg>">
+<title>Organisateur — Fest&Chill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --paper:#FFFBF3;--paper2:#FFF4E1;--ink:#241C14;--muted:#8A7A68;
+  --red:#E8432E;--red-deep:#C4321F;--yellow:#FFC53D;--green:#1E8A5F;--line:#EBDFC9;
+  --fs:'Instrument Serif',serif;--fb:'Plus Jakarta Sans',sans-serif;
+}
+body{font-family:var(--fb);background:var(--paper);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+
+nav{padding:18px 6%;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:rgba(255,251,243,.9);backdrop-filter:blur(10px);position:sticky;top:0;z-index:50}
+.logo{font-family:var(--fs);font-style:italic;font-weight:400;font-size:1.4rem;color:var(--ink)}
+.logo em{color:var(--red);font-style:normal}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:100px;font-size:.83rem;font-weight:700;cursor:pointer;font-family:var(--fb);border:1.5px solid var(--ink);background:transparent;color:var(--ink);transition:all .2s}
+.btn:hover{background:var(--ink);color:var(--paper)}
+
+header.page-head{padding:52px 6% 22px;text-align:center}
+h1{font-family:var(--fs);font-weight:400;font-size:clamp(2rem,5vw,2.9rem);letter-spacing:-.01em;margin-bottom:10px}
+h1 i{font-style:italic;color:var(--red-deep)}
+.page-sub{color:var(--muted);font-size:.96rem;font-weight:500}
+
+.filters{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;padding:28px 6%;max-width:1100px;margin:0 auto}
+.chip{padding:9px 17px;border-radius:100px;border:1.5px solid var(--line);background:#fff;color:var(--muted);font-size:.82rem;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
+.chip:hover{border-color:var(--ink);color:var(--ink)}
+.chip.active{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px;padding:14px 6% 90px;max-width:1200px;margin:0 auto}
+
+.ev-card{background:#fff;border:1.5px solid var(--ink);border-radius:4px;overflow:hidden;transition:transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s;display:flex;flex-direction:column}
+.ev-card:hover{transform:translateY(-5px);box-shadow:7px 9px 0 var(--yellow)}
+.ev-card:nth-child(3n+2):hover{box-shadow:7px 9px 0 var(--red)}
+.ev-card:nth-child(3n)::hover{box-shadow:7px 9px 0 var(--green)}
+.ev-banner{height:104px;background:var(--paper2);border-bottom:1.5px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:2rem;position:relative;overflow:hidden}
+.ev-photo-credit{position:absolute;bottom:4px;right:6px;font-size:.62rem;color:rgba(255,255,255,.85);background:rgba(0,0,0,.35);padding:2px 6px;border-radius:100px;text-decoration:none;z-index:2}
+.ev-photo-credit:hover{color:#fff}
+.ev-type-badge{position:absolute;top:10px;left:10px;background:var(--ink);color:var(--paper);font-size:.66rem;font-weight:700;padding:5px 10px;border-radius:100px}
+.ev-urgent-badge{position:absolute;top:10px;right:10px;background:var(--red);color:#fff;font-size:.62rem;font-weight:800;padding:5px 10px;border-radius:100px;animation:pulseUrgent 1.6s ease-in-out infinite}
+@keyframes pulseUrgent{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+.ev-body{padding:18px 18px 20px;display:flex;flex-direction:column;gap:8px;flex:1}
+.ev-title{font-family:var(--fs);font-weight:400;font-size:1.25rem;line-height:1.3}
+.ev-meta{font-size:.79rem;color:var(--muted);display:flex;flex-direction:column;gap:3px;font-weight:500}
+.ev-organizer{font-size:.75rem;color:var(--muted);margin-top:2px;font-weight:500}
+.ev-footer{margin-top:auto;padding-top:12px;display:flex;justify-content:space-between;align-items:center;border-top:1px dashed var(--line)}
+.ev-price{font-family:var(--fs);font-weight:400;color:var(--red-deep);font-size:1.1rem}
+.ev-cta{font-size:.78rem;font-weight:700}
+
+.state-msg{grid-column:1/-1;text-align:center;color:var(--muted);padding:60px 20px;font-size:.9rem}
+
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<nav>
+  <a href="festchill-welcome.html" class="logo">Fest<em>&</em>Chill</a>
+  <a href="festchill-explore.html" class="btn">← Tous les événements</a>
+</nav>
+
+<header class="page-head" id="org-head">
+  <div id="org-avatar" style="width:104px;height:104px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:2.2rem;color:#fff;background:linear-gradient(135deg,#C4321F,#E8A33D);overflow:hidden"></div>
+  <h1 id="org-name" style="margin-bottom:6px">Organisateur</h1>
+  <div class="page-sub" id="org-meta">Chargement…</div>
+  <div id="org-contact" style="margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap"></div>
+</header>
+
+<div class="grid" id="grid"><div class="state-msg">Chargement des événements...</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase-client.js?v=20261004"></script>
+<script>
+const TYPE_ICON = {'Concert / Musique':'🎵','Conférence':'🎤','Soirée / Club':'🎉','Sport':'⚽','Théâtre / Art':'✨','Autre':'✨'};
+const orgId = new URLSearchParams(location.search).get('id');
+
+async function boot(){
+  const grid = document.getElementById('grid');
+  if (!orgId || !/^[0-9a-f-]{36}$/i.test(orgId)){ grid.innerHTML = '<div class="state-msg">Organisateur introuvable.</div>'; document.getElementById('org-meta').textContent = ''; return; }
+
+  const [{ data: infoRows }, { data: rateRows }, { data: events, error }] = await Promise.all([
+    supa.rpc('fc_public_organizer_info', { p_organizer_id: orgId }),
+    supa.rpc('fc_organizer_rating', { p_organizer_id: orgId }),
+    supa.from('events').select('id, slug, title, event_type, location, event_date, event_time, duration_days, is_featured, ticket_categories(price,quota,sold,early_price,early_until)')
+      .eq('organizer_id', orgId).eq('status', 'published').order('event_date', { ascending: true })
+  ]);
+  const info = Array.isArray(infoRows) ? infoRows[0] : infoRows;
+  if (!info){ document.getElementById('org-meta').textContent = ''; grid.innerHTML = '<div class="state-msg">Cet organisateur n\'a pas d\'événement en vente pour le moment.</div>'; return; }
+
+  document.title = (info.full_name || 'Organisateur') + ' — Fest&Chill';
+  document.getElementById('org-name').innerHTML = fcEscapeHtml(info.full_name || 'Organisateur') + (info.certified ? ' ' + fcVerifiedBadge() : '');
+  const av = document.getElementById('org-avatar');
+  if (info.avatar_url){
+    av.innerHTML = '<img src="' + fcEscapeHtml(info.avatar_url) + '" alt="" style="width:100%;height:100%;object-fit:cover;cursor:zoom-in">';
+    av.onclick = () => fcOpenPhotoViewer(info.avatar_url, info.full_name);
+  } else av.textContent = (info.full_name || '??').slice(0, 2).toUpperCase();
+  const rr = Array.isArray(rateRows) ? rateRows[0] : rateRows;
+  const parts = [(info.events_count || 0) + ' événement(s) en vente'];
+  if (rr && Number(rr.review_count) > 0) parts.push('<span style="color:#E8A33D;font-weight:800">' + fcStarsText(Number(rr.avg_rating)) + ' ' + Number(rr.avg_rating).toFixed(1) + ' (' + rr.review_count + ' avis)</span>');
+  document.getElementById('org-meta').innerHTML = parts.join(' · ');
+  const contact = [];
+  if (info.phone) contact.push('<a class="btn" href="tel:' + encodeURIComponent(String(info.phone).replace(/[^0-9+]/g,'')) + '">📞 ' + fcEscapeHtml(info.phone) + '</a>');
+  if (info.email) contact.push('<a class="btn" href="mailto:' + encodeURIComponent(info.email) + '">✉️ ' + fcEscapeHtml(info.email) + '</a>');
+  document.getElementById('org-contact').innerHTML = contact.join('');
+
+  if (error || !events || !events.length){ grid.innerHTML = '<div class="state-msg">Aucun événement en vente pour le moment.</div>'; return; }
+  const upcoming = events.filter(e => fcEventDayStatus(e.event_date, e.duration_days).phase !== 'ended');
+  if (!upcoming.length){ grid.innerHTML = '<div class="state-msg">Aucun événement à venir pour le moment.</div>'; return; }
+  const ratings = await fcGetRatings(upcoming.map(e => e.id));
+  grid.innerHTML = upcoming.map(e => {
+    const prices = (e.ticket_categories||[]).map(c => fcEffectivePrice(c)).filter(p => p != null);
+    const minPrice = prices.length ? Math.min(...prices) : null;
+    const quota = (e.ticket_categories||[]).reduce((s,c)=>s+(c.quota||0),0), sold = (e.ticket_categories||[]).reduce((s,c)=>s+(c.sold||0),0);
+    const left = quota - sold, low = quota > 0 && quota < 999999 && left > 0 && left <= Math.max(10, quota*0.15);
+    const rt = ratings[e.id];
+    return `<a class="ev-card" href="festchill-buy-ticket.html?event=${encodeURIComponent(e.slug)}">
+      <div class="ev-banner" data-cat="${fcEscapeHtml(e.event_type || 'Autre')}">
+        <span class="ev-type-badge">${fcEscapeHtml(e.event_type || 'Événement')}</span>
+        ${low ? `<span class="ev-urgent-badge">🔥 Plus que ${left} places</span>` : ''}
+        <span class="ev-banner-icon">${TYPE_ICON[e.event_type] || '🎫'}</span>
+      </div>
+      <div class="ev-body">
+        <div class="ev-title">${fcEscapeHtml(e.title)}</div>
+        <div class="ev-meta">
+          <span>📅 ${fcFormatEventDateRange(e.event_date, e.duration_days)}${e.event_time ? ' · ' + fcEscapeHtml(String(e.event_time).slice(0,5)) : ''}</span>
+          <span>📍 ${fcEscapeHtml(e.location || 'Lieu à confirmer')}</span>
+        </div>
+        ${rt ? `<div class="ev-organizer" style="color:#E8A33D;font-weight:800">★ ${rt.avg.toFixed(1)} (${rt.n} avis)</div>` : ''}
+        <div class="ev-footer"><span class="ev-price">${minPrice!=null ? 'Dès ' + minPrice.toLocaleString('fr-FR') + ' F' : 'Prix à venir'}</span><span class="ev-cta">Voir →</span></div>
+      </div></a>`;
+  }).join('');
+  loadPhotos(upcoming);
+}
+
+async function loadPhotos(list){
+  for (const type of [...new Set(list.map(e => e.event_type || 'Autre'))]){
+    const photo = await fcGetCategoryPhoto(type);
+    if (!photo) continue;
+    document.querySelectorAll('.ev-banner[data-cat="' + CSS.escape(type) + '"]').forEach(b => {
+      b.style.backgroundImage = `linear-gradient(rgba(36,28,20,.12),rgba(36,28,20,.3)), url('${fcHdPhoto(photo.photo_url || photo.thumb_url, 900)}')`;
+      b.style.backgroundSize = 'cover'; b.style.backgroundPosition = 'center';
+      const ic = b.querySelector('.ev-banner-icon'); if (ic) ic.style.display = 'none';
+    });
+  }
+}
+boot();
+</script>
+<footer style="text-align:center;padding:28px 6%;color:var(--muted);font-size:.8rem;border-top:1px solid var(--border,rgba(0,0,0,.08))">© 2026 Fest&Chill · <a href="festchill-privacy.html" style="color:inherit">Confidentialité</a> · <a href="festchill-terms.html" style="color:inherit">CGU</a></footer>
+</body>
+</html>

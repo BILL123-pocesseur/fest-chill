@@ -925,6 +925,40 @@ tr{transition:background .2s}
           <div id="reviews-list"></div>
         </div>
 
+        <!-- PROMOTIONS -->
+        <div class="section-card" id="promo-card">
+          <div class="section-head" style="padding:14px 18px"><span class="section-head-title">🏷️ Promotions &amp; prix early bird</span></div>
+          <div style="padding:16px 18px">
+            <div style="font-weight:700;font-size:.85rem;margin-bottom:8px">Code promo</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+              <input class="form-input" id="pr-code" placeholder="CODE (ex: AMIS10)" maxlength="20" style="flex:1 1 130px;text-transform:uppercase">
+              <select class="form-input" id="pr-kind" style="flex:0 0 auto"><option value="percent">% de réduction</option><option value="fixed">F de réduction</option></select>
+              <input class="form-input" id="pr-value" type="number" min="1" placeholder="Valeur" style="flex:0 0 90px">
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+              <input class="form-input" id="pr-max" type="number" min="1" placeholder="Utilisations max (optionnel)" style="flex:1 1 170px">
+              <input class="form-input" id="pr-exp" type="date" title="Valable jusqu'au (optionnel)" style="flex:1 1 150px">
+              <button class="btn btn-primary btn-sm" onclick="createPromo()">Créer le code</button>
+            </div>
+            <div id="promo-list" style="font-size:.82rem"></div>
+            <div style="font-weight:700;font-size:.85rem;margin:18px 0 4px">Prix early bird (moins cher au début)</div>
+            <div style="font-size:.74rem;color:var(--muted);margin-bottom:8px">Choisis un prix réduit et une date limite : après, le prix normal revient automatiquement.</div>
+            <div id="early-list"></div>
+            <div style="margin-top:16px"><button class="btn btn-ghost btn-sm" onclick="shareEventPoster()">🖼️ Partager l'affiche (image + WhatsApp)</button></div>
+          </div>
+        </div>
+
+        <!-- RAPPEL AUX ACHETEURS -->
+        <div class="section-card" id="remind-card">
+          <div class="section-head" style="padding:14px 18px"><span class="section-head-title">📣 Rappel aux acheteurs (WhatsApp)</span><span id="remind-count" style="font-size:.78rem;color:var(--muted)"></span></div>
+          <div style="padding:16px 18px">
+            <div style="font-size:.76rem;color:var(--muted);margin-bottom:6px">Modifie le message si tu veux. <b>{nom}</b> sera remplacé par le prénom de chaque acheteur.</div>
+            <textarea class="form-input" id="remind-msg" rows="4" style="width:100%;margin-bottom:10px"></textarea>
+            <div id="remind-list" style="font-size:.82rem"></div>
+            <div style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="copyBuyerNumbers()">Copier tous les numéros</button></div>
+          </div>
+        </div>
+
         <!-- RETRAIT -->
         <div class="section-card" style="border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.04)">
           <div class="section-head" style="padding:14px 18px;border-color:rgba(245,158,11,.2)">
@@ -963,7 +997,7 @@ tr{transition:background .2s}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="qrcode.min.js"></script>
-<script src="supabase-client.js"></script>
+<script src="supabase-client.js?v=20261004"></script>
 <script>
 const FCI = {
   'check': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"20 6 9 17 4 12\"/></svg>",
@@ -1104,7 +1138,7 @@ async function render(){
   const cats = e.ticket_categories || [];
   const quota = cats.reduce((s,c)=>s+c.quota,0);
   const sold = cats.reduce((s,c)=>s+c.sold,0);
-  const revenue = cats.reduce((s,c)=>s+c.sold*c.price,0);
+  const revenue = await getEventRevenue(cats);
   const remaining = quota - sold;
   const fillRate = quota ? Math.round(sold/quota*100) : 0;
 
@@ -1181,6 +1215,7 @@ async function loadNetRevenue(grossRevenue){
   try{
     const { data: cfg } = await supa.from('platform_config').select('commission_rate').eq('id', 1).single();
     if (cfg?.commission_rate != null) rate = cfg.commission_rate;
+    if (profile?.commission_rate != null) rate = profile.commission_rate;
   }catch(err){
     console.error('Impossible de charger le taux de commission, valeur par défaut utilisée :', err);
   }
@@ -1413,6 +1448,148 @@ function downloadQR(){
   link.href = canvas.toDataURL();
   link.click();
 }
+
+
+// ------------------------------------------------------------
+// REVENU RÉEL, PROMOS, EARLY BIRD, RAPPELS, AFFICHE
+// ------------------------------------------------------------
+async function getEventRevenue(cats){
+  try {
+    const { data, error } = await supa.from('orders').select('amount').eq('event_id', currentEvent.id).eq('payment_status', 'paid');
+    if (error) throw error;
+    return (data || []).reduce((s, o) => s + (o.amount || 0), 0);
+  } catch(e){ return cats.reduce((s,c)=>s+c.sold*c.price,0); }
+}
+
+async function loadPromos(){
+  const list = document.getElementById('promo-list');
+  const { data: codes, error } = await supa.from('promo_codes').select('*').eq('event_id', currentEvent.id).order('created_at', { ascending: false });
+  if (error){ list.textContent = 'Erreur : ' + error.message; return; }
+  const { data: ords } = await supa.from('orders').select('promo_code_id').eq('event_id', currentEvent.id).in('payment_status', ['pending','paid']).not('promo_code_id', 'is', null);
+  const uses = {}; (ords || []).forEach(o => { uses[o.promo_code_id] = (uses[o.promo_code_id] || 0) + 1; });
+  if (!codes.length){ list.innerHTML = '<div style="color:var(--muted)">Aucun code promo pour l\'instant.</div>'; return; }
+  list.innerHTML = codes.map(c => {
+    const expired = c.expires_at && new Date(c.expires_at) < new Date();
+    const full = c.max_uses && (uses[c.id] || 0) >= c.max_uses;
+    const state = !c.active ? 'Désactivé' : expired ? 'Expiré' : full ? 'Épuisé' : 'Actif';
+    return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--border)">
+      <b style="font-family:var(--fm,monospace);letter-spacing:1px">${fcEscapeHtml(c.code)}</b>
+      <span>−${c.value}${c.kind === 'percent' ? ' %' : ' F'}</span>
+      <span style="color:var(--muted)">${uses[c.id] || 0}${c.max_uses ? '/' + c.max_uses : ''} utilisation(s)${c.expires_at ? ' · jusqu\'au ' + new Date(c.expires_at).toLocaleDateString('fr-FR') : ''}</span>
+      <span style="margin-left:auto;font-weight:700;color:${state === 'Actif' ? 'var(--green)' : 'var(--muted)'}">${state}</span>
+      <button class="btn btn-ghost btn-sm" onclick="togglePromo('${c.id}', ${c.active ? 'false' : 'true'})">${c.active ? 'Désactiver' : 'Réactiver'}</button>
+      <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deletePromo('${c.id}')">Supprimer</button></div>`;
+  }).join('');
+}
+async function createPromo(){
+  const code = document.getElementById('pr-code').value.trim().toUpperCase().replace(/\s+/g, '');
+  const kind = document.getElementById('pr-kind').value;
+  const value = parseInt(document.getElementById('pr-value').value, 10);
+  const max = parseInt(document.getElementById('pr-max').value, 10);
+  const exp = document.getElementById('pr-exp').value;
+  if (code.length < 3){ showToast('Le code doit faire au moins 3 caractères', FCI['alert-triangle']); return; }
+  if (!(value > 0)){ showToast('Entre une valeur de réduction', FCI['alert-triangle']); return; }
+  if (kind === 'percent' && value > 100){ showToast('Maximum 100 %', FCI['alert-triangle']); return; }
+  const row = { event_id: currentEvent.id, code, kind, value, max_uses: max > 0 ? max : null, expires_at: exp ? new Date(exp + 'T23:59:59').toISOString() : null };
+  const { error } = await supa.from('promo_codes').insert(row);
+  if (error){ showToast(error.message.includes('duplicate') ? 'Ce code existe déjà pour cet événement' : 'Erreur : ' + error.message, FCI['x-circle']); return; }
+  ['pr-code','pr-value','pr-max','pr-exp'].forEach(id => document.getElementById(id).value = '');
+  showToast('Code promo créé !', FCI['check-circle']); loadPromos();
+}
+async function togglePromo(id, active){
+  const { error } = await supa.from('promo_codes').update({ active }).eq('id', id);
+  if (error) showToast('Erreur : ' + error.message, FCI['x-circle']); else loadPromos();
+}
+async function deletePromo(id){
+  if (!confirm('Supprimer ce code promo ?')) return;
+  const { error } = await supa.from('promo_codes').delete().eq('id', id);
+  if (error) showToast('Erreur : ' + error.message, FCI['x-circle']); else loadPromos();
+}
+
+function renderEarlyBird(){
+  const el = document.getElementById('early-list');
+  const toLocal = (iso) => { if (!iso) return ''; const d = new Date(iso); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
+  el.innerHTML = (currentEvent.ticket_categories || []).sort((a,b)=>a.position-b.position).map(c => `
+    <div style="padding:8px 0;border-top:1px solid var(--border)">
+      <div style="font-weight:700;margin-bottom:6px">${fcEscapeHtml(c.name)} <span style="color:var(--muted);font-weight:500">· prix normal ${c.price.toLocaleString('fr-FR')} F</span>
+        ${fcIsEarlyBird(c) ? '<span style="color:var(--green);font-weight:800"> · early bird actif</span>' : ''}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <input class="form-input" id="eb-p-${c.id}" type="number" min="0" placeholder="Prix early bird (F)" value="${c.early_price ?? ''}" style="flex:1 1 130px">
+        <input class="form-input" id="eb-d-${c.id}" type="datetime-local" value="${toLocal(c.early_until)}" style="flex:1 1 190px">
+        <button class="btn btn-primary btn-sm" onclick="saveEarly('${c.id}', ${c.price})">Enregistrer</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearEarly('${c.id}')">Retirer</button>
+      </div></div>`).join('') || '<div style="color:var(--muted)">Aucune catégorie.</div>';
+}
+async function saveEarly(catId, normalPrice){
+  const price = parseInt(document.getElementById('eb-p-' + catId).value, 10);
+  const until = document.getElementById('eb-d-' + catId).value;
+  if (isNaN(price) || price < 0 || price >= normalPrice){ showToast('Le prix early bird doit être plus bas que le prix normal', FCI['alert-triangle']); return; }
+  if (!until || new Date(until) <= new Date()){ showToast('Choisis une date limite dans le futur', FCI['alert-triangle']); return; }
+  const { error } = await supa.from('ticket_categories').update({ early_price: price, early_until: new Date(until).toISOString() }).eq('id', catId);
+  if (error){ showToast('Erreur : ' + error.message, FCI['x-circle']); return; }
+  showToast('Prix early bird enregistré !', FCI['check-circle']); await refreshEventData(); renderEarlyBird();
+}
+async function clearEarly(catId){
+  const { error } = await supa.from('ticket_categories').update({ early_price: null, early_until: null }).eq('id', catId);
+  if (error){ showToast('Erreur : ' + error.message, FCI['x-circle']); return; }
+  showToast('Early bird retiré', FCI['check-circle']); await refreshEventData(); renderEarlyBird();
+}
+
+async function shareEventPoster(){
+  const ev = currentEvent;
+  const prices = (ev.ticket_categories || []).map(c => fcEffectivePrice(c));
+  await fcShareEvent({
+    title: ev.title, image: fcHdPhoto(ev.banner_url, 1200), place: ev.location,
+    dateText: fcFormatDate(ev.event_date, {weekday:'long', day:'numeric', month:'long'}) + (ev.event_time ? ' · ' + String(ev.event_time).slice(0,5) : ''),
+    priceText: prices.length ? 'Dès ' + Math.min(...prices).toLocaleString('fr-FR') + ' F' : ''
+  }, document.getElementById('share-link-input').href);
+}
+
+// ---- Rappels WhatsApp ----
+let buyers = [];
+function waNumber(raw){
+  const d = String(raw || '').replace(/\D/g, '');
+  if (d.startsWith('229') && d.length >= 11) return d;
+  if (d.length === 8 || d.length === 10) return '229' + d;
+  return d;
+}
+function remindText(name){
+  const ev = currentEvent;
+  const tpl = document.getElementById('remind-msg').value;
+  const first = (name || '').trim().split(/\s+/)[0] || '';
+  return tpl.replace(/\{nom\}/g, first);
+}
+async function loadBuyers(){
+  const { data } = await supa.from('orders').select('buyer_name, buyer_phone').eq('event_id', currentEvent.id).eq('payment_status', 'paid');
+  const seen = new Set(); buyers = [];
+  (data || []).forEach(o => { const n = waNumber(o.buyer_phone); if (n && !seen.has(n)){ seen.add(n); buyers.push({ name: o.buyer_name, phone: o.buyer_phone, wa: n }); } });
+  const ev = currentEvent;
+  const when = fcFormatDate(ev.event_date, {weekday:'long', day:'numeric', month:'long'}) + (ev.event_time ? ' à ' + String(ev.event_time).slice(0,5) : '');
+  document.getElementById('remind-msg').value = `Bonjour {nom} 👋\nRappel : « ${ev.title} » c'est ${when}${ev.location ? ' à ' + ev.location : ''}.\nN'oublie pas ton ticket (QR code) ! À très vite 🎉`;
+  document.getElementById('remind-count').textContent = buyers.length + ' acheteur(s)';
+  document.getElementById('remind-list').innerHTML = buyers.length ? buyers.map((b, i) => `
+    <div style="display:flex;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--border)">
+      <div style="flex:1;min-width:0"><b>${fcEscapeHtml(b.name || 'Sans nom')}</b> <span style="color:var(--muted)">${fcEscapeHtml(b.phone)}</span></div>
+      <button class="btn btn-ghost btn-sm" onclick="remindBuyer(${i})">WhatsApp</button></div>`).join('')
+    : '<div style="color:var(--muted)">Aucun acheteur pour le moment.</div>';
+}
+function remindBuyer(i){
+  const b = buyers[i]; if (!b) return;
+  window.open('https://wa.me/' + b.wa + '?text=' + encodeURIComponent(remindText(b.name)), '_blank');
+}
+async function copyBuyerNumbers(){
+  if (!buyers.length){ showToast('Aucun numéro à copier', FCI['alert-triangle']); return; }
+  const text = buyers.map(b => b.phone).join('\n');
+  try { await navigator.clipboard.writeText(text); showToast(buyers.length + ' numéros copiés', FCI['clipboard']); }
+  catch(e){ showToast('Copie impossible sur ce navigateur', FCI['alert-triangle']); }
+}
+
+(async function initPromoTools(){
+  const wait = () => new Promise(r => setTimeout(r, 300));
+  for (let i = 0; i < 40 && !currentEvent; i++) await wait();
+  if (!currentEvent) return;
+  loadPromos(); renderEarlyBird(); loadBuyers();
+})();
 
 boot();
 

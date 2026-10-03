@@ -147,6 +147,7 @@ async function fcRequireAuth({ adminOnly = false } = {}) {
   }
   fcApplyProfilePrefs(profile);
   fcRecordSession(session.user.id); // ne bloque pas le rendu de la page
+  try { fcShowAnnouncements(); } catch (e) {}
   return profile;
 }
 
@@ -2399,9 +2400,15 @@ async function fcShowOrganizerInfo(organizerId) {
     box.innerHTML = '<div style="display:flex;justify-content:center">' + avatar + '</div>'
       + '<div style="font-weight:800;font-size:1.15rem;margin-top:12px">' + name + (o.certified ? ' ' + fcVerifiedBadge() : '') + '</div>'
       + '<div style="font-size:.8rem;color:var(--muted,#888);margin-top:4px">' + (o.events_count || 0) + ' événement(s) en vente</div>'
+      + '<div id="fc-org-rating" style="font-size:.85rem;margin-top:6px;color:#E8A33D;font-weight:700"></div>'
       + row('Téléphone', o.phone, 'tel:' + String(o.phone || '').replace(/[^0-9+]/g, ''))
       + row('E-mail', o.email, 'mailto:' + encodeURIComponent(o.email || ''))
+      + '<a href="festchill-organizer.html?id=' + encodeURIComponent(organizerId) + '" style="display:block;margin-top:16px;padding:11px;border-radius:10px;background:#C4321F;color:#fff;font-weight:700;text-decoration:none">Voir tous ses événements →</a>'
       + closeBtn;
+    supa.rpc('fc_organizer_rating', { p_organizer_id: organizerId }).then(({ data: rd }) => {
+      const rr = Array.isArray(rd) ? rd[0] : rd; const el = document.getElementById('fc-org-rating');
+      if (el && rr && Number(rr.review_count) > 0) el.textContent = fcStarsText(Number(rr.avg_rating)) + ' ' + Number(rr.avg_rating).toFixed(1) + ' (' + rr.review_count + ' avis)';
+    });
     const av = document.getElementById('fc-org-avatar');
     if (av) av.onclick = () => fcOpenPhotoViewer(o.avatar_url, o.full_name);
   } catch (e) {
@@ -2677,4 +2684,190 @@ async function fcMountSidebar(profile) {
     e.stopPropagation();
     menu.style.display = (menu.style.display === 'none' || !menu.style.display) ? 'block' : 'none';
   };
+}
+
+
+// ============================================================
+// FONCTIONS COMMUNES : prix, avis, annonces, calendrier, partage, ticket image, CSV
+// ============================================================
+
+// ---- Prix : early bird (le serveur recalcule toujours le vrai prix à l'achat) ----
+function fcIsEarlyBird(cat) {
+  return !!(cat && cat.early_price != null && cat.early_until && Date.now() < new Date(cat.early_until).getTime());
+}
+function fcEffectivePrice(cat) { return fcIsEarlyBird(cat) ? cat.early_price : cat.price; }
+
+async function fcCheckPromo(categoryId, code) {
+  const { data, error } = await supa.rpc('fc_check_promo', { p_category_id: categoryId, p_code: code });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+// ---- Avis ----
+async function fcGetRatings(ids) {
+  if (!ids || !ids.length) return {};
+  const { data } = await supa.rpc('fc_events_ratings', { p_ids: ids });
+  const m = {};
+  (data || []).forEach(r => { m[r.event_id] = { avg: Number(r.avg_rating), n: Number(r.review_count) }; });
+  return m;
+}
+function fcStarsText(avg) {
+  const full = Math.max(0, Math.min(5, Math.round(avg || 0)));
+  return '★'.repeat(full) + '☆'.repeat(5 - full);
+}
+
+// ---- Annonces de l'administrateur (bandeau en haut des pages organisateur) ----
+async function fcShowAnnouncements() {
+  const { data, error } = await supa.rpc('fc_my_announcements');
+  if (error || !data || !data.length) return;
+  if (document.getElementById('fc-announcements')) return;
+  const host = document.querySelector('main.main, .main, main') || document.body;
+  const box = document.createElement('div');
+  box.id = 'fc-announcements';
+  box.style.cssText = 'display:flex;flex-direction:column;gap:10px;margin:0 0 16px;padding:0';
+  data.forEach(a => {
+    const card = document.createElement('div');
+    card.style.cssText = 'display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:14px;border:1px solid rgba(232,163,61,.45);border-left:5px solid #E8A33D;background:rgba(232,163,61,.12);color:inherit';
+    card.innerHTML = '<div style="font-size:1.3rem">📢</div><div style="flex:1;min-width:0"><div style="font-weight:800;margin-bottom:3px">' + fcEscapeHtml(a.n_title)
+      + '</div><div style="font-size:.88rem;line-height:1.45;white-space:pre-wrap;word-break:break-word">' + fcEscapeHtml(a.n_body) + '</div></div>'
+      + '<button type="button" style="border:none;background:rgba(0,0,0,.08);color:inherit;border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer;font-size:.78rem;white-space:nowrap">J\'ai compris</button>';
+    card.querySelector('button').onclick = async () => {
+      card.remove();
+      if (!box.children.length) box.remove();
+      try { await supa.rpc('fc_dismiss_announcement', { p_id: a.n_id }); } catch (e) {}
+    };
+    box.appendChild(card);
+  });
+  host.insertBefore(box, host.firstChild);
+}
+
+// ---- Calendrier (.ics) avec rappels automatiques sur le téléphone ----
+function fcIcsText(str) {
+  return String(str == null ? '' : str).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+}
+function fcBuildIcs(ev) {
+  const pad = n => String(n).padStart(2, '0');
+  const fmt = d => d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + 'T' + pad(d.getHours()) + pad(d.getMinutes()) + '00';
+  const [y, m, d] = String(ev.date).slice(0, 10).split('-').map(Number);
+  const t = String(ev.time || '20:00').split(':');
+  const start = new Date(y, m - 1, d, parseInt(t[0], 10) || 0, parseInt(t[1], 10) || 0);
+  const days = Math.max(1, ev.durationDays || 1);
+  const end = new Date(y, m - 1, d + days - 1, (parseInt(t[0], 10) || 0) + 5, parseInt(t[1], 10) || 0);
+  const uid = 'fc-' + (ev.uid || Math.random().toString(36).slice(2)) + '@festchill';
+  const lines = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Fest&Chill//FR', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    'BEGIN:VEVENT', 'UID:' + uid, 'DTSTAMP:' + fmt(new Date()),
+    'DTSTART:' + fmt(start), 'DTEND:' + fmt(end),
+    'SUMMARY:' + fcIcsText(ev.title),
+    'LOCATION:' + fcIcsText(ev.location || ''),
+    'DESCRIPTION:' + fcIcsText((ev.description || 'Ton ticket Fest&Chill') + (ev.url ? '\n' + ev.url : '')),
+    'BEGIN:VALARM', 'TRIGGER:-P1D', 'ACTION:DISPLAY', 'DESCRIPTION:Demain : ' + fcIcsText(ev.title), 'END:VALARM',
+    'BEGIN:VALARM', 'TRIGGER:-PT3H', 'ACTION:DISPLAY', 'DESCRIPTION:Dans 3 heures : ' + fcIcsText(ev.title), 'END:VALARM',
+    'END:VEVENT', 'END:VCALENDAR'
+  ];
+  return lines.join('\r\n');
+}
+function fcDownloadBlob(blob, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+function fcAddToCalendar(ev) {
+  fcDownloadBlob(new Blob([fcBuildIcs(ev)], { type: 'text/calendar;charset=utf-8' }), 'ticket-festchill.ics');
+}
+
+// ---- Affiche à partager (image) + partage WhatsApp ----
+function fcLoadImage(url) {
+  return new Promise((resolve) => {
+    if (!url) return resolve(null);
+    const img = new Image(); img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img); img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+function fcWrapText(ctx, text, maxWidth) {
+  const words = String(text).split(/\s+/); const lines = []; let line = '';
+  words.forEach(w => { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = w; } else line = test; });
+  if (line) lines.push(line); return lines;
+}
+async function fcMakePosterBlob(ev) {
+  const W = 1080, H = 1350;
+  async function draw(withImage) {
+    const c = document.createElement('canvas'); c.width = W; c.height = H; const ctx = c.getContext('2d');
+    const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#C4321F'); g.addColorStop(1, '#E8A33D');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    if (withImage) {
+      const img = await fcLoadImage(ev.image);
+      if (img) {
+        const r = Math.max(W / img.width, 760 / img.height); const w = img.width * r, h = img.height * r;
+        ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, 760); ctx.clip(); ctx.drawImage(img, (W - w) / 2, (760 - h) / 2, w, h); ctx.restore();
+      } else if (withImage === 'strict') return null;
+    }
+    const fade = ctx.createLinearGradient(0, 420, 0, 800); fade.addColorStop(0, 'rgba(36,28,20,0)'); fade.addColorStop(1, 'rgba(36,28,20,.92)');
+    ctx.fillStyle = fade; ctx.fillRect(0, 420, W, 380);
+    ctx.fillStyle = 'rgba(36,28,20,.92)'; ctx.fillRect(0, 800, W, H - 800);
+    ctx.fillStyle = '#fff'; ctx.textBaseline = 'alphabetic';
+    ctx.font = '800 74px "Plus Jakarta Sans", Arial, sans-serif';
+    const lines = fcWrapText(ctx, ev.title || 'Événement', W - 140).slice(0, 3);
+    lines.forEach((l, i) => ctx.fillText(l, 70, 880 + i * 86));
+    const y0 = 880 + lines.length * 86 + 20;
+    ctx.font = '600 44px "Plus Jakarta Sans", Arial, sans-serif'; ctx.fillStyle = '#FFD9A8';
+    if (ev.dateText) ctx.fillText('📅 ' + ev.dateText, 70, y0 + 30);
+    if (ev.place) ctx.fillText('📍 ' + fcWrapText(ctx, ev.place, W - 200)[0], 70, y0 + 100);
+    ctx.fillStyle = '#FFC53D'; ctx.font = '800 54px "Plus Jakarta Sans", Arial, sans-serif';
+    if (ev.priceText) ctx.fillText('🎟️ ' + ev.priceText, 70, y0 + 190);
+    ctx.fillStyle = '#fff'; ctx.font = '800 40px "Plus Jakarta Sans", Arial, sans-serif'; ctx.fillText('Fest&Chill', 70, H - 60);
+    ctx.font = '500 30px "Plus Jakarta Sans", Arial, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.fillText('Prends ton ticket en ligne', 70, H - 22);
+    return await new Promise(res => { try { c.toBlob(b => res(b), 'image/png'); } catch (e) { res(null); } });
+  }
+  let blob = null;
+  try { blob = await draw('strict'); } catch (e) { blob = null; }
+  if (!blob) { try { blob = await draw(false); } catch (e) { blob = null; } }
+  return blob;
+}
+// Partage : image + texte sur mobile (menu de partage), sinon lien WhatsApp
+async function fcShareEvent(ev, url) {
+  const text = '🎉 ' + ev.title + (ev.dateText ? '\n📅 ' + ev.dateText : '') + (ev.place ? '\n📍 ' + ev.place : '') + '\n\nPrends ton ticket 👉 ' + url;
+  try {
+    const blob = await fcMakePosterBlob(ev);
+    if (blob && navigator.canShare) {
+      const file = new File([blob], 'festchill-affiche.png', { type: 'image/png' });
+      if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text, title: ev.title }); return 'shared'; }
+    }
+    if (navigator.share) { await navigator.share({ text, title: ev.title, url }); return 'shared'; }
+  } catch (e) {
+    if (e && e.name === 'AbortError') return 'cancelled';
+  }
+  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+  return 'whatsapp';
+}
+
+// ---- Ticket enregistrable en image (remplace Apple/Google Wallet) ----
+async function fcTicketImageBlob(t) {
+  const W = 900, H = 1400; const c = document.createElement('canvas'); c.width = W; c.height = H; const ctx = c.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, W, 520); g.addColorStop(0, '#C4321F'); g.addColorStop(1, '#E8A33D');
+  ctx.fillStyle = '#FFFBF3'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, 330);
+  ctx.fillStyle = '#fff'; ctx.font = '800 36px "Plus Jakarta Sans", Arial, sans-serif'; ctx.fillText('Fest&Chill · TICKET', 60, 90);
+  ctx.font = '800 62px "Plus Jakarta Sans", Arial, sans-serif';
+  fcWrapText(ctx, t.event_title || '', W - 120).slice(0, 2).forEach((l, i) => ctx.fillText(l, 60, 180 + i * 72));
+  ctx.fillStyle = '#241C14';
+  const rows = [['Date', t.dateText], ['Catégorie', t.category_name], ['N° du ticket', t.ticket_number != null ? String(t.ticket_number) : ''], ['Au nom de', t.buyer_name], ['Lieu', t.place]];
+  let y = 420;
+  rows.forEach(([k, v]) => { if (!v) return; ctx.fillStyle = '#8A7A68'; ctx.font = '600 28px "Plus Jakarta Sans", Arial, sans-serif'; ctx.fillText(k.toUpperCase(), 60, y);
+    ctx.fillStyle = '#241C14'; ctx.font = '700 40px "Plus Jakarta Sans", Arial, sans-serif'; ctx.fillText(fcWrapText(ctx, v, W - 120)[0], 60, y + 48); y += 110; });
+  const qr = document.createElement('canvas');
+  await QRCode.toCanvas(qr, t.qr_code, { width: 440, margin: 1 });
+  ctx.fillStyle = '#fff'; ctx.fillRect((W - 500) / 2, H - 620, 500, 500); ctx.drawImage(qr, (W - 440) / 2, H - 590);
+  ctx.fillStyle = '#8A7A68'; ctx.font = '600 28px "Plus Jakarta Sans", Arial, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('QR code unique · à présenter à l\'entrée', W / 2, H - 70); ctx.textAlign = 'left';
+  return await new Promise(res => c.toBlob(b => res(b), 'image/png'));
+}
+
+// ---- Export CSV (séparateur « ; » + BOM : s'ouvre correctement dans Excel en français) ----
+function fcDownloadCsv(filename, headers, rows) {
+  const esc = v => { const s = v == null ? '' : String(v); return /[";\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const csv = '\uFEFF' + [headers.map(esc).join(';')].concat(rows.map(r => r.map(esc).join(';'))).join('\r\n');
+  fcDownloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), filename);
 }

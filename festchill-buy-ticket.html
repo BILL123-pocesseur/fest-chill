@@ -645,6 +645,7 @@ tr{transition:background .2s}
   <rect width="1600" height="400" fill="url(#fcFade)"/>
 </svg>
     <div class="fc-hero-topbar">
+      <button type="button" id="ev-share-btn" style="display:none;margin-left:auto;order:9;padding:8px 14px;border-radius:100px;border:1px solid rgba(255,255,255,.55);background:rgba(0,0,0,.3);color:#fff;font-size:.78rem;font-weight:700;cursor:pointer" onclick="shareEventNow()">📲 Partager</button>
       <div class="fc-chip" id="ev-type"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18.3a2.7 2.7 0 1 1-2.7-2.7A2.7 2.7 0 0 1 9 18.3Z"/><path d="M19 16.3a2.7 2.7 0 1 1-2.7-2.7 2.7 2.7 0 0 1 2.7 2.7Z"/><path d="M9 18.3V6.5l10-2v11.8"/></svg> Événement</div>
       <div class="fc-chip" style="color:var(--gold)"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.5a2 2 0 0 0 0 4V16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.5a2 2 0 0 0 0-4Z"/><line x1="10" y1="6" x2="10" y2="18" stroke-dasharray="2 2.4"/></svg> <span id="ev-remaining">— places restantes</span></div>
     </div>
@@ -796,6 +797,13 @@ tr{transition:background .2s}
             <div class="ps-row"><span style="color:var(--muted)">Ticket</span><span id="sum-ticket">— Aucun sélectionné</span></div>
             <div class="ps-row"><span style="color:var(--muted)">Catégorie</span><span id="sum-cat">—</span></div>
             <div class="ps-row"><span style="color:var(--muted)">Prix</span><span id="sum-price">—</span></div>
+            <div style="margin:10px 0 4px">
+              <div style="display:flex;gap:6px">
+                <input type="text" class="form-input" id="promo-code" placeholder="Code promo" autocomplete="off" style="flex:1;text-transform:uppercase;margin:0" onkeydown="if(event.key==='Enter'){event.preventDefault();applyPromo()}">
+                <button type="button" class="btn btn-ghost btn-sm" onclick="applyPromo()">Appliquer</button>
+              </div>
+              <div id="promo-msg" style="font-size:.76rem;margin-top:5px;min-height:14px"></div>
+            </div>
             <div class="ps-total"><span>Total à payer</span><span id="sum-total">0 FCFA</span></div>
           </div>
 
@@ -854,6 +862,9 @@ tr{transition:background .2s}
 
   <div class="success-actions" id="success-actions-pending">
     <button class="btn btn-gold" id="check-status-btn" onclick="checkOrderStatusNow()">Vérifier si mon paiement est confirmé</button>
+    <button class="btn btn-ghost" onclick="addTicketToCalendar()" style="margin-top:8px">📅 Ajouter à mon calendrier (avec rappels)</button>
+    <button class="btn btn-ghost" onclick="downloadTicketImage()" style="margin-top:8px">🖼️ Enregistrer mon ticket en image</button>
+    <button class="btn btn-ghost" onclick="giftTicket()" style="margin-top:8px">🎁 Offrir ce ticket à un ami (WhatsApp)</button>
     <button class="btn btn-primary" onclick="location.reload()">Autre ticket</button>
   </div>
   <div class="success-actions" id="success-actions-valid" style="display:none">
@@ -866,7 +877,7 @@ tr{transition:background .2s}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="supabase-client.js?v=20261003"></script>
+<script src="supabase-client.js?v=20261004"></script>
 <script>
 const FCI = {
   'check': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"20 6 9 17 4 12\"/></svg>",
@@ -953,9 +964,34 @@ let selectedTicketData = null;
 let soldSet = new Set();
 let selectedOp = 'mtn';
 let lastPurchase = null;
+let promoState = null;   // { code, catId, discount, final }
+
+async function applyPromo(){
+  const input = document.getElementById('promo-code');
+  const msg = document.getElementById('promo-msg');
+  const code = input.value.trim();
+  if (!selectedTicket || !currentCat){ msg.style.color = 'var(--red)'; msg.textContent = "Choisis d'abord un ticket."; return; }
+  if (!code){ promoState = null; msg.textContent = ''; updateSummary(); return; }
+  try {
+    const r = await fcCheckPromo(currentCat.id, code);
+    if (r && r.valid){
+      promoState = { code, catId: currentCat.id, discount: r.discount, final: r.final_price };
+      msg.style.color = 'var(--green)';
+      msg.textContent = '✅ Code appliqué : −' + r.discount.toLocaleString('fr-FR') + ' FCFA';
+    } else {
+      promoState = null; msg.style.color = 'var(--red)'; msg.textContent = (r && r.message) || 'Code invalide';
+    }
+  } catch(e){ promoState = null; msg.style.color = 'var(--red)'; msg.textContent = 'Impossible de vérifier le code.'; }
+  updateSummary();
+}
 
 const params = new URLSearchParams(location.search);
 const eventSlug = params.get('event') || 'concert-afrobeat-2025';
+
+function showOrgLink(){
+  const ow = document.getElementById('ev-org-wrap');
+  if (ow && window.__orgId) ow.style.display = 'inline';
+}
 
 async function init(){
   const { data: event, error } = await supa
@@ -988,7 +1024,7 @@ async function init(){
 
   document.getElementById('ev-type').innerHTML = '<svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18.3a2.7 2.7 0 1 1-2.7-2.7A2.7 2.7 0 0 1 9 18.3Z"/><path d="M19 16.3a2.7 2.7 0 1 1-2.7-2.7 2.7 2.7 0 0 1 2.7 2.7Z"/><path d="M9 18.3V6.5l10-2v11.8"/></svg> ' + (event.event_type || 'Événement');
   document.getElementById('ev-title').textContent = event.title;
-  { const ow = document.getElementById('ev-org-wrap'); if (ow && event.organizer_id){ ow.style.display = 'inline'; document.getElementById('ev-org-link').onclick = (ev) => { ev.preventDefault(); fcShowOrganizerInfo(event.organizer_id); }; } }
+  window.__orgId = event.organizer_id || null; showOrgLink();
   document.getElementById('ev-date').textContent = fcFormatDate(event.event_date, {weekday:'long',day:'numeric',month:'long',year:'numeric'});
   document.getElementById('ev-time').textContent = event.event_time || '—';
   document.getElementById('ev-location').textContent = event.location || '—';
@@ -1006,7 +1042,7 @@ async function init(){
   categories.forEach((cat, i) => {
     const btn = document.createElement('button');
     btn.className = 'cat-tab' + (i===0 ? ' active' : '');
-    btn.textContent = `${cat.name} · ${cat.price.toLocaleString('fr-FR')} F`;
+    btn.textContent = `${cat.name} · ${fcEffectivePrice(cat).toLocaleString('fr-FR')} F` + (fcIsEarlyBird(cat) ? ' 🔥' : '');
     btn.onclick = () => switchCat(cat, btn);
     tabsEl.appendChild(btn);
   });
@@ -1032,7 +1068,8 @@ async function joinWaitlist(categoryId){
   const phone = document.getElementById('wl-phone').value.trim();
   if (!name || !phone){ alert('Remplis ton nom et ton numéro.'); return; }
   try {
-    await supa.rpc('fc_join_waitlist', { p_category_id: categoryId, p_name: name, p_phone: phone });
+    const { error: wlErr } = await supa.rpc('fc_join_waitlist', { p_category_id: categoryId, p_name: name, p_phone: phone });
+    if (wlErr) throw wlErr;
     document.getElementById('ticket-grid').innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:24px 16px;color:var(--green);font-weight:700">✅ Tu es sur la liste — on te contacte si une place se libère.</div>`;
   } catch(e) { alert('Erreur : ' + e.message); }
 }
@@ -1042,8 +1079,28 @@ async function switchCat(cat, btn){
   btn.classList.add('active');
   currentCat = cat;
   selectedTicket = null;
+  promoState = null;
+  { const pm = document.getElementById('promo-msg'); if (pm) pm.textContent = ''; }
   resetDetail();
+  showCatUrgency(cat);
   await renderGrid(cat);
+}
+
+function showCatUrgency(cat){
+  let el = document.getElementById('cat-urgency');
+  if (!el){
+    el = document.createElement('div'); el.id = 'cat-urgency';
+    el.style.cssText = 'margin:8px 0 2px;font-size:.84rem;font-weight:800;min-height:18px';
+    document.getElementById('cat-tabs').insertAdjacentElement('afterend', el);
+  }
+  const left = cat.quota - cat.sold;
+  const limited = cat.quota < 999999;
+  if (limited && left > 0 && left <= Math.max(10, cat.quota * 0.2)) {
+    el.style.color = 'var(--red)'; el.textContent = '🔥 Plus que ' + left + ' place' + (left > 1 ? 's' : '') + ' dans cette catégorie !';
+  } else if (fcIsEarlyBird(cat)) {
+    const until = new Date(cat.early_until);
+    el.style.color = 'var(--gold,#E8A33D)'; el.textContent = '⏰ Prix early bird jusqu\'au ' + until.toLocaleDateString('fr-FR', {day:'numeric', month:'long'}) + ' à ' + until.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+  } else { el.textContent = ''; }
 }
 
 async function renderGrid(cat){
@@ -1111,7 +1168,7 @@ function updateDetail(num, cat){
       <div class="td-num">N°${num<10?'0'+num:num}</div>
     </div>
     <div class="td-cat ${catClass}">${cat.name}</div>
-    <div class="td-price">${cat.price.toLocaleString('fr-FR')} <span style="font-size:1rem;color:var(--muted)">FCFA</span></div>
+    <div class="td-price">${fcEffectivePrice(cat).toLocaleString('fr-FR')} <span style="font-size:1rem;color:var(--muted)">FCFA</span>${fcIsEarlyBird(cat) ? ` <span style="font-size:.78rem;color:var(--red);font-weight:800;text-decoration:none">🔥 Prix early bird (au lieu de ${cat.price.toLocaleString('fr-FR')} F)</span>` : ''}</div>
     <div class="td-hint">Ticket numéroté · QR code unique · 1 entrée</div>
   `;
 }
@@ -1127,7 +1184,7 @@ function updateDetailAuto(cat){
       <div class="td-num">N° auto</div>
     </div>
     <div class="td-cat ${catClass}">${cat.name}</div>
-    <div class="td-price">${cat.price.toLocaleString('fr-FR')} <span style="font-size:1rem;color:var(--muted)">FCFA</span></div>
+    <div class="td-price">${fcEffectivePrice(cat).toLocaleString('fr-FR')} <span style="font-size:1rem;color:var(--muted)">FCFA</span>${fcIsEarlyBird(cat) ? ` <span style="font-size:.78rem;color:var(--red);font-weight:800;text-decoration:none">🔥 Prix early bird (au lieu de ${cat.price.toLocaleString('fr-FR')} F)</span>` : ''}</div>
     <div class="td-hint">Numéro attribué automatiquement · QR code unique · 1 entrée</div>
   `;
 }
@@ -1146,9 +1203,12 @@ function updateSummary(){
   const num = selectedTicket === 'auto' ? 'Auto' : (selectedTicket < 10 ? '0'+selectedTicket : selectedTicket);
   document.getElementById('sum-ticket').textContent = 'N°' + num;
   document.getElementById('sum-cat').textContent = selectedTicketData.name;
-  document.getElementById('sum-price').textContent = selectedTicketData.price.toLocaleString('fr-FR') + ' FCFA';
-  document.getElementById('sum-total').textContent = selectedTicketData.price.toLocaleString('fr-FR') + ' FCFA';
-  document.getElementById('pi-amount').textContent = selectedTicketData.price.toLocaleString('fr-FR') + ' FCFA';
+  const base = fcEffectivePrice(selectedTicketData);
+  const promoOk = promoState && promoState.catId === selectedTicketData.id;
+  const finalPrice = promoOk ? promoState.final : base;
+  document.getElementById('sum-price').textContent = base.toLocaleString('fr-FR') + ' FCFA' + (promoOk && promoState.discount > 0 ? '  (−' + promoState.discount.toLocaleString('fr-FR') + ')' : '');
+  document.getElementById('sum-total').textContent = finalPrice.toLocaleString('fr-FR') + ' FCFA';
+  document.getElementById('pi-amount').textContent = finalPrice.toLocaleString('fr-FR') + ' FCFA';
 }
 
 async function loadPayoutInstructions(){
@@ -1202,7 +1262,8 @@ async function processPayment(){
       p_ticket_number: selectedTicket === 'auto' ? null : selectedTicket,
       p_buyer_name: name,
       p_buyer_phone: phone,
-      p_operator: selectedOp
+      p_operator: selectedOp,
+      p_promo: (promoState && promoState.catId === currentCat.id) ? promoState.code : null
     });
 
     if (error) throw error;
@@ -1425,7 +1486,8 @@ async function submitReview(qr){
   const msg = document.getElementById('review-msg');
   if (!rating){ msg.textContent = 'Choisis une note (clique sur les étoiles).'; msg.style.color = 'var(--red)'; return; }
   try {
-    await supa.rpc('fc_submit_review', { p_qr_code: qr, p_rating: rating, p_comment: comment || null });
+    const { error: rvErr } = await supa.rpc('fc_submit_review', { p_qr_code: qr, p_rating: rating, p_comment: comment || null });
+    if (rvErr) throw rvErr;
     document.querySelector('#review-stars').parentElement.innerHTML = `<div style="font-family:var(--fd);font-weight:800;font-size:1.3rem">Merci pour ton avis ! 🙏</div>`;
   } catch(e) {
     msg.textContent = 'Erreur : ' + e.message;
@@ -1433,10 +1495,77 @@ async function submitReview(qr){
   }
 }
 
-init();
+function eventInfoForShare(){
+  const ev = currentEvent;
+  const prices = categories.map(c => fcEffectivePrice(c));
+  return {
+    title: ev.title, image: fcHdPhoto(ev.banner_url, 1200), place: ev.location,
+    dateText: fcFormatDate(ev.event_date, {weekday:'long', day:'numeric', month:'long'}) + (ev.event_time ? ' · ' + String(ev.event_time).slice(0,5) : ''),
+    priceText: prices.length ? 'Dès ' + Math.min(...prices).toLocaleString('fr-FR') + ' F' : ''
+  };
+}
+async function shareEventNow(){
+  if (!currentEvent) return;
+  const url = location.origin + location.pathname + '?event=' + encodeURIComponent(currentEvent.slug);
+  const btn = document.getElementById('ev-share-btn'); const old = btn.textContent; btn.textContent = 'Préparation…'; btn.disabled = true;
+  try { await fcShareEvent(eventInfoForShare(), url); } finally { btn.textContent = old; btn.disabled = false; }
+}
+function addTicketToCalendar(){
+  const ev = currentEvent || {};
+  const lp = lastPurchase || {};
+  const date = ev.event_date || lp.event_date;
+  if (!date) { alert("Date de l'événement introuvable."); return; }
+  fcAddToCalendar({ uid: lp.order_id, title: ev.title || lp.event_title || 'Événement Fest&Chill', date, time: ev.event_time, durationDays: ev.duration_days || lp.duration_days,
+    location: ev.location || '', description: 'Ton ticket Fest&Chill — garde ton QR code prêt à l\'entrée.', url: location.origin + location.pathname + '?order=' + lp.order_id });
+}
+async function downloadTicketImage(){
+  if (!lastPurchase || !lastPurchase.qr_code) return;
+  const ev = currentEvent || {};
+  try {
+    const blob = await fcTicketImageBlob({
+      event_title: lastPurchase.event_title || ev.title, qr_code: lastPurchase.qr_code, category_name: lastPurchase.category_name,
+      ticket_number: lastPurchase.ticket_number, buyer_name: lastPurchase.buyer_name, place: ev.location || '',
+      dateText: fcFormatDate(lastPurchase.event_date || ev.event_date, {weekday:'long', day:'numeric', month:'long', year:'numeric'})
+    });
+    fcDownloadBlob(blob, 'ticket-festchill.png');
+  } catch(e){ alert("Impossible de créer l'image : " + e.message); }
+}
+function giftTicket(){
+  if (!lastPurchase || !lastPurchase.order_id) return;
+  const link = location.origin + location.pathname + '?order=' + lastPurchase.order_id;
+  const title = lastPurchase.event_title || (currentEvent && currentEvent.title) || 'cet événement';
+  const text = '🎁 Je t\'offre un ticket pour « ' + title + ' » !\nOuvre ce lien pour récupérer ton QR code d\'entrée :\n' + link;
+  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+}
+
+async function loadReviewsBox(){
+  const { data } = await supa.from('event_reviews').select('rating, comment, created_at').eq('event_id', currentEvent.id).order('created_at', { ascending: false }).limit(50);
+  if (!data || !data.length) return;
+  const avg = data.reduce((s, r) => s + r.rating, 0) / data.length;
+  const chip = document.getElementById('ev-remaining');
+  if (chip) chip.insertAdjacentHTML('afterend', ` <span style="color:var(--gold,#E8A33D);font-weight:800">${fcStarsText(avg)} ${avg.toFixed(1)} (${data.length} avis)</span>`);
+  const withText = data.filter(r => r.comment).slice(0, 5);
+  if (!withText.length) return;
+  const box = document.createElement('div');
+  box.style.cssText = 'max-width:900px;margin:28px auto 0;padding:0 6%';
+  box.innerHTML = '<div style="font-weight:800;font-size:1.05rem;margin-bottom:12px">⭐ Ce que disent les participants</div>'
+    + withText.map(r => `<div style="padding:12px 14px;border:1px solid var(--border,rgba(0,0,0,.1));border-radius:12px;margin-bottom:8px;background:var(--surface,transparent)">
+      <div style="color:var(--gold,#E8A33D);font-size:.9rem">${fcStarsText(r.rating)}</div>
+      <div style="font-size:.88rem;margin-top:4px;line-height:1.45">${fcEscapeHtml(r.comment)}</div></div>`).join('');
+  document.getElementById('app').appendChild(box);
+}
+
+(async function(){
+  await init();
+  if (currentEvent){
+    const sb = document.getElementById('ev-share-btn'); if (sb) sb.style.display = 'inline-block';
+    loadReviewsBox();
+  }
+})();
 checkForReturningPayment();
 checkForReviewLink();
 </script>
-<footer style="text-align:center;padding:28px 6%;color:var(--muted);font-size:.8rem;border-top:1px solid var(--border,rgba(0,0,0,.08))">© 2026 Fest&Chill · <a href="festchill-privacy.html" style="color:inherit">Confidentialité</a> · <a href="festchill-terms.html" style="color:inherit">CGU</a><span id="ev-org-wrap" style="display:none"> · <a href="#" id="ev-org-link" style="color:inherit">Infos de l'organisateur</a></span></footer>
+<footer style="text-align:center;padding:28px 6%;color:var(--muted);font-size:.8rem;border-top:1px solid var(--border,rgba(0,0,0,.08))">© 2026 Fest&Chill · <a href="festchill-privacy.html" style="color:inherit">Confidentialité</a> · <a href="festchill-terms.html" style="color:inherit">CGU</a><span id="ev-org-wrap" style="display:none"> · <a href="#" id="ev-org-link" style="color:inherit" onclick="event.preventDefault();if(window.__orgId)fcShowOrganizerInfo(window.__orgId)">Infos de l'organisateur</a></span></footer>
+<script>showOrgLink();</script>
 </body>
 </html>

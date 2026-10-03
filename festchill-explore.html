@@ -85,11 +85,12 @@ h1 i{font-style:italic;color:var(--red-deep)}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="supabase-client.js?v=20261003"></script>
+<script src="supabase-client.js?v=20261004"></script>
 <script>
 let allEvents = [];
 let currentType = 'all';
 let showingHistory = false;
+let ratings = {};
 
 const TYPE_ICON = {
   'Concert / Musique': '🎵','Conférence': '🎤','Soirée / Club': '🎉','Sport': '⚽','Théâtre / Art': '✨','Autre': '✨',
@@ -113,7 +114,7 @@ async function boot(){
   const past30 = new Date(); past30.setDate(past30.getDate() - 30);
   let q = supa
     .from('events')
-    .select('id, slug, title, event_type, location, event_date, event_time, duration_days, organizer_id, ticket_categories(price,quota,sold), profiles(full_name,certified)')
+    .select('id, slug, title, event_type, location, event_date, event_time, duration_days, organizer_id, is_featured, featured_until, ticket_categories(price,quota,sold,early_price,early_until), profiles(full_name,certified)')
     .eq('status', 'published');
 
   q = showingHistory
@@ -132,6 +133,11 @@ async function boot(){
     const status = fcEventDayStatus(e.event_date, e.duration_days).phase;
     return showingHistory ? status === 'ended' : status !== 'ended';
   });
+  // À la une d'abord (si la mise en avant est encore valable), puis par date
+  const isFeat = (e) => e.is_featured && (!e.featured_until || new Date(e.featured_until) > new Date());
+  allEvents.forEach(e => { e._feat = isFeat(e); });
+  if (!showingHistory) allEvents.sort((a, b) => (b._feat - a._feat) || (a.event_date < b.event_date ? -1 : a.event_date > b.event_date ? 1 : 0));
+  ratings = await fcGetRatings(allEvents.map(e => e.id));
   renderFilters();
   render();
 }
@@ -151,7 +157,9 @@ function render(){
     return;
   }
   grid.innerHTML = list.map(e => {
-    const prices = (e.ticket_categories||[]).map(c=>c.price).filter(p=>p!=null);
+    const prices = (e.ticket_categories||[]).map(c=>fcEffectivePrice(c)).filter(p=>p!=null);
+    const hasEarly = (e.ticket_categories||[]).some(c=>fcIsEarlyBird(c));
+    const rt = ratings[e.id];
     const minPrice = prices.length ? Math.min(...prices) : null;
     const organizerName = fcEscapeHtml(e.profiles?.full_name || 'Organisateur Fest&Chill');
     const totalQuota = (e.ticket_categories||[]).reduce((s,c)=>s+(c.quota||0),0);
@@ -165,6 +173,7 @@ function render(){
     return `<a class="ev-card" href="festchill-buy-ticket.html?event=${e.slug}">
       <div class="ev-banner" data-cat="${e.event_type || 'Autre'}">
         <span class="ev-type-badge">${fcEscapeHtml(e.event_type || 'Événement')}</span>
+        ${e._feat ? '<span style="position:absolute;top:12px;right:12px;background:#FFC53D;color:#241C14;font-size:.7rem;font-weight:800;padding:5px 10px;border-radius:100px;z-index:2">⭐ À la une</span>' : ''}
         ${lowStock ? `<span class="ev-urgent-badge">🔥 Plus que ${remaining} places</span>` : ''}
         <span class="ev-banner-icon">${TYPE_ICON[e.event_type] || '🎫'}</span>
       </div>
@@ -174,9 +183,9 @@ function render(){
           <span>📅 ${dateLabel}${dayBadge}${e.event_time ? ' · ' + e.event_time : ''}</span>
           <span>📍 ${fcEscapeHtml(e.location || 'Lieu à confirmer')}</span>
         </div>
-        <div class="ev-organizer">Par ${organizerName}${e.profiles?.certified ? fcVerifiedBadge() : ''}</div>
+        <div class="ev-organizer">Par ${organizerName}${e.profiles?.certified ? fcVerifiedBadge() : ''}${rt ? ` <span style="color:#E8A33D;font-weight:800;white-space:nowrap">· ★ ${rt.avg.toFixed(1)} (${rt.n})</span>` : ''}</div>
         <div class="ev-footer">
-          <span class="ev-price">${minPrice!=null ? 'Dès ' + minPrice.toLocaleString('fr-FR') + ' F' : 'Prix à venir'}</span>
+          <span class="ev-price">${minPrice!=null ? 'Dès ' + minPrice.toLocaleString('fr-FR') + ' F' : 'Prix à venir'}${hasEarly ? ' 🔥' : ''}</span>
           <span class="ev-cta">Voir →</span>
         </div>
       </div>
