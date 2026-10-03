@@ -51,6 +51,7 @@
     card('sec-exports', '📤 Exports Excel / CSV', '', 'exports-body'),
     card('sec-moderation', '🛡️ Modération des événements',
       '<input id="mod-search" placeholder="Rechercher un événement…" oninput="FCAdmin.moderationRender()" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text)">', 'mod-body'),
+    card('sec-featured', '⭐ Mise en avant payante', btn('Actualiser', 'btn-ghost', 'onclick="FCAdmin.featured()"'), 'feat-body'),
     card('sec-fraud', '🚨 Détection de fraude', btn('Actualiser', 'btn-ghost', 'onclick="FCAdmin.fraud()"'), 'fraud-body'),
     card('sec-announce', '📢 Annonces aux organisateurs', '', 'announce-body'),
     card('sec-search', '🔎 Recherche d\'un ticket ou d\'un acheteur', '', 'search-body')
@@ -65,7 +66,7 @@
 
   // Groupes de la barre latérale
   ADMIN_GROUPS.home.unshift('sec-dashboard');
-  ADMIN_GROUPS.events.push('sec-moderation');
+  ADMIN_GROUPS.events.push('sec-moderation', 'sec-featured');
   ADMIN_GROUPS.finance.push('sec-withdrawals', 'sec-refunds', 'sec-exports');
   ADMIN_GROUPS.fraud = ['sec-fraud'];
   ADMIN_GROUPS.announce = ['sec-announce'];
@@ -76,6 +77,7 @@
   const backLink = nav && nav.querySelector('a[href="festchill-dashboard.html"]');
   const links = [
     ['sec-moderation', 'events', '🛡️', 'Modération'],
+    ['sec-featured', 'events', '⭐', 'Mise en avant'],
     ['sec-withdrawals', 'finance', '💸', 'Retraits'],
     ['sec-refunds', 'finance', '↩️', 'Remboursements'],
     ['sec-exports', 'finance', '📤', 'Exports'],
@@ -94,7 +96,7 @@
   // Charge chaque section la première fois qu'on l'affiche
   const lazy = {
     'sec-dashboard': () => FCAdmin.dash(), 'sec-withdrawals': () => FCAdmin.withdrawals(), 'sec-refunds': () => FCAdmin.refunds(),
-    'sec-exports': () => FCAdmin.exportsInit(), 'sec-moderation': () => FCAdmin.moderation(), 'sec-fraud': () => FCAdmin.fraud(),
+    'sec-exports': () => FCAdmin.exportsInit(), 'sec-moderation': () => FCAdmin.moderation(), 'sec-featured': () => FCAdmin.featured(), 'sec-fraud': () => FCAdmin.fraud(),
     'sec-announce': () => FCAdmin.announce(), 'sec-search': () => FCAdmin.searchInit()
   };
   const origShow = window.adminShowGroup;
@@ -131,6 +133,8 @@
       const top = (d.top_events || []).map((e, i) => '<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--border);font-size:.82rem"><span>'
         + (i + 1) + '. ' + esc(e.title) + '</span><b style="white-space:nowrap">' + money(e.amount) + ' · ' + e.tickets + ' 🎟️</b></div>').join('') || '<div style="color:var(--muted);font-size:.82rem">Pas encore de ventes.</div>';
       const p = d.platform || {};
+      let featRev = 0;
+      try { const fr = await supa.from('feature_orders').select('amount').eq('status', 'paid'); featRev = (fr.data || []).reduce((s, o) => s + o.amount, 0); } catch (e) {}
       el.innerHTML = '<div style="padding:16px 18px">'
         + '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">' + kpi('Aujourd\'hui', d.today) + kpi('7 derniers jours', d.week) + kpi('30 derniers jours', d.month) + kpi('Depuis le début', d.total) + '</div>'
         + '<div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:6px">Ventes des 30 derniers jours</div>'
@@ -147,7 +151,7 @@
         + chip(al.refunds_to_pay || 0, 'remboursement(s) à payer', 'finance', 'sec-refunds', true) + '</div>'
         + '<div style="display:flex;gap:24px;flex-wrap:wrap"><div style="flex:1 1 280px"><div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:6px">Top 5 événements</div>' + top + '</div>'
         + '<div style="flex:1 1 220px"><div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:6px">Plateforme</div>'
-        + '<div style="font-size:.85rem;line-height:1.9">👥 ' + (p.organizers || 0) + ' organisateurs<br>🎪 ' + (p.events_published || 0) + ' événements en vente<br>🎟️ ' + (p.tickets_sold || 0) + ' tickets vendus<br>💰 ' + money(p.commissions) + ' de commissions</div></div></div></div>';
+        + '<div style="font-size:.85rem;line-height:1.9">👥 ' + (p.organizers || 0) + ' organisateurs<br>🎪 ' + (p.events_published || 0) + ' événements en vente<br>🎟️ ' + (p.tickets_sold || 0) + ' tickets vendus<br>💰 ' + money(p.commissions) + ' de commissions<br>⭐ ' + money(featRev) + ' de mises en avant</div></div></div></div>';
     } catch (e) { fail(el, e); }
   };
 
@@ -255,7 +259,7 @@
     el.innerHTML = table(['Événement', 'Statut', 'Ventes', 'Actions'], rows.map(e => {
       const tags = [];
       if (e.e_hidden) tags.push('<span class="badge b-red">Masqué</span>');
-      if (e.e_featured) tags.push('<span class="badge b-gold">⭐ À la une' + (e.e_featured_until ? ' jusqu\'au ' + esc(new Date(e.e_featured_until).toLocaleDateString('fr-FR')) : '') + '</span>');
+      if (e.e_featured && e.e_featured_until && new Date(e.e_featured_until) < new Date()) tags.push('<span class="badge b-gray">⭐ Une expirée</span>'); else if (e.e_featured) tags.push('<span class="badge b-gold">⭐ À la une' + (e.e_featured_until ? ' jusqu\'au ' + esc(new Date(e.e_featured_until).toLocaleDateString('fr-FR')) : '') + '</span>');
       if (e.e_flagged) tags.push('<span class="badge b-red" title="' + esc(e.e_flag_reason || '') + '">🚩 Signalé</span>');
       tags.push('<span class="badge b-gray">' + esc(e.e_status) + '</span>');
       const id = e.e_id;
@@ -285,6 +289,62 @@
   FCAdmin.modDelete = async function (id) {
     if (!confirm('SUPPRIMER définitivement cet événement ? (refusé s\'il a déjà des ventes)')) return;
     try { await rpc('fc_admin_delete_event', { p_event: id }); toast('Événement supprimé'); FCAdmin.moderation(); } catch (e) { toast(e.message, false); }
+  };
+
+
+  /* ---------- Mise en avant payante : tarifs + achats ---------- */
+  FCAdmin.featured = async function () {
+    const el = document.getElementById('feat-body');
+    try {
+      const [plansRes, ordersRes] = await Promise.all([
+        supa.from('featured_plans').select('*').order('days', { ascending: true }),
+        supa.from('feature_orders').select('id, amount, plan_days, status, created_at, paid_at, events(title), profiles(full_name)').order('created_at', { ascending: false }).limit(60)
+      ]);
+      if (plansRes.error) throw plansRes.error;
+      if (ordersRes.error) throw ordersRes.error;
+      const paid = (ordersRes.data || []).filter(o => o.status === 'paid');
+      const total = paid.reduce((s, o) => s + o.amount, 0);
+      const inp = 'padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);width:100px';
+      const planRows = (plansRes.data || []).map(p => '<tr><td style="' + TD + '"><input id="pl-d-' + p.id + '" type="number" min="1" max="90" value="' + p.days + '" style="' + inp + ';width:70px"> jour(s)</td>'
+        + '<td style="' + TD + '"><input id="pl-p-' + p.id + '" type="number" min="100" step="100" value="' + p.price + '" style="' + inp + '"> F</td>'
+        + '<td style="' + TD + '">' + (p.active ? '<span class="badge b-green">Active</span>' : '<span class="badge b-gray">Désactivée</span>') + '</td>'
+        + '<td style="' + TD + '"><div style="display:flex;gap:4px;flex-wrap:wrap">' + btn('Enregistrer', 'btn-success', 'onclick="FCAdmin.planSave(\'' + p.id + '\')"')
+        + btn(p.active ? 'Désactiver' : 'Activer', 'btn-ghost', 'onclick="FCAdmin.planToggle(\'' + p.id + '\',' + (!p.active) + ')"')
+        + btn('Supprimer', 'btn-danger', 'onclick="FCAdmin.planDelete(\'' + p.id + '\')"') + '</div></td></tr>').join('');
+      const st = { paid: '<span class="badge b-green">Payé</span>', pending: '<span class="badge b-gold">En attente</span>', failed: '<span class="badge b-red">Échoué</span>' };
+      el.innerHTML = '<div style="padding:14px 18px;font-size:.8rem;color:var(--muted)">Les organisateurs achètent eux-mêmes une mise à la une depuis la page de leur événement. Les prix ci-dessous s\'appliquent tout de suite.</div>'
+        + '<div style="padding:0 18px 6px;font-weight:700;font-size:.82rem">Tarifs</div>'
+        + table(['Durée', 'Prix', 'État', ''], planRows, 'Aucune offre')
+        + '<div style="padding:12px 18px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border)"><span style="font-size:.8rem">Nouvelle offre :</span>'
+        + '<input id="pl-new-d" type="number" min="1" max="90" placeholder="Jours" style="' + inp + ';width:80px"><input id="pl-new-p" type="number" min="100" step="100" placeholder="Prix (F)" style="' + inp + '">'
+        + btn('Ajouter', 'btn-success', 'onclick="FCAdmin.planAdd()"') + '</div>'
+        + '<div style="padding:14px 18px 6px;font-weight:700;font-size:.82rem">Achats récents — ' + paid.length + ' payé(s), <span style="color:var(--green)">' + money(total) + '</span> encaissés</div>'
+        + table(['Date', 'Organisateur', 'Événement', 'Offre', 'Montant', 'État'], (ordersRes.data || []).map(o =>
+          '<tr><td style="' + TD + ';white-space:nowrap">' + esc(when(o.created_at)) + '</td><td style="' + TD + '">' + esc(o.profiles && o.profiles.full_name || '—') + '</td>'
+          + '<td style="' + TD + '">' + esc(o.events && o.events.title || '—') + '</td><td style="' + TD + '">' + o.plan_days + ' jour(s)</td>'
+          + '<td style="' + TD + '"><b>' + money(o.amount) + '</b></td><td style="' + TD + '">' + (st[o.status] || '') + '</td></tr>').join(''), 'Aucun achat pour le moment');
+    } catch (e) { fail(el, e); }
+  };
+  FCAdmin.planSave = async function (id) {
+    const days = parseInt(document.getElementById('pl-d-' + id).value, 10), price = parseInt(document.getElementById('pl-p-' + id).value, 10);
+    if (!(days >= 1 && days <= 90) || !(price >= 100)) { toast('Durée : 1 à 90 jours. Prix : 100 F minimum.', false); return; }
+    const { error } = await supa.from('featured_plans').update({ days, price }).eq('id', id);
+    if (error) toast(error.message, false); else { toast('Offre enregistrée'); FCAdmin.featured(); }
+  };
+  FCAdmin.planToggle = async function (id, active) {
+    const { error } = await supa.from('featured_plans').update({ active }).eq('id', id);
+    if (error) toast(error.message, false); else FCAdmin.featured();
+  };
+  FCAdmin.planDelete = async function (id) {
+    if (!confirm('Supprimer cette offre ?')) return;
+    const { error } = await supa.from('featured_plans').delete().eq('id', id);
+    if (error) toast(error.message, false); else FCAdmin.featured();
+  };
+  FCAdmin.planAdd = async function () {
+    const days = parseInt(document.getElementById('pl-new-d').value, 10), price = parseInt(document.getElementById('pl-new-p').value, 10);
+    if (!(days >= 1 && days <= 90) || !(price >= 100)) { toast('Durée : 1 à 90 jours. Prix : 100 F minimum.', false); return; }
+    const { error } = await supa.from('featured_plans').insert({ days, price });
+    if (error) toast(error.message, false); else { toast('Offre ajoutée'); FCAdmin.featured(); }
   };
 
   /* ---------- 6. Fraude ---------- */
