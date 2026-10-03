@@ -688,6 +688,7 @@ async function loadAll(){
     .select('id, amount, created_at, events!inner(organizer_id, title)')
     .eq('events.organizer_id', profile.id)
     .eq('payment_status', 'paid')
+    .not('fedapay_transaction_id', 'is', null)
     .order('created_at', { ascending: false });
 
   const { data: withdrawals } = await supa
