@@ -1382,7 +1382,7 @@ async function refreshEventData(){
 }
 
 async function confirmPendingOrder(orderId){
-  if (!confirm('Confirmer avoir bien reçu ce paiement Mobile Money ? Le ticket sera immédiatement valide pour l\'entrée.')) return;
+  if (!await fcConfirm('Confirmer avoir bien reçu ce paiement Mobile Money ? Le ticket sera immédiatement valide pour l\'entrée.')) return;
   const { error } = await supa.rpc('confirm_order_payment', { p_order_id: orderId });
   if (error){ showToast('Erreur : ' + error.message, FCI['x-circle']); return; }
   showToast('Paiement confirmé — ticket activé !', FCI['check-circle']);
@@ -1392,7 +1392,7 @@ async function confirmPendingOrder(orderId){
 }
 
 async function rejectPendingOrder(orderId){
-  if (!confirm("Indiquer que ce paiement n'a jamais été reçu ? Le numéro de ticket redeviendra disponible pour un autre acheteur.")) return;
+  if (!await fcConfirm("Indiquer que ce paiement n'a jamais été reçu ? Le numéro de ticket redeviendra disponible pour un autre acheteur.")) return;
   const { error } = await supa.rpc('reject_order_payment', { p_order_id: orderId });
   if (error){ showToast('Erreur : ' + error.message, FCI['x-circle']); return; }
   showToast('Paiement refusé — numéro libéré.', FCI['x-circle']);
@@ -1511,7 +1511,7 @@ async function togglePromo(id, active){
   if (error) showToast('Erreur : ' + error.message, FCI['x-circle']); else loadPromos();
 }
 async function deletePromo(id){
-  if (!confirm('Supprimer ce code promo ?')) return;
+  if (!await fcConfirm('Supprimer ce code promo ?')) return;
   const { error } = await supa.from('promo_codes').delete().eq('id', id);
   if (error) showToast('Erreur : ' + error.message, FCI['x-circle']); else loadPromos();
 }
@@ -1606,6 +1606,13 @@ async function loadFeaturing(){
   if (!ev){ status.textContent = ''; return; }
   const until = ev.featured_until ? new Date(ev.featured_until) : null;
   const active = ev.is_featured && (!until || until > new Date());
+  // Paiement reçu mais pas encore validé par l'équipe (mode manuel)
+  const { data: waiting } = await supa.from('feature_orders').select('id, plan_days').eq('event_id', currentEvent.id).eq('status', 'paid').eq('applied', false);
+  if (waiting && waiting.length){
+    status.style.color = 'var(--gold)';
+    status.textContent = '⏳ Paiement reçu ! Ta mise à la une (' + waiting.map(w => w.plan_days + ' j').join(' + ') + ') est en cours de validation par l\'équipe Fest&Chill. Elle sera activée très vite.';
+    return;
+  }
   if (ev.status !== 'published' || ev.is_hidden){
     status.style.color = 'var(--muted)'; status.textContent = 'Publie ton événement (et assure-toi qu\'il est visible) pour pouvoir le mettre à la une.'; return;
   }
@@ -1620,7 +1627,7 @@ async function loadFeaturing(){
       <span style="display:block;font-weight:800">${p.days} jour${p.days > 1 ? 's' : ''}</span><span style="display:block;font-size:.8rem;opacity:.9">${p.price.toLocaleString('fr-FR')} F</span></button>`).join('');
 }
 async function buyFeature(planId, days, price, btn){
-  if (!confirm('Mettre cet événement à la une pendant ' + days + ' jour(s) pour ' + price.toLocaleString('fr-FR') + ' F ?\nTu seras redirigé vers le paiement Mobile Money.')) return;
+  if (!await fcConfirm('Mettre cet événement à la une pendant ' + days + ' jour(s) pour ' + price.toLocaleString('fr-FR') + ' F ?\nTu seras redirigé vers le paiement Mobile Money.')) return;
   const old = btn.innerHTML; btn.disabled = true; btn.textContent = 'Redirection…';
   try {
     const returnUrl = location.origin + location.pathname + '?id=' + encodeURIComponent(currentEvent.id) + '&featured=1';

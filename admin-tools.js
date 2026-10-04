@@ -11,7 +11,7 @@
   const esc = (v) => fcEscapeHtml(v == null ? '' : String(v));
   const money = (n) => Number(n || 0).toLocaleString('fr-FR') + ' F';
   const when = (d) => (d ? fcFormatDateTime(new Date(d)) : '—');
-  const toast = (m, ok) => { try { showToast(m, ok === false ? FCI['x-circle'] : FCI['check-circle']); } catch (e) { alert(m); } };
+  const toast = (m, ok) => { try { showToast(m, ok === false ? FCI['x-circle'] : FCI['check-circle']); } catch (e) { fcAlert(m); } };
   const TH = 'text-align:left;padding:8px 12px;font-size:.7rem;color:var(--muted);text-transform:uppercase;white-space:nowrap';
   const TD = 'padding:9px 12px;font-size:.8rem;border-top:1px solid var(--border);vertical-align:middle';
   const loaded = {};
@@ -39,10 +39,11 @@
   /* ---------- Cartes (chaque page admin place des emplacements data-slot) ---------- */
   const btn = (label, cls, attrs) => '<button class="btn ' + cls + ' btn-sm" ' + attrs + '>' + label + '</button>';
   const DEFS = {
+    'sec-automation': ['⚙️ Automatique ou manuel', '', 'automation-body', () => {}],
     'sec-dashboard': ['📈 Tableau de bord', btn('Actualiser', 'btn-ghost', 'onclick="FCAdmin.dash()"'), 'dash-body', () => FCAdmin.dash()],
     'sec-withdrawals': ['💸 File de retraits',
       '<select id="wd-filter" onchange="FCAdmin.withdrawals()" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text)">'
-      + '<option value="">Tous</option><option value="pending">En attente</option><option value="failed">Échoués</option><option value="confirmed">Envoyés</option></select>', 'wd-body', () => FCAdmin.withdrawals()],
+      + '<option value="">Tous</option><option value="held">🛑 Retenus (à vérifier)</option><option value="pending">En attente</option><option value="failed">Échoués</option><option value="confirmed">Envoyés</option></select>', 'wd-body', () => FCAdmin.withdrawals()],
     'sec-refunds': ['↩️ Remboursements à effectuer', '', 'refunds-body', () => FCAdmin.refunds()],
     'sec-exports': ['📤 Exports Excel / CSV', '', 'exports-body', () => FCAdmin.exportsInit()],
     'sec-moderation': ['🛡️ Modération des événements',
@@ -54,8 +55,20 @@
     'sec-announce': ['📢 Annonces aux organisateurs', '', 'announce-body', () => FCAdmin.announce()],
     'sec-search': ['🔎 Recherche d\'un ticket ou d\'un acheteur', '', 'search-body', () => FCAdmin.searchInit()]
   };
+  // On n'appelle jamais le serveur avant que l'accès administrateur soit confirmé (page cachée tant que ce n'est pas le cas)
+  function whenAuthorized(fn) {
+    let tries = 0;
+    (function wait() {
+      if (document.documentElement.classList.contains('fc-ok')) return fn();
+      if (++tries < 150) setTimeout(wait, 100);
+    })();
+  }
   function mountSlots() {
     document.querySelectorAll('[data-slot]').forEach(slot => {
+      if (slot.dataset.slot.startsWith('auto-')) {
+        const bar = document.createElement('div'); bar.className = 'auto-bar'; bar.dataset.key = slot.dataset.slot.slice(5);
+        slot.replaceWith(bar); return;
+      }
       const d = DEFS[slot.dataset.slot];
       if (!d) return;
       const wrap = document.createElement('div');
@@ -63,11 +76,65 @@
       slot.replaceWith(wrap.firstElementChild);
       d[3]();
     });
+    FCAdmin.autoRefresh();
   }
 
   /* ============================================================
      ACTIONS
      ============================================================ */
+
+  /* ---------- Automatique / Manuel ---------- */
+  const AUTO = {
+    feature_auto: ['⭐ Mise à la une payée',
+      'Dès que le paiement est reçu, l\'événement passe à la une tout seul, même si tu n\'es pas là.',
+      'Chaque mise à la une payée attend ta validation (page Événements). Tu peux la refuser.'],
+    hold_suspect_withdrawals: ['💸 Retraits suspects',
+      'Le retrait d\'un organisateur qui a acheté ses propres tickets est retenu tout de suite, en attendant ta vérification.',
+      'Tous les retraits partent normalement. Tu surveilles les alertes de fraude toi-même.'],
+    block_on_pin_lock: ['🔒 PIN bloqué définitivement',
+      'Un compte qui a épuisé tous ses essais de PIN est bloqué par sécurité et déconnecté, même si tu n\'es pas là.',
+      'Seul le PIN est bloqué. Tu décides ensuite de ce qu\'il faut faire du compte.']
+  };
+  let autoState = {};
+  function segHtml(key, on) {
+    const base = 'padding:8px 14px;border:none;font-weight:800;font-size:.78rem;cursor:pointer;';
+    return '<div style="display:inline-flex;border-radius:100px;overflow:hidden;border:1px solid var(--border)">'
+      + '<button style="' + base + (on ? 'background:var(--green,#2F7D4F);color:#fff' : 'background:transparent;color:var(--muted)') + '" onclick="FCAdmin.setAuto(\'' + key + '\',true)">⚡ Automatique</button>'
+      + '<button style="' + base + (!on ? 'background:var(--gold,#E8A33D);color:#241C14' : 'background:transparent;color:var(--muted)') + '" onclick="FCAdmin.setAuto(\'' + key + '\',false)">✋ Manuel</button></div>';
+  }
+  FCAdmin.autoRefresh = async function () {
+    if (!document.querySelector('.auto-bar, #automation-body')) return;
+    try {
+      const rows = await rpc('fc_admin_get_automation');
+      autoState = {}; rows.forEach(r => { autoState[r.a_key] = r.a_enabled; });
+    } catch (e) { return; }
+    document.querySelectorAll('.auto-bar').forEach(bar => {
+      const k = bar.dataset.key, d = AUTO[k]; if (!d || autoState[k] === undefined) return;
+      const on = autoState[k];
+      bar.style.cssText = 'display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 16px;margin-bottom:16px;border:1px solid var(--border);border-radius:14px;background:var(--card)';
+      bar.innerHTML = '<div style="flex:1 1 260px;min-width:0"><div style="font-weight:800;font-size:.88rem">' + d[0] + ' — ' + (on ? 'Automatique' : 'Manuel') + '</div>'
+        + '<div style="font-size:.76rem;color:var(--muted);line-height:1.45;margin-top:2px">' + esc(on ? d[1] : d[2]) + '</div></div>' + segHtml(k, on);
+    });
+    const body = document.getElementById('automation-body');
+    if (body && document.getElementById('sec-automation')) {
+      body.innerHTML = '<div style="padding:14px 18px;font-size:.8rem;color:var(--muted);line-height:1.5">Choisis pour chaque règle : <b>Automatique</b> (le site agit tout seul, même si tu n\'es pas là) ou <b>Manuel</b> (tu décides toi-même). Tout ce que le site fait seul apparaît dans le journal ci-dessous, marqué « Automatique ».</div>'
+        + Object.keys(AUTO).map(k => '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:14px 18px;border-top:1px solid var(--border)">'
+          + '<div style="flex:1 1 280px;min-width:0"><div style="font-weight:800">' + AUTO[k][0] + '</div>'
+          + '<div style="font-size:.78rem;margin-top:3px;line-height:1.45"><b style="color:var(--green)">Automatique :</b> ' + esc(AUTO[k][1]) + '</div>'
+          + '<div style="font-size:.78rem;margin-top:2px;line-height:1.45"><b style="color:var(--gold)">Manuel :</b> ' + esc(AUTO[k][2]) + '</div></div>'
+          + segHtml(k, !!autoState[k]) + '</div>').join('')
+        + '<div style="display:flex;gap:8px;flex-wrap:wrap;padding:14px 18px;border-top:1px solid var(--border)">'
+        + btn('⚡ Tout en automatique', 'btn-success', 'onclick="FCAdmin.setAutoAll(true)"') + btn('✋ Tout en manuel', 'btn-ghost', 'onclick="FCAdmin.setAutoAll(false)"') + '</div>';
+    }
+  };
+  FCAdmin.setAuto = async function (key, on) {
+    try { await rpc('fc_admin_set_automation', { p_key: key, p_enabled: on }); toast((AUTO[key] ? AUTO[key][0] : 'Réglage') + ' : ' + (on ? 'automatique' : 'manuel')); FCAdmin.autoRefresh(); } catch (e) { toast(e.message, false); }
+  };
+  FCAdmin.setAutoAll = async function (on) {
+    if (!await fcConfirm(on ? 'Passer toutes les règles en AUTOMATIQUE ? Le site agira tout seul (retraits suspects retenus, comptes bloqués par sécurité…).' : 'Passer toutes les règles en MANUEL ? Plus rien ne se fera sans toi.', { title: on ? 'Tout automatique' : 'Tout manuel', ok: 'Oui, appliquer', danger: on })) return;
+    try { for (const k of Object.keys(AUTO)) await rpc('fc_admin_set_automation', { p_key: k, p_enabled: on }); toast(on ? 'Tout est en automatique' : 'Tout est en manuel'); FCAdmin.autoRefresh(); } catch (e) { toast(e.message, false); }
+  };
+
   /* ---------- 1. Tableau de bord ---------- */
   FCAdmin.dash = async function () {
     const el = document.getElementById('dash-body');
@@ -86,6 +153,7 @@
           + esc(s.d) + ' — ' + money(s.amount) + ' (' + s.count + ' ticket(s))</title></rect>';
       }).join('');
       const al = d.alerts || {};
+      try { const fw = await supa.from('feature_orders').select('id', { count: 'exact', head: true }).eq('status', 'paid').eq('applied', false); al.features_waiting = fw.count || 0; } catch (e) { al.features_waiting = 0; }
       const chip = (n, label, href, danger) => '<a href="' + href + '" '
         + 'style="display:inline-flex;gap:6px;align-items:center;padding:8px 12px;border-radius:100px;font-size:.78rem;font-weight:700;text-decoration:none;color:inherit;border:1px solid '
         + (n > 0 && danger ? 'rgba(255,90,95,.5);background:rgba(255,90,95,.12)' : n > 0 ? 'rgba(245,158,11,.5);background:rgba(245,158,11,.12)' : 'var(--border);background:transparent;opacity:.65') + '">'
@@ -108,6 +176,7 @@
         + chip(al.locked_pins || 0, 'PIN bloqué(s)', 'festchill-admin-users.html', false)
         + chip(al.blocked_accounts || 0, 'compte(s) bloqué(s)', 'festchill-admin-users.html', false)
         + chip(al.flagged_events || 0, 'événement(s) signalé(s)', 'festchill-admin-events.html', true)
+        + chip(al.features_waiting || 0, 'mise(s) à la une à valider', 'festchill-admin-events.html', true)
         + chip(al.refunds_to_pay || 0, 'remboursement(s) à payer', 'festchill-admin-finance.html#sec-refunds', true) + '</div>'
         + '<div style="display:flex;gap:24px;flex-wrap:wrap"><div style="flex:1 1 280px"><div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:6px">Top 5 événements</div>' + top + '</div>'
         + '<div style="flex:1 1 220px"><div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:6px">Plateforme</div>'
@@ -124,23 +193,34 @@
       const badge = (s) => s === 'confirmed' ? '<span class="badge b-green">Envoyé</span>' : s === 'failed' ? '<span class="badge b-red">Échoué</span>' : '<span class="badge b-gold">En attente</span>';
       el.innerHTML = table(['Date', 'Organisateur', 'Montant net', 'Commission', 'Mobile Money', 'Statut', 'Actions'], rows.map(w => {
         let acts = '';
-        if (w.w_status === 'pending' && !w.w_started_at) acts = btn('Bloquer', 'btn-danger', 'onclick="FCAdmin.wdBlock(\'' + w.w_id + '\')"');
+        if (w.w_held) acts = btn('✅ Autoriser', 'btn-success', 'onclick="FCAdmin.wdRelease(\'' + w.w_id + '\')"') + ' ' + btn('Refuser', 'btn-danger', 'onclick="FCAdmin.wdBlock(\'' + w.w_id + '\')"');
+        else if (w.w_status === 'pending' && !w.w_started_at) acts = btn('Bloquer', 'btn-danger', 'onclick="FCAdmin.wdBlock(\'' + w.w_id + '\')"');
         else if (w.w_status === 'pending') acts = '<span class="badge b-gray">En cours de traitement</span>';
         if (w.w_status === 'failed') acts = btn('Relancer', 'btn-success', 'onclick="FCAdmin.wdRetry(\'' + w.w_id + '\')"');
         return '<tr><td style="' + TD + ';white-space:nowrap">' + esc(when(w.w_created_at)) + '</td>'
           + '<td style="' + TD + '"><b>' + esc(w.w_name || '—') + '</b>' + (w.w_is_platform ? ' <span class="badge b-gray">Commissions</span>' : '') + '<div style="color:var(--muted);font-size:.72rem">' + esc(w.w_email || '') + '</div></td>'
           + '<td style="' + TD + '"><b>' + money(w.w_net) + '</b></td><td style="' + TD + '">' + money(w.w_commission) + '</td>'
           + '<td style="' + TD + '">' + esc((w.w_operator || '').toUpperCase()) + '<div style="color:var(--muted);font-size:.72rem">' + esc(w.w_phone) + '</div></td>'
-          + '<td style="' + TD + '">' + badge(w.w_status) + '</td><td style="' + TD + '">' + acts + '</td></tr>';
+          + '<td style="' + TD + '">' + (w.w_held ? '<span class="badge b-red">🛑 Retenu — à vérifier</span>' : badge(w.w_status)) + '</td><td style="' + TD + '">' + acts + '</td></tr>';
       }).join(''), 'Aucun retrait');
     } catch (e) { fail(el, e); }
   };
   FCAdmin.wdBlock = async function (id) {
-    if (!confirm('Bloquer ce retrait suspect ? Il ne sera pas envoyé et l\'argent redevient disponible pour l\'organisateur.')) return;
+    if (!await fcConfirm('Bloquer ce retrait ? Il ne sera pas envoyé et l\'argent redevient disponible pour l\'organisateur.', { title: 'Bloquer le retrait', ok: 'Bloquer', danger: true })) return;
     try { await rpc('fc_admin_block_withdrawal', { p_id: id }); toast('Retrait bloqué'); FCAdmin.withdrawals(); } catch (e) { toast(e.message, false); }
   };
+  FCAdmin.wdRelease = async function (id) {
+    if (!await fcConfirm('Autoriser ce retrait retenu ? L\'argent sera envoyé tout de suite par Mobile Money.', { title: 'Autoriser le retrait', ok: 'Autoriser et envoyer' })) return;
+    try {
+      await rpc('fc_admin_release_withdrawal', { p_id: id });
+      const { data, error } = await supa.functions.invoke('fedapay-payout', { body: { withdrawal_id: id } });
+      if (error || (data && data.error)) throw new Error((data && data.error) || error.message);
+      toast('Retrait autorisé et envoyé');
+    } catch (e) { toast('Autorisation : ' + (e.message || e), false); }
+    FCAdmin.withdrawals();
+  };
   FCAdmin.wdRetry = async function (id) {
-    if (!confirm('Relancer ce retrait ? L\'argent sera envoyé de nouveau par Mobile Money.')) return;
+    if (!await fcConfirm('Relancer ce retrait ? L\'argent sera envoyé de nouveau par Mobile Money.', { title: 'Relancer le retrait', ok: 'Relancer' })) return;
     try {
       await rpc('fc_admin_retry_withdrawal', { p_id: id });
       const { data, error } = await supa.functions.invoke('fedapay-payout', { body: { withdrawal_id: id } });
@@ -164,7 +244,7 @@
     } catch (e) { fail(el, e); }
   };
   FCAdmin.refundDone = async function (id) {
-    if (!confirm('Confirmer que l\'acheteur a bien reçu son remboursement par Mobile Money ?')) return;
+    if (!await fcConfirm('Confirmer que l\'acheteur a bien reçu son remboursement par Mobile Money ?', { title: 'Remboursement payé', ok: 'Oui, remboursé' })) return;
     try { await rpc('fc_admin_mark_refund_done', { p_id: id }); toast('Remboursement marqué comme payé'); FCAdmin.refunds(); } catch (e) { toast(e.message, false); }
   };
 
@@ -237,17 +317,17 @@
   };
   FCAdmin.modAct = async function (id, action) {
     let text = null, days = null;
-    if (action === 'flag') { text = prompt('Pourquoi signaler cet événement ? (visible seulement par les admins)'); if (text === null) return; }
+    if (action === 'flag') { text = await fcPrompt('Pourquoi signaler cet événement ? (visible seulement par les admins)', '', { title: 'Signaler', ok: 'Signaler' }); if (text === null) return; }
     if (action === 'feature') {
-      const a = prompt('Mettre à la une pendant combien de jours ?\n(laisse vide = sans limite de durée)', '7');
+      const a = await fcPrompt('Mettre à la une pendant combien de jours ? (laisse vide = sans limite de durée)', '7', { title: 'Mise à la une', ok: 'Valider', type: 'number' });
       if (a === null) return; days = a.trim() === '' ? null : parseInt(a, 10);
       if (a.trim() !== '' && (!(days > 0) || days > 365)) { toast('Nombre de jours invalide', false); return; }
     }
-    if (action === 'hide' && !confirm('Masquer cet événement ? Il disparaît de la liste publique et la vente est bloquée. L\'organisateur le voit toujours.')) return;
+    if (action === 'hide' && !await fcConfirm('Masquer cet événement ? Il disparaît de la liste publique et la vente est bloquée. L\'organisateur le voit toujours.', { title: 'Masquer l\'événement', ok: 'Masquer', danger: true })) return;
     try { await rpc('fc_admin_event_action', { p_event: id, p_action: action, p_text: text, p_days: days }); toast('Action effectuée'); FCAdmin.moderation(); } catch (e) { toast(e.message, false); }
   };
   FCAdmin.modDelete = async function (id) {
-    if (!confirm('SUPPRIMER définitivement cet événement ? (refusé s\'il a déjà des ventes)')) return;
+    if (!await fcConfirm('Supprimer définitivement cet événement ? (refusé s\'il a déjà des ventes)', { title: 'Supprimer l\'événement', ok: 'Supprimer', danger: true })) return;
     try { await rpc('fc_admin_delete_event', { p_event: id }); toast('Événement supprimé'); FCAdmin.moderation(); } catch (e) { toast(e.message, false); }
   };
 
@@ -258,7 +338,7 @@
     try {
       const [plansRes, ordersRes] = await Promise.all([
         supa.from('featured_plans').select('*').order('days', { ascending: true }),
-        supa.from('feature_orders').select('id, amount, plan_days, status, created_at, paid_at, events(title), profiles(full_name)').order('created_at', { ascending: false }).limit(60)
+        supa.from('feature_orders').select('id, amount, plan_days, status, applied, created_at, paid_at, events(title), profiles(full_name)').order('created_at', { ascending: false }).limit(60)
       ]);
       if (plansRes.error) throw plansRes.error;
       if (ordersRes.error) throw ordersRes.error;
@@ -271,8 +351,15 @@
         + '<td style="' + TD + '"><div style="display:flex;gap:4px;flex-wrap:wrap">' + btn('Enregistrer', 'btn-success', 'onclick="FCAdmin.planSave(\'' + p.id + '\')"')
         + btn(p.active ? 'Désactiver' : 'Activer', 'btn-ghost', 'onclick="FCAdmin.planToggle(\'' + p.id + '\',' + (!p.active) + ')"')
         + btn('Supprimer', 'btn-danger', 'onclick="FCAdmin.planDelete(\'' + p.id + '\')"') + '</div></td></tr>').join('');
-      const st = { paid: '<span class="badge b-green">Payé</span>', pending: '<span class="badge b-gold">En attente</span>', failed: '<span class="badge b-red">Échoué</span>' };
-      el.innerHTML = '<div style="padding:14px 18px;font-size:.8rem;color:var(--muted)">Les organisateurs achètent eux-mêmes une mise à la une depuis la page de leur événement. Les prix ci-dessous s\'appliquent tout de suite.</div>'
+      const stOf = (o) => o.status === 'paid' ? (o.applied ? '<span class="badge b-green">Payé · activé</span>' : '<span class="badge b-gold">Payé · à valider</span>')
+        : o.status === 'refused' ? '<span class="badge b-red">Refusé</span>' : o.status === 'pending' ? '<span class="badge b-gray">Paiement en cours</span>' : '<span class="badge b-red">Échoué</span>';
+      const waiting = (ordersRes.data || []).filter(o => o.status === 'paid' && !o.applied);
+      const waitingHtml = waiting.length ? '<div style="margin:0 18px 14px;padding:12px 14px;border:1px solid rgba(232,163,61,.6);border-radius:12px;background:rgba(232,163,61,.12)">'
+        + '<div style="font-weight:800;margin-bottom:8px">⏳ ' + waiting.length + ' mise(s) à la une payée(s), en attente de ta validation</div>'
+        + waiting.map(o => '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--border)"><div style="flex:1 1 220px;min-width:0"><b>' + esc(o.events && o.events.title || '—') + '</b>'
+          + '<div style="font-size:.74rem;color:var(--muted)">' + esc(o.profiles && o.profiles.full_name || '') + ' · ' + o.plan_days + ' jour(s) · ' + money(o.amount) + '</div></div>'
+          + btn('✅ Valider', 'btn-success', 'onclick="FCAdmin.featApprove(\'' + o.id + '\')"') + btn('Refuser', 'btn-danger', 'onclick="FCAdmin.featRefuse(\'' + o.id + '\')"') + '</div>').join('') + '</div>' : '';
+      el.innerHTML = waitingHtml + '<div style="padding:14px 18px;font-size:.8rem;color:var(--muted)">Les organisateurs achètent eux-mêmes une mise à la une depuis la page de leur événement. Les prix ci-dessous s\'appliquent tout de suite.</div>'
         + '<div style="padding:0 18px 6px;font-weight:700;font-size:.82rem">Tarifs</div>'
         + table(['Durée', 'Prix', 'État', ''], planRows, 'Aucune offre')
         + '<div style="padding:12px 18px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border)"><span style="font-size:.8rem">Nouvelle offre :</span>'
@@ -282,8 +369,15 @@
         + table(['Date', 'Organisateur', 'Événement', 'Offre', 'Montant', 'État'], (ordersRes.data || []).map(o =>
           '<tr><td style="' + TD + ';white-space:nowrap">' + esc(when(o.created_at)) + '</td><td style="' + TD + '">' + esc(o.profiles && o.profiles.full_name || '—') + '</td>'
           + '<td style="' + TD + '">' + esc(o.events && o.events.title || '—') + '</td><td style="' + TD + '">' + o.plan_days + ' jour(s)</td>'
-          + '<td style="' + TD + '"><b>' + money(o.amount) + '</b></td><td style="' + TD + '">' + (st[o.status] || '') + '</td></tr>').join(''), 'Aucun achat pour le moment');
+          + '<td style="' + TD + '"><b>' + money(o.amount) + '</b></td><td style="' + TD + '">' + stOf(o) + '</td></tr>').join(''), 'Aucun achat pour le moment');
     } catch (e) { fail(el, e); }
+  };
+  FCAdmin.featApprove = async function (id) {
+    try { await rpc('fc_admin_approve_feature', { p_id: id }); toast('Mise à la une activée'); FCAdmin.featured(); } catch (e) { toast(e.message, false); }
+  };
+  FCAdmin.featRefuse = async function (id) {
+    if (!await fcConfirm('Refuser cette mise à la une ? L\'événement ne passera pas à la une. Pense ensuite à rembourser l\'organisateur par Mobile Money.', { title: 'Refuser', ok: 'Refuser', danger: true })) return;
+    try { await rpc('fc_admin_refuse_feature', { p_id: id }); await fcAlert('Demande refusée. À FAIRE : rembourser l\'organisateur par Mobile Money (son argent n\'est plus compté dans ton solde).'); FCAdmin.featured(); } catch (e) { toast(e.message, false); }
   };
   FCAdmin.planSave = async function (id) {
     const days = parseInt(document.getElementById('pl-d-' + id).value, 10), price = parseInt(document.getElementById('pl-p-' + id).value, 10);
@@ -296,7 +390,7 @@
     if (error) toast(error.message, false); else FCAdmin.featured();
   };
   FCAdmin.planDelete = async function (id) {
-    if (!confirm('Supprimer cette offre ?')) return;
+    if (!await fcConfirm('Supprimer cette offre ?', { ok: 'Supprimer', danger: true })) return;
     const { error } = await supa.from('featured_plans').delete().eq('id', id);
     if (error) toast(error.message, false); else FCAdmin.featured();
   };
@@ -325,7 +419,7 @@
     revoke_sessions: 'Déconnexion forcée', delete_account: 'Compte supprimé', set_commission: 'Commission modifiée', block_withdrawal: 'Retrait bloqué',
     retry_withdrawal: 'Retrait relancé', event_hide: 'Événement masqué', event_unhide: 'Événement affiché', event_feature: 'Événement mis à la une',
     event_unfeature: 'Mise à la une retirée', event_flag: 'Événement signalé', event_unflag: 'Signalement retiré', event_delete: 'Événement supprimé',
-    announcement_create: 'Annonce publiée', announcement_delete: 'Annonce supprimée', refund_ticket: 'Ticket remboursé', refund_paid: 'Remboursement payé'
+    announcement_create: 'Annonce publiée', feature_approved: 'Mise à la une validée', feature_refused: 'Mise à la une refusée', feature_waiting: 'Mise à la une payée (attend ta validation)', auto_hold_withdrawal: 'Retrait retenu', auto_block_account: 'Compte bloqué (PIN)', release_withdrawal: 'Retrait retenu autorisé', automation_feature_auto: 'Réglage mise à la une changé', automation_hold_suspect_withdrawals: 'Réglage retraits suspects changé', automation_block_on_pin_lock: 'Réglage blocage PIN changé', announcement_delete: 'Annonce supprimée', refund_ticket: 'Ticket remboursé', refund_paid: 'Remboursement payé'
   };
   FCAdmin.audit = async function () {
     const el = document.getElementById('audit-body');
@@ -355,9 +449,9 @@
   };
   FCAdmin.fraudAct = async function (kind, id) {
     try {
-      if (kind === 'pin') { if (!confirm('Supprimer le PIN de cet utilisateur et lever son blocage ?')) return; await fcAdminResetPin(id); }
-      else if (kind === 'block') { if (!confirm('Bloquer ce compte ? Il sera déconnecté.')) return; await fcAdminSetBlocked(id, true); }
-      else if (kind === 'hide') { if (!confirm('Masquer cet événement ?')) return; await rpc('fc_admin_event_action', { p_event: id, p_action: 'hide' }); }
+      if (kind === 'pin') { if (!await fcConfirm('Supprimer le PIN de cet utilisateur et lever son blocage ?', { ok: 'Supprimer le PIN', danger: true })) return; await fcAdminResetPin(id); }
+      else if (kind === 'block') { if (!await fcConfirm('Bloquer ce compte ? Il sera déconnecté.', { ok: 'Bloquer', danger: true })) return; await fcAdminSetBlocked(id, true); }
+      else if (kind === 'hide') { if (!await fcConfirm('Masquer cet événement ?', { ok: 'Masquer', danger: true })) return; await rpc('fc_admin_event_action', { p_event: id, p_action: 'hide' }); }
       toast('Action effectuée'); FCAdmin.fraud();
     } catch (e) { toast(e.message, false); }
   };
@@ -389,7 +483,7 @@
     try { await rpc('fc_admin_create_announcement', { p_title: title, p_body: body, p_target: target, p_days: d === '' ? null : parseInt(d, 10) }); toast('Annonce publiée'); FCAdmin.announce(); } catch (e) { toast(e.message, false); }
   };
   FCAdmin.announceDelete = async function (id) {
-    if (!confirm('Supprimer cette annonce ?')) return;
+    if (!await fcConfirm('Supprimer cette annonce ?', { ok: 'Supprimer', danger: true })) return;
     try { await rpc('fc_admin_delete_announcement', { p_id: id }); toast('Annonce supprimée'); FCAdmin.announce(); } catch (e) { toast(e.message, false); }
   };
 
@@ -416,17 +510,17 @@
     } catch (e) { fail(res, e); }
   };
   FCAdmin.refund = async function (ticketId) {
-    const reason = prompt('Motif du remboursement ? (ex : doublon, événement annulé)');
+    const reason = await fcPrompt('Motif du remboursement ? (ex : doublon, événement annulé)', '', { title: 'Rembourser le ticket', ok: 'Continuer' });
     if (reason === null) return;
-    if (!confirm('Rembourser ce ticket ? Il sera annulé immédiatement (la place est remise en vente). Tu devras ensuite renvoyer l\'argent à l\'acheteur par Mobile Money.')) return;
+    if (!await fcConfirm('Rembourser ce ticket ? Il sera annulé immédiatement (la place est remise en vente). Tu devras ensuite renvoyer l\'argent à l\'acheteur par Mobile Money.', { title: 'Rembourser', ok: 'Rembourser', danger: true })) return;
     try {
       const r = await rpc('fc_admin_refund_ticket', { p_ticket_id: ticketId, p_reason: reason });
-      alert('Ticket remboursé.\n\nÀ FAIRE : envoyer ' + money(r.amount) + ' au ' + r.phone + ' par Mobile Money, puis cliquer « Marquer remboursé » dans Finances → Remboursements.'
+      await fcAlert('Ticket remboursé.\n\nÀ FAIRE : envoyer ' + money(r.amount) + ' au ' + r.phone + ' par Mobile Money, puis cliquer « Marquer remboursé » dans Finances → Remboursements.'
         + (r.warning ? '\n\n' + r.warning : ''));
       loaded['sec-refunds'] = false; FCAdmin.search();
     } catch (e) { toast(e.message, false); }
   };
 
   // Les pages admin déposent leurs emplacements : on les remplit une fois toutes les fonctions prêtes
-  mountSlots();
+  whenAuthorized(mountSlots);
 })();

@@ -33,6 +33,8 @@ function toggleMobileSidebar(){
   document.querySelector('.sidebar-overlay').classList.toggle('show');
 }
 </script>
+<meta name="robots" content="noindex,nofollow">
+<style>html:not(.fc-ok) body{visibility:hidden}</style>
 <link rel="stylesheet" href="admin.css?v=20261005">
 </head>
 <body>
@@ -70,7 +72,8 @@ function toggleMobileSidebar(){
   </div>
   <div class="page">
     <div style="margin:0 0 16px;color:var(--muted);font-size:.86rem;line-height:1.5">Tous les comptes. Clique « Gérer » sur une ligne pour débloquer son PIN, supprimer son mot de passe, le bloquer, le déconnecter ou changer sa commission.</div>
-<div class="section-card" id="sec-certification" style="margin-bottom:16px;display:none">
+<div data-slot="auto-block_on_pin_lock"></div>
+    <div class="section-card" id="sec-certification" style="margin-bottom:16px;display:none">
           <div class="section-head" style="padding:14px 18px">
             <span class="section-head-title">✅ Candidats à la certification</span>
           </div>

@@ -1066,12 +1066,12 @@ function updateRemaining(){
 async function joinWaitlist(categoryId){
   const name = document.getElementById('wl-name').value.trim();
   const phone = document.getElementById('wl-phone').value.trim();
-  if (!name || !phone){ alert('Remplis ton nom et ton numéro.'); return; }
+  if (!name || !phone){ fcAlert('Remplis ton nom et ton numéro.'); return; }
   try {
     const { error: wlErr } = await supa.rpc('fc_join_waitlist', { p_category_id: categoryId, p_name: name, p_phone: phone });
     if (wlErr) throw wlErr;
     document.getElementById('ticket-grid').innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:24px 16px;color:var(--green);font-weight:700">✅ Tu es sur la liste — on te contacte si une place se libère.</div>`;
-  } catch(e) { alert('Erreur : ' + e.message); }
+  } catch(e) { fcAlert('Erreur : ' + e.message); }
 }
 
 async function switchCat(cat, btn){
@@ -1283,7 +1283,7 @@ async function processPayment(){
     window.location.href = payment_url;
     return; // on quitte la page, pas la peine de continuer
   } catch(e){
-    alert("Erreur : " + (e.message || 'Une erreur est survenue, réessaie.'));
+    fcAlert("Erreur : " + (e.message || 'Une erreur est survenue, réessaie.'));
     await renderGrid(currentCat);
   } finally {
     payBtn.textContent = 'Payer maintenant';
@@ -1336,7 +1336,7 @@ async function checkOrderStatusNow(){
   if (error || !res){
     btn.disabled = false;
     btn.textContent = 'Vérifier si mon paiement est confirmé';
-    alert('Erreur de vérification : ' + error?.message);
+    fcAlert('Erreur de vérification : ' + error?.message);
     return;
   }
 
@@ -1380,7 +1380,7 @@ async function checkOrderStatusNow(){
   } else {
     btn.disabled = false;
     btn.textContent = 'Vérifier si mon paiement est confirmé';
-    alert("Toujours en attente de confirmation par l'organisateur.");
+    fcAlert("Toujours en attente de confirmation par l'organisateur.");
   }
 }
 
@@ -1514,7 +1514,7 @@ function addTicketToCalendar(){
   const ev = currentEvent || {};
   const lp = lastPurchase || {};
   const date = ev.event_date || lp.event_date;
-  if (!date) { alert("Date de l'événement introuvable."); return; }
+  if (!date) { fcAlert("Date de l'événement introuvable."); return; }
   fcAddToCalendar({ uid: lp.order_id, title: ev.title || lp.event_title || 'Événement Fest&Chill', date, time: ev.event_time, durationDays: ev.duration_days || lp.duration_days,
     location: ev.location || '', description: 'Ton ticket Fest&Chill — garde ton QR code prêt à l\'entrée.', url: location.origin + location.pathname + '?order=' + lp.order_id });
 }
@@ -1528,7 +1528,7 @@ async function downloadTicketImage(){
       dateText: fcFormatDate(lastPurchase.event_date || ev.event_date, {weekday:'long', day:'numeric', month:'long', year:'numeric'})
     });
     fcDownloadBlob(blob, 'ticket-festchill.png');
-  } catch(e){ alert("Impossible de créer l'image : " + e.message); }
+  } catch(e){ fcAlert("Impossible de créer l'image : " + e.message); }
 }
 function giftTicket(){
   if (!lastPurchase || !lastPurchase.order_id) return;

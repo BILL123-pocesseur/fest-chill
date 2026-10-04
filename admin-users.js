@@ -10,7 +10,7 @@
 
   const esc = (v) => fcEscapeHtml(v == null ? '' : String(v));
   const when = (d) => (d ? fcFormatDateTime(new Date(d)) : 'jamais');
-  const toast = (m, ok) => { try { showToast(m, ok === false ? FCI['x-circle'] : FCI['check-circle']); } catch (e) { alert(m); } };
+  const toast = (m, ok) => { try { showToast(m, ok === false ? FCI['x-circle'] : FCI['check-circle']); } catch (e) { fcAlert(m); } };
   let users = [], filter = 'all', query = '';
 
   const isPinLocked = (u) => !!u.u_pin_locked_until;
@@ -123,7 +123,7 @@
     };
     try {
       if (kind === 'commission') {
-        const a = prompt('Commission personnalisée pour ' + name + ' (en %, de 0 à 30).\nLaisse vide pour revenir au taux normal de la plateforme.', u.u_commission != null ? u.u_commission : '');
+        const a = await fcPrompt('Commission personnalisée pour ' + name + ' (en %, de 0 à 30). Laisse vide pour revenir au taux normal de la plateforme.', u.u_commission != null ? u.u_commission : '', { title: 'Commission', ok: 'Enregistrer', type: 'number' });
         if (a === null) return;
         const rate = a.trim() === '' ? null : Number(a.replace(',', '.'));
         if (rate !== null && (isNaN(rate) || rate < 0 || rate > 30)) { toast('Taux invalide (de 0 à 30)', false); return; }
@@ -131,8 +131,9 @@
         if (error) throw error;
         toast(rate === null ? 'Taux normal rétabli' : 'Commission de ' + rate + ' % enregistrée');
       } else {
-        if (!confirm(ask[kind])) return;
-        if (kind === 'delete' && !confirm('Dernière confirmation : supprimer ' + name + ' ?')) return;
+        const danger = ['block', 'delete', 'pin', 'password'].includes(kind);
+        if (!await fcConfirm(ask[kind], { title: 'Confirmer', ok: 'Oui, continuer', danger })) return;
+        if (kind === 'delete' && !await fcConfirm('Dernière confirmation : supprimer ' + name + ' ?', { title: 'Suppression définitive', ok: 'Supprimer', danger: true })) return;
         if (kind === 'pin') await fcAdminResetPin(id);
         else if (kind === 'password') await fcAdminInvalidatePassword(id);
         else if (kind === 'logout') await fcAdminRevokeSessions(id);
@@ -145,5 +146,9 @@
     } catch (e) { toast('Erreur : ' + (e.message || e), false); }
   }
 
-  load();
+  // On attend que l'accès administrateur soit confirmé avant de charger les comptes
+  (function wait(n) {
+    if (document.documentElement.classList.contains('fc-ok')) return load();
+    if (n < 150) setTimeout(() => wait(n + 1), 100);
+  })(0);
 })();

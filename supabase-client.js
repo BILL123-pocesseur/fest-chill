@@ -82,7 +82,7 @@ async function fcSignInWithGoogle() {
     provider: "google",
     options: { redirectTo: window.location.origin + "/festchill-dashboard.html" }
   });
-  if (error) alert("Erreur de connexion : " + error.message);
+  if (error) fcAlert("Erreur de connexion : " + error.message);
 }
 
 // Inscription par email/mot de passe
@@ -129,20 +129,20 @@ async function fcGetProfile() {
 async function fcRequireAuth({ adminOnly = false } = {}) {
   const session = await fcGetSession();
   if (!session) {
-    window.location.href = "festchill-landing.html";
+    window.location.replace("festchill-landing.html");
     return null;
   }
   const profile = await fcGetProfile();
   if (profile?.status === "blocked") {
     await supa.auth.signOut();
     sessionStorage.setItem('fc-redirect-notice', "Ton compte est bloqué. Contacte l'administrateur de Fest&Chill.");
-    window.location.href = "festchill-landing.html";
+    window.location.replace("festchill-landing.html");
     return null;
   }
   if (adminOnly && profile?.role !== "admin") {
     // On explique pourquoi (sinon ça ressemble à un bug plutôt qu'à un accès refusé).
     sessionStorage.setItem('fc-redirect-notice', "Accès administrateur requis pour cette page.");
-    window.location.href = "festchill-dashboard.html";
+    window.location.replace("festchill-dashboard.html");
     return null;
   }
   fcApplyProfilePrefs(profile);
@@ -2871,3 +2871,44 @@ function fcDownloadCsv(filename, headers, rows) {
   const csv = '\uFEFF' + [headers.map(esc).join(';')].concat(rows.map(r => r.map(esc).join(';'))).join('\r\n');
   fcDownloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), filename);
 }
+
+// ============================================================
+// FENÊTRES DU SITE (remplacent confirm / prompt / alert du navigateur)
+// fcConfirm(message, {title, ok, danger}) -> Promise<boolean>
+// fcPrompt(message, defaut, {title, ok, placeholder, type}) -> Promise<string|null>
+// fcAlert(message, {title}) -> Promise<void>
+// ============================================================
+function fcDialog(opts) {
+  return new Promise((resolve) => {
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:20000;display:flex;align-items:center;justify-content:center;padding:16px';
+    const box = document.createElement('div');
+    box.setAttribute('role', 'dialog');
+    box.style.cssText = 'width:min(94vw,420px);max-height:90vh;overflow:auto;background:var(--surface,#fff);color:var(--text,#222);border:1px solid var(--border,#ddd);border-radius:16px;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.4);font-family:inherit';
+    const msg = String(opts.message == null ? '' : opts.message);
+    box.innerHTML = (opts.title ? '<div style="font-weight:800;font-size:1.05rem;margin-bottom:8px">' + fcEscapeHtml(opts.title) + '</div>' : '')
+      + '<div style="font-size:.9rem;line-height:1.5;white-space:pre-wrap;word-break:break-word">' + fcEscapeHtml(msg) + '</div>'
+      + (opts.input ? '<input id="fc-dlg-input" class="form-input" style="width:100%;box-sizing:border-box;margin-top:12px;padding:10px 12px;border-radius:10px;border:1px solid var(--border,#ccc);background:var(--bg,#fff);color:inherit" type="' + (opts.type || 'text') + '" placeholder="' + fcEscapeHtml(opts.placeholder || '') + '" value="' + fcEscapeHtml(opts.value == null ? '' : String(opts.value)) + '">' : '')
+      + '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap">'
+      + (opts.cancel === false ? '' : '<button type="button" id="fc-dlg-cancel" style="padding:10px 16px;border-radius:10px;border:1px solid var(--border,#ccc);background:transparent;color:inherit;font-weight:700;cursor:pointer">' + fcEscapeHtml(opts.cancel || 'Annuler') + '</button>')
+      + '<button type="button" id="fc-dlg-ok" style="padding:10px 18px;border-radius:10px;border:none;background:' + (opts.danger ? '#C4321F' : '#2F7D4F') + ';color:#fff;font-weight:800;cursor:pointer">' + fcEscapeHtml(opts.ok || 'OK') + '</button></div>';
+    ov.appendChild(box); document.body.appendChild(ov);
+    const input = box.querySelector('#fc-dlg-input');
+    const done = (v) => { document.removeEventListener('keydown', onKey, true); ov.remove(); resolve(v); };
+    const okVal = () => (opts.input ? input.value : true);
+    const cancelVal = opts.input ? null : false;
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); done(cancelVal); }
+      else if (e.key === 'Enter' && (opts.input || document.activeElement === document.body)) { e.preventDefault(); done(okVal()); }
+    }
+    document.addEventListener('keydown', onKey, true);
+    box.querySelector('#fc-dlg-ok').onclick = () => done(okVal());
+    const c = box.querySelector('#fc-dlg-cancel'); if (c) c.onclick = () => done(cancelVal);
+    ov.addEventListener('mousedown', (e) => { if (e.target === ov && opts.cancel !== false) done(cancelVal); });
+    (input || box.querySelector('#fc-dlg-ok')).focus();
+    if (input) input.select();
+  });
+}
+function fcConfirm(message, o = {}) { return fcDialog({ message, title: o.title, ok: o.ok || 'Confirmer', danger: o.danger, cancel: 'Annuler' }); }
+function fcPrompt(message, value, o = {}) { return fcDialog({ message, title: o.title, ok: o.ok || 'Valider', input: true, value, placeholder: o.placeholder, type: o.type, danger: o.danger }); }
+function fcAlert(message, o = {}) { return fcDialog({ message, title: o.title, ok: 'OK', cancel: false }).then(() => undefined); }

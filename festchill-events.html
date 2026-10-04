@@ -575,7 +575,7 @@ function render(){
 async function clearHistory(){
   const ids = allEvents.filter(e => (e.isPast || e.status === 'ended') && !e.hidden_from_history).map(e => e.id);
   if (!ids.length) return;
-  if (!confirm(`Vider l'historique (${ids.length} événement${ids.length>1?'s':''}) ? Les données de vente restent conservées, ils disparaissent juste de cette liste.`)) return;
+  if (!await fcConfirm(`Vider l'historique (${ids.length} événement${ids.length>1?'s':''}) ? Les données de vente restent conservées, ils disparaissent juste de cette liste.`)) return;
   await supa.from('events').update({ hidden_from_history: true }).in('id', ids);
   allEvents = allEvents.map(e => ids.includes(e.id) ? { ...e, hidden_from_history: true } : e);
   render();

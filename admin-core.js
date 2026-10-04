@@ -110,7 +110,8 @@ let adminProfile = null;
 
 async function boot(){
   adminProfile = await fcRequireAuth({ adminOnly: true });
-  if (!adminProfile) return;
+  if (!adminProfile) return;              // pas connecté / pas admin : la page reste cachée, on est redirigé
+  document.documentElement.classList.add('fc-ok');   // accès administrateur confirmé : on montre la page
   fcMountSidebar(adminProfile);
   document.getElementById('side-name').textContent = adminProfile.full_name || fcT('admin.title');
   await loadAll();

@@ -656,7 +656,7 @@ async function startCamera(){
       () => {}
     );
   } catch (e) {
-    alert("Impossible d'accéder à la caméra : " + e);
+    fcAlert("Impossible d'accéder à la caméra : " + e);
     stopCamera();
   }
 }
