@@ -6,7 +6,7 @@
    ============================================================ */
 (function () {
   'use strict';
-  if (typeof supa === 'undefined' || typeof ADMIN_GROUPS === 'undefined') return;
+  if (typeof supa === 'undefined') return;
 
   const esc = (v) => fcEscapeHtml(v == null ? '' : String(v));
   const money = (n) => Number(n || 0).toLocaleString('fr-FR') + ' F';
@@ -36,74 +36,34 @@
   }
   function fail(el, e) { el.innerHTML = '<div style="padding:20px;color:var(--red);font-size:.85rem">Erreur : ' + esc(e.message || e) + '</div>'; }
 
-  /* ---------- Construction de la page ---------- */
-  const anchor = document.getElementById('sec-security');
-  const host = anchor ? anchor.parentElement : null;
-  if (!host) return;
-
+  /* ---------- Cartes (chaque page admin place des emplacements data-slot) ---------- */
   const btn = (label, cls, attrs) => '<button class="btn ' + cls + ' btn-sm" ' + attrs + '>' + label + '</button>';
-  const sections = [
-    card('sec-dashboard', '📈 Tableau de bord', btn('Actualiser', 'btn-ghost', 'onclick="FCAdmin.dash()"'), 'dash-body'),
-    card('sec-withdrawals', '💸 File de retraits',
+  const DEFS = {
+    'sec-dashboard': ['📈 Tableau de bord', btn('Actualiser', 'btn-ghost', 'onclick="FCAdmin.dash()"'), 'dash-body', () => FCAdmin.dash()],
+    'sec-withdrawals': ['💸 File de retraits',
       '<select id="wd-filter" onchange="FCAdmin.withdrawals()" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text)">'
-      + '<option value="">Tous</option><option value="pending">En attente</option><option value="failed">Échoués</option><option value="confirmed">Envoyés</option></select>', 'wd-body'),
-    card('sec-refunds', '↩️ Remboursements à effectuer', '', 'refunds-body'),
-    card('sec-exports', '📤 Exports Excel / CSV', '', 'exports-body'),
-    card('sec-moderation', '🛡️ Modération des événements',
-      '<input id="mod-search" placeholder="Rechercher un événement…" oninput="FCAdmin.moderationRender()" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text)">', 'mod-body'),
-    card('sec-featured', '⭐ Mise en avant payante', btn('Actualiser', 'btn-ghost', 'onclick="FCAdmin.featured()"'), 'feat-body'),
-    card('sec-fraud', '🚨 Détection de fraude', btn('Actualiser', 'btn-ghost', 'onclick="FCAdmin.fraud()"'), 'fraud-body'),
-    card('sec-announce', '📢 Annonces aux organisateurs', '', 'announce-body'),
-    card('sec-search', '🔎 Recherche d\'un ticket ou d\'un acheteur', '', 'search-body')
-  ];
-  const tmp = document.createElement('div');
-  tmp.innerHTML = sections.join('');
-  const statsRow = document.querySelector('.stats-row');
-  Array.from(tmp.children).forEach(el => {
-    if (el.id === 'sec-dashboard' && statsRow) statsRow.parentElement.insertBefore(el, statsRow);
-    else host.insertBefore(el, anchor.nextSibling);
-  });
-
-  // Groupes de la barre latérale
-  ADMIN_GROUPS.home.unshift('sec-dashboard');
-  ADMIN_GROUPS.events.push('sec-moderation', 'sec-featured');
-  ADMIN_GROUPS.finance.push('sec-withdrawals', 'sec-refunds', 'sec-exports');
-  ADMIN_GROUPS.fraud = ['sec-fraud'];
-  ADMIN_GROUPS.announce = ['sec-announce'];
-  ADMIN_GROUPS.search = ['sec-search'];
-
-  // Liens de menu
-  const nav = document.querySelector('.sidebar-nav');
-  const backLink = nav && nav.querySelector('a[href="festchill-dashboard.html"]');
-  const links = [
-    ['sec-moderation', 'events', '🛡️', 'Modération'],
-    ['sec-featured', 'events', '⭐', 'Mise en avant'],
-    ['sec-withdrawals', 'finance', '💸', 'Retraits'],
-    ['sec-refunds', 'finance', '↩️', 'Remboursements'],
-    ['sec-exports', 'finance', '📤', 'Exports'],
-    ['sec-fraud', 'fraud', '🚨', 'Fraude'],
-    ['sec-announce', 'announce', '📢', 'Annonces'],
-    ['sec-search', 'search', '🔎', 'Recherche']
-  ];
-  links.forEach(([target, group, icon, label]) => {
-    const a = document.createElement('a');
-    a.href = '#' + target; a.className = 's-link'; a.dataset.go = group; a.dataset.target = target;
-    a.innerHTML = '<span class="ic">' + icon + '</span> <span>' + label + '</span>';
-    a.addEventListener('click', (ev) => { ev.preventDefault(); adminShowGroup(group, target); if (typeof closeSidebarIfMobile === 'function') closeSidebarIfMobile(); });
-    if (backLink) backLink.parentElement.insertBefore(a, backLink); else nav.appendChild(a);
-  });
-
-  // Charge chaque section la première fois qu'on l'affiche
-  const lazy = {
-    'sec-dashboard': () => FCAdmin.dash(), 'sec-withdrawals': () => FCAdmin.withdrawals(), 'sec-refunds': () => FCAdmin.refunds(),
-    'sec-exports': () => FCAdmin.exportsInit(), 'sec-moderation': () => FCAdmin.moderation(), 'sec-featured': () => FCAdmin.featured(), 'sec-fraud': () => FCAdmin.fraud(),
-    'sec-announce': () => FCAdmin.announce(), 'sec-search': () => FCAdmin.searchInit()
+      + '<option value="">Tous</option><option value="pending">En attente</option><option value="failed">Échoués</option><option value="confirmed">Envoyés</option></select>', 'wd-body', () => FCAdmin.withdrawals()],
+    'sec-refunds': ['↩️ Remboursements à effectuer', '', 'refunds-body', () => FCAdmin.refunds()],
+    'sec-exports': ['📤 Exports Excel / CSV', '', 'exports-body', () => FCAdmin.exportsInit()],
+    'sec-moderation': ['🛡️ Modération des événements',
+      '<input id="mod-search" placeholder="Rechercher un événement…" oninput="FCAdmin.moderationRender()" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text)">', 'mod-body', () => FCAdmin.moderation()],
+    'sec-featured': ['⭐ Mise en avant payante', btn('Actualiser', 'btn-ghost', 'onclick="FCAdmin.featured()"'), 'feat-body', () => FCAdmin.featured()],
+    'sec-fraud': ['🚨 Détection de fraude', btn('Actualiser', 'btn-ghost', 'onclick="FCAdmin.fraud()"'), 'fraud-body', () => FCAdmin.fraud()],
+    'sec-sessions': ['📱 Connexions récentes', btn('Actualiser', 'btn-ghost', 'onclick="FCAdmin.sessions()"'), 'sess-body', () => FCAdmin.sessions()],
+    'sec-audit': ['📜 Journal des actions admin', btn('Actualiser', 'btn-ghost', 'onclick="FCAdmin.audit()"'), 'audit-body', () => FCAdmin.audit()],
+    'sec-announce': ['📢 Annonces aux organisateurs', '', 'announce-body', () => FCAdmin.announce()],
+    'sec-search': ['🔎 Recherche d\'un ticket ou d\'un acheteur', '', 'search-body', () => FCAdmin.searchInit()]
   };
-  const origShow = window.adminShowGroup;
-  window.adminShowGroup = function (group, target) {
-    origShow(group, target);
-    (ADMIN_GROUPS[group] || []).forEach(id => { if (lazy[id] && !loaded[id]) { loaded[id] = true; lazy[id](); } });
-  };
+  function mountSlots() {
+    document.querySelectorAll('[data-slot]').forEach(slot => {
+      const d = DEFS[slot.dataset.slot];
+      if (!d) return;
+      const wrap = document.createElement('div');
+      wrap.innerHTML = card(slot.dataset.slot, d[0], d[1], d[2]);
+      slot.replaceWith(wrap.firstElementChild);
+      d[3]();
+    });
+  }
 
   /* ============================================================
      ACTIONS
@@ -126,7 +86,7 @@
           + esc(s.d) + ' — ' + money(s.amount) + ' (' + s.count + ' ticket(s))</title></rect>';
       }).join('');
       const al = d.alerts || {};
-      const chip = (n, label, group, target, danger) => '<a href="#' + (target || group) + '" onclick="event.preventDefault();adminShowGroup(\'' + group + '\',' + (target ? '\'' + target + '\'' : 'null') + ')" '
+      const chip = (n, label, href, danger) => '<a href="' + href + '" '
         + 'style="display:inline-flex;gap:6px;align-items:center;padding:8px 12px;border-radius:100px;font-size:.78rem;font-weight:700;text-decoration:none;color:inherit;border:1px solid '
         + (n > 0 && danger ? 'rgba(255,90,95,.5);background:rgba(255,90,95,.12)' : n > 0 ? 'rgba(245,158,11,.5);background:rgba(245,158,11,.12)' : 'var(--border);background:transparent;opacity:.65') + '">'
         + '<b>' + n + '</b> ' + label + '</a>';
@@ -142,13 +102,13 @@
         + '<div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted);margin-bottom:16px"><span>' + esc((series[0] || {}).d || '') + '</span><span>' + esc((series[series.length - 1] || {}).d || '') + '</span></div>'
         + '<div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:8px">À surveiller</div>'
         + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">'
-        + chip(al.pending_withdrawals || 0, 'retrait(s) en attente', 'finance', 'sec-withdrawals', false)
-        + chip(al.failed_withdrawals || 0, 'retrait(s) échoué(s)', 'finance', 'sec-withdrawals', true)
-        + chip(al.fraud || 0, 'alerte(s) fraude', 'fraud', null, true)
-        + chip(al.locked_pins || 0, 'PIN bloqué(s)', 'users', 'sec-security', false)
-        + chip(al.blocked_accounts || 0, 'compte(s) bloqué(s)', 'users', 'sec-security', false)
-        + chip(al.flagged_events || 0, 'événement(s) signalé(s)', 'events', 'sec-moderation', true)
-        + chip(al.refunds_to_pay || 0, 'remboursement(s) à payer', 'finance', 'sec-refunds', true) + '</div>'
+        + chip(al.pending_withdrawals || 0, 'retrait(s) en attente', 'festchill-admin-finance.html#sec-withdrawals', false)
+        + chip(al.failed_withdrawals || 0, 'retrait(s) échoué(s)', 'festchill-admin-finance.html#sec-withdrawals', true)
+        + chip(al.fraud || 0, 'alerte(s) fraude', 'festchill-admin-security.html', true)
+        + chip(al.locked_pins || 0, 'PIN bloqué(s)', 'festchill-admin-users.html', false)
+        + chip(al.blocked_accounts || 0, 'compte(s) bloqué(s)', 'festchill-admin-users.html', false)
+        + chip(al.flagged_events || 0, 'événement(s) signalé(s)', 'festchill-admin-events.html', true)
+        + chip(al.refunds_to_pay || 0, 'remboursement(s) à payer', 'festchill-admin-finance.html#sec-refunds', true) + '</div>'
         + '<div style="display:flex;gap:24px;flex-wrap:wrap"><div style="flex:1 1 280px"><div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:6px">Top 5 événements</div>' + top + '</div>'
         + '<div style="flex:1 1 220px"><div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:6px">Plateforme</div>'
         + '<div style="font-size:.85rem;line-height:1.9">👥 ' + (p.organizers || 0) + ' organisateurs<br>🎪 ' + (p.events_published || 0) + ' événements en vente<br>🎟️ ' + (p.tickets_sold || 0) + ' tickets vendus<br>💰 ' + money(p.commissions) + ' de commissions<br>⭐ ' + money(featRev) + ' de mises en avant</div></div></div></div>';
@@ -347,6 +307,36 @@
     if (error) toast(error.message, false); else { toast('Offre ajoutée'); FCAdmin.featured(); }
   };
 
+
+  /* ---------- Connexions et journal ---------- */
+  FCAdmin.sessions = async function () {
+    const el = document.getElementById('sess-body');
+    try {
+      const rows = await rpc('fc_admin_list_sessions', { p_user_id: null, p_limit: 300 });
+      el.innerHTML = table(['Utilisateur', 'Appareil', 'Première connexion', 'Dernière activité', 'État'], rows.map(r =>
+        '<tr><td style="' + TD + '"><b>' + esc(r.s_name || 'Sans nom') + '</b><div style="color:var(--muted);font-size:.72rem">' + esc(r.s_email || '') + '</div></td>'
+        + '<td style="' + TD + '">' + esc(r.s_device || '—') + '<div style="color:var(--muted);font-size:.72rem">' + esc(r.s_browser || '') + '</div></td>'
+        + '<td style="' + TD + ';white-space:nowrap">' + esc(when(r.s_created_at)) + '</td><td style="' + TD + ';white-space:nowrap">' + esc(when(r.s_last_seen)) + '</td>'
+        + '<td style="' + TD + '">' + (r.s_revoked ? '<span class="badge b-gray">Révoquée</span>' : '<span class="badge b-green">Active</span>') + '</td></tr>').join(''), 'Aucune connexion');
+    } catch (e) { fail(el, e); }
+  };
+  const ACTION_LABELS = {
+    reset_pin: 'PIN supprimé / débloqué', block_account: 'Compte bloqué', unblock_account: 'Compte débloqué', invalidate_password: 'Mot de passe supprimé',
+    revoke_sessions: 'Déconnexion forcée', delete_account: 'Compte supprimé', set_commission: 'Commission modifiée', block_withdrawal: 'Retrait bloqué',
+    retry_withdrawal: 'Retrait relancé', event_hide: 'Événement masqué', event_unhide: 'Événement affiché', event_feature: 'Événement mis à la une',
+    event_unfeature: 'Mise à la une retirée', event_flag: 'Événement signalé', event_unflag: 'Signalement retiré', event_delete: 'Événement supprimé',
+    announcement_create: 'Annonce publiée', announcement_delete: 'Annonce supprimée', refund_ticket: 'Ticket remboursé', refund_paid: 'Remboursement payé'
+  };
+  FCAdmin.audit = async function () {
+    const el = document.getElementById('audit-body');
+    try {
+      const rows = await rpc('fc_admin_list_audit', { p_limit: 200 });
+      el.innerHTML = table(['Date', 'Admin', 'Action', 'Utilisateur concerné'], rows.map(a =>
+        '<tr><td style="' + TD + ';white-space:nowrap">' + esc(when(a.a_created_at)) + '</td><td style="' + TD + '">' + esc(a.a_admin || '—') + '</td>'
+        + '<td style="' + TD + '">' + esc(ACTION_LABELS[a.a_action] || a.a_action) + '</td><td style="' + TD + '">' + esc(a.a_target || (a.a_details && a.a_details.name) || '—') + '</td></tr>').join(''), 'Aucune action enregistrée');
+    } catch (e) { fail(el, e); }
+  };
+
   /* ---------- 6. Fraude ---------- */
   FCAdmin.fraud = async function () {
     const el = document.getElementById('fraud-body');
@@ -437,10 +427,6 @@
     } catch (e) { toast(e.message, false); }
   };
 
-  // Affichage initial selon l'adresse (#fraud, #sec-search, …) : en dernier, quand toutes les fonctions existent
-  (function () {
-    const h = (location.hash || '').replace('#', '');
-    const grp = ADMIN_GROUPS[h] ? h : (Object.keys(ADMIN_GROUPS).find(g => ADMIN_GROUPS[g].includes(h)) || 'home');
-    window.adminShowGroup(grp, ADMIN_GROUPS[h] ? null : (h || null));
-  })();
+  // Les pages admin déposent leurs emplacements : on les remplit une fois toutes les fonctions prêtes
+  mountSlots();
 })();

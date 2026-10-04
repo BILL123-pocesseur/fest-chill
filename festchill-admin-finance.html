@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finances — Admin Fest&amp;Chill</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>(function(){
+  // Fest&Chill n'a plus qu'un seul thème (clair, chaud) — on force ça
+  // sans dépendre d'un ancien réglage 'fc-theme' resté dans le navigateur.
+  document.documentElement.setAttribute('data-theme','light');
+  localStorage.setItem('fc-theme','light');
+  var light=true;
+  var fcLang = localStorage.getItem('fc-lang')||'fr';
+  document.documentElement.lang = fcLang;
+  document.documentElement.dir = (fcLang === 'ar') ? 'rtl' : 'ltr';
+  var hex = localStorage.getItem('fc-accent');
+  if(hex){
+    function hexToRgb(h){h=h.replace('#','');if(h.length===3)h=h.split('').map(function(c){return c+c}).join('');var n=parseInt(h,16);return{r:(n>>16)&255,g:(n>>8)&255,b:n&255}}
+    function mix(a,b,amt){return{r:Math.round(a.r+(b.r-a.r)*amt),g:Math.round(a.g+(b.g-a.g)*amt),b:Math.round(a.b+(b.b-a.b)*amt)}}
+    function toHex(c){return '#'+[c.r,c.g,c.b].map(function(v){return Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0')}).join('').toUpperCase()}
+    var rgb=hexToRgb(hex);
+    var violet=mix(rgb,{r:0,g:0,b:0},0.28);
+    var glow=light?mix(rgb,{r:0,g:0,b:0},0.18):mix(rgb,{r:255,g:255,b:255},0.32);
+    var s=document.documentElement.style;
+    s.setProperty('--purple',hex);s.setProperty('--violet',toHex(violet));s.setProperty('--glow',toHex(glow));
+    s.setProperty('--accent-rgb',rgb.r+','+rgb.g+','+rgb.b);
+  }
+})();
+function toggleMobileSidebar(){
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.querySelector('.sidebar-overlay').classList.toggle('show');
+}
+</script>
+<link rel="stylesheet" href="admin.css?v=20261005">
+</head>
+<body>
+<div class="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <a href="festchill-landing.html">Fest<span>&amp;</span>Chill<span class="admin-badge">Admin</span></a>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Administration</div>
+    <a href="festchill-admin.html" class="s-link"><span class="ic">🏠</span> <span>Vue d'ensemble</span></a>
+    <a href="festchill-admin-users.html" class="s-link"><span class="ic">👥</span> <span>Utilisateurs</span></a>
+    <a href="festchill-admin-events.html" class="s-link"><span class="ic">🎪</span> <span>Événements</span></a>
+    <a href="festchill-admin-finance.html" class="s-link active"><span class="ic">💰</span> <span>Finances</span></a>
+    <a href="festchill-admin-security.html" class="s-link"><span class="ic">🔐</span> <span>Sécurité</span></a>
+    <a href="festchill-admin-tools.html" class="s-link"><span class="ic">🧰</span> <span>Outils</span></a>
+    <div class="nav-label">Accès</div>
+    <a href="festchill-dashboard.html" class="s-link"><span class="ic">↩️</span> <span>Vue organisateur</span></a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-pill">
+      <div class="avatar" id="side-avatar">–</div>
+      <div><div class="user-name" id="side-name">Chargement…</div><div class="user-role">Super Admin</div></div>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar"><button class="sidebar-toggle-btn" onclick="toggleMobileSidebar()" aria-label="Menu">☰</button>
+    <div class="topbar-title"><span>Finances</span></div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <span style="font-size:.8rem;color:var(--muted)" id="last-update">—</span>
+      <button class="btn btn-ghost btn-sm" onclick="location.reload()">↻ Actualiser</button>
+    </div>
+  </div>
+  <div class="page">
+    <div style="margin:0 0 16px;color:var(--muted);font-size:.86rem;line-height:1.5">Ton argent, les retraits des organisateurs, les remboursements et les exports. Quand tu retires toi-même, aucun pourcentage n'est prélevé.</div>
+<div class="three-col">
+      <div class="comm-card">
+        <div class="comm-label" data-i18n="admin.commissions_cumulated">Commissions cumulées</div>
+        <div class="comm-amount" id="comm-total">—</div>
+        <div style="font-size:.78rem;color:var(--muted)" id="comm-rate-txt">—</div>
+      </div>
+      <div class="comm-card" style="background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(5,150,105,.08));border-color:rgba(16,185,129,.25)">
+        <div class="comm-label" style="color:var(--green)" data-i18n="admin.gross_revenue">Chiffre d'affaires brut</div>
+        <div class="comm-amount" style="color:var(--green)" id="comm-gross">—</div>
+        <div style="font-size:.78rem;color:var(--muted)" id="comm-orders-count">—</div>
+      </div>
+      <div class="comm-card" style="background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(217,119,6,.06));border-color:rgba(245,158,11,.25)">
+        <div class="comm-label" style="color:var(--gold)" data-i18n="admin.total_paid_out">Total reversé aux org.</div>
+        <div class="comm-amount" style="color:var(--gold)" id="comm-withdrawn">—</div>
+        <div style="font-size:.78rem;color:var(--muted)" id="comm-withdraw-count">—</div>
+      </div>
+    </div><div class="section-card" id="sec-commission" style="margin-bottom:16px">
+          <div class="section-head">
+            <span class="section-head-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M17 11.5h2.5a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5H17a2 2 0 0 1 0-4Z"/><line x1="3" y1="8.7" x2="21" y2="8.7"/></svg> Solde commission plateforme</span>
+            <button class="btn btn-primary btn-sm" onclick="openAdminWithdrawModal()">Retirer</button>
+          </div>
+          <div style="padding:18px 20px">
+            <div style="font-family:var(--fd);font-size:1.9rem;font-weight:800;color:var(--gold)" id="admin-commission-balance">—</div>
+            <div style="font-size:.78rem;color:var(--muted);margin-top:4px">Ton argent : commissions prélevées sur les retraits des organisateurs + mises à la une payées. <b>Aucun pourcentage n'est prélevé quand tu retires.</b></div>
+            <div id="admin-balance-detail" style="font-size:.76rem;color:var(--muted);margin-top:8px;line-height:1.7"></div>
+          </div>
+        </div><div class="modal-overlay" id="admin-wd-modal">
+          <div class="modal">
+            <div class="modal-title">Retirer mon argent</div>
+            <div class="modal-sub">L'argent arrive sur ton Mobile Money en 5 à 10 minutes.</div>
+            <div class="form-label">Numéro de réception (Mobile Money)</div>
+            <input type="text" class="form-input" id="admin-wd-phone" placeholder="Ex: 61 23 45 67" style="margin-bottom:12px">
+            <div class="form-label">Opérateur</div>
+            <select class="form-input" id="admin-wd-operator" style="margin-bottom:12px">
+              <option value="mtn">MTN Money</option>
+              <option value="moov">Moov Money</option>
+            </select>
+            <div class="form-label">Montant (FCFA)</div>
+            <input type="number" class="form-input" id="admin-wd-amount" min="1000" style="margin-bottom:16px">
+            <div class="modal-actions">
+              <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="closeAdminWithdrawModal()">Annuler</button>
+              <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="processAdminWithdraw()">Confirmer</button>
+            </div>
+          </div>
+        </div>    <div data-slot="sec-withdrawals"></div>
+    <div data-slot="sec-refunds"></div>
+<div class="section-card" id="sec-revenue" style="margin-bottom:16px">
+          <div class="section-head">
+            <span class="section-head-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 16 10 10 14 14 20 6"/><polyline points="14.5 6 20 6 20 11.5"/></svg> <span data-i18n="admin.revenue_30d">Revenus plateforme (30j)</span></span>
+            <span style="font-size:.78rem;color:var(--gold);font-weight:700">+23% ce mois</span>
+          </div>
+          <div style="display:flex;gap:16px;align-items:center;padding:0 20px 4px">
+            <div style="width:56px;flex-shrink:0"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
+  <line x1="40" y1="140" x2="210" y2="140" stroke="#1E4750" stroke-width="2"/>
+  <rect x="55" y="104" width="20" height="36" rx="3" fill="#FFF4E1" stroke="#C4321F" stroke-width="2"/>
+  <rect x="88" y="80" width="20" height="60" rx="3" fill="#FFF4E1" stroke="#C4321F" stroke-width="2"/>
+  <rect x="121" y="58" width="20" height="82" rx="3" fill="#C4321F" opacity=".25" stroke="#C4321F" stroke-width="2"/>
+  <rect x="154" y="94" width="20" height="46" rx="3" fill="#FFF4E1" stroke="#C4321F" stroke-width="2"/>
+  <polyline points="60 100 98 74 131 50 164 84" fill="none" stroke="#FF8A3D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="131" cy="50" r="4" fill="#FF8A3D"/>
+  <circle cx="164" cy="84" r="3" fill="#FF8A3D"/>
+  <circle cx="98" cy="74" r="3" fill="#FF8A3D"/>
+  <circle cx="60" cy="100" r="3" fill="#FF8A3D"/>
+</svg></div>
+            <div style="font-size:.78rem;color:var(--muted)">La commission de la plateforme (5%, prélevée au moment du retrait de chaque organisateur) progresse avec le volume de ventes.</div>
+          </div>
+          <div class="chart-wrap" id="admin-chart"></div>
+        </div><div class="section-card" id="sec-transactions">
+          <div class="section-head" style="gap:10px">
+            <span class="section-head-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5.5" width="19" height="13" rx="2.2"/><line x1="2.5" y1="9.8" x2="21.5" y2="9.8"/><line x1="6" y1="14.5" x2="10" y2="14.5"/></svg> <span data-i18n="admin.recent_transactions">Transactions récentes</span></span>
+            <div style="width:30px;flex-shrink:0;margin-left:auto"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
+  <path d="M96 100a24 24 0 0 1 48 0c0 16 5.2 21.6 7.6 24H88.4c2.4-2.4 7.6-8 7.6-24Z" fill="#FFE3BE" stroke="#FF8A3D" stroke-width="2.5"/>
+  <path d="M112.5 130a7.5 7.5 0 0 0 15 0" fill="none" stroke="#FF8A3D" stroke-width="2.5"/>
+  <path d="M150 78a34 34 0 0 1 0 40" fill="none" stroke="#1E8A5F" stroke-width="2.2" stroke-linecap="round" opacity=".65"/>
+  <path d="M160 66a50 50 0 0 1 0 64" fill="none" stroke="#1E8A5F" stroke-width="2.2" stroke-linecap="round" opacity=".35"/>
+  <rect x="46" y="56" width="26" height="34" rx="4" fill="#FFF4E1" stroke="#C4321F" stroke-width="2" transform="rotate(-8 59 73)"/>
+  <circle cx="196" cy="120" r="4" fill="#34D399"/>
+  <circle cx="60" cy="128" r="3" fill="#FFD9A8"/>
+</svg></div>
+            <button class="btn btn-ghost btn-sm" onclick="showToast(fcT('admin.export_full_ready'),FCI['download'])"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11.5"/><polyline points="7.5 11 12 15.5 16.5 11"/><path d="M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7"/></svg> <span data-i18n="common.export">Export</span></button>
+          </div>
+          <table>
+            <thead><tr><th>ID</th><th data-i18n="admin.organizer">Organisateur</th><th data-i18n="transactions.col_type">Type</th><th data-i18n="common.amount">Montant</th><th data-i18n="admin.operator">Opérateur</th><th data-i18n="common.status">Statut</th></tr></thead>
+            <tbody id="orders-tbody"><tr><td colspan="6" style="text-align:center;color:var(--muted)" data-i18n="common.loading">Chargement…</td></tr></tbody>
+          </table>
+        </div>    <div data-slot="sec-exports"></div>
+
+  </div>
+</main>
+
+<div class="toast" id="toast"><span id="toast-icon"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 10.8 15.3 16 9.5"/></svg></span><span id="toast-msg"></span></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase-client.js?v=20261005"></script>
+<script src="admin-core.js?v=20261005"></script>
+<script src="admin-tools.js?v=20261005"></script>
+</body>
+</html>
