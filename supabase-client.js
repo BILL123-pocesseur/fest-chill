@@ -148,6 +148,7 @@ async function fcRequireAuth({ adminOnly = false } = {}) {
   fcApplyProfilePrefs(profile);
   fcRecordSession(session.user.id); // ne bloque pas le rendu de la page
   try { fcShowAnnouncements(); } catch (e) {}
+  try { fcApplyPendingReferral(); } catch (e) {}
   return profile;
 }
 
@@ -2584,7 +2585,8 @@ function fcEscapeHtml(str) {
 const FC_OPERATOR_LABELS = {
   mtn:     { long: 'MTN Mobile Money', short: 'MTN Money' },
   moov:    { long: 'Moov Money',       short: 'Moov Money' },
-  celtiis: { long: 'Celtiis Cash',     short: 'Celtiis Cash' },
+  celtiis: { long: 'Celtiis Cash',     short: 'Celtiis Cash' },   // ancien opérateur : gardé pour afficher l'historique
+  card:    { long: 'Carte bancaire',   short: 'Carte bancaire' },
 };
 function fcOperatorLabel(op, style) {
   const entry = FC_OPERATOR_LABELS[op] || FC_OPERATOR_LABELS.mtn;
@@ -2912,3 +2914,33 @@ function fcDialog(opts) {
 function fcConfirm(message, o = {}) { return fcDialog({ message, title: o.title, ok: o.ok || 'Confirmer', danger: o.danger, cancel: 'Annuler' }); }
 function fcPrompt(message, value, o = {}) { return fcDialog({ message, title: o.title, ok: o.ok || 'Valider', input: true, value, placeholder: o.placeholder, type: o.type, danger: o.danger }); }
 function fcAlert(message, o = {}) { return fcDialog({ message, title: o.title, ok: 'OK', cancel: false }).then(() => undefined); }
+
+
+// ============================================================
+// PARRAINAGE : le code vient d'un lien (?ref=CODE) ou du champ d'inscription
+// ============================================================
+(function captureReferralFromLink() {
+  try {
+    const r = new URLSearchParams(location.search).get('ref');
+    if (r && /^[A-Za-z0-9]{4,12}$/.test(r)) localStorage.setItem('fc-ref', r.toUpperCase());
+  } catch (e) {}
+})();
+
+async function fcApplyPendingReferral() {
+  let code = null;
+  try { code = localStorage.getItem('fc-ref'); } catch (e) {}
+  if (!code) return;
+  const { data, error } = await supa.rpc('fc_apply_referral', { p_code: code });
+  if (error) return;                         // erreur réseau : on réessaiera à la prochaine page
+  try { localStorage.removeItem('fc-ref'); } catch (e) {}   // réponse définitive (acceptée ou refusée)
+  if (data === 'ok') { try { showToast('🤝 Code parrain enregistré !', FCI['check-circle']); } catch (e) {} }
+}
+
+// Taux de commission réel de l'organisateur connecté (tient compte du parrainage)
+async function fcMyCommissionRate(fallback) {
+  try {
+    const { data, error } = await supa.rpc('fc_my_commission_rate');
+    if (!error && data != null) return Number(data);
+  } catch (e) {}
+  return fallback;
+}

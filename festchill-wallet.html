@@ -335,6 +335,7 @@ tr{transition:background .2s}
     <a href="festchill-transactions.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="20" x2="5" y2="11"/><line x1="12" y1="20" x2="12" y2="5"/><line x1="19" y1="20" x2="19" y2="14"/></svg></span> <span data-i18n="nav.transactions">Transactions</span></a>
     <div class="nav-label" data-i18n="nav.group_tools">Outils</div>
     <a href="festchill-scanner.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.2A1.7 1.7 0 0 1 5.7 6.5h2.1l1-1.7h6.4l1 1.7h2.1A1.7 1.7 0 0 1 20 8.2v9.1a1.7 1.7 0 0 1-1.7 1.7H5.7A1.7 1.7 0 0 1 4 17.3Z"/><circle cx="12" cy="12.4" r="3.4"/></svg></span> <span data-i18n="nav.scanner">Scanner QR</span></a>
+    <a href="festchill-referral.html" class="s-link"><span class="ic">🤝</span> <span>Parrainage</span></a>
     <a href="festchill-settings.html" class="s-link"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2.06 2.06 0 1 1-2.92 2.92l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56v.17a2.06 2.06 0 1 1-4.12 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2.06 2.06 0 1 1-2.92-2.92l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03h-.17a2.06 2.06 0 1 1 0-4.12h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2.06 2.06 0 1 1 2.92-2.92l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1.03-1.56v-.17a2.06 2.06 0 1 1 4.12 0v.09a1.7 1.7 0 0 0 1.03 1.56h.08a1.7 1.7 0 0 0 1.87-.34l.06-.06a2.06 2.06 0 1 1 2.92 2.92l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.03h.17a2.06 2.06 0 1 1 0 4.12h-.09a1.7 1.7 0 0 0-1.56 1.03Z"/></svg></span> <span data-i18n="nav.settings">Paramètres</span></a>
     <div class="nav-label" data-i18n="nav.group_admin" id="admin-nav-label" style="display:none">Admin</div>
     <a href="festchill-admin.html" class="s-link" id="admin-nav-link" style="display:none"><span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 4.5 6.3v5.4c0 4.7 3.2 8.6 7.5 9.8 4.3-1.2 7.5-5.1 7.5-9.8V6.3Z"/><path d="M9.2 12.2l1.9 1.9 3.7-3.9"/></svg></span> <span data-i18n="nav.admin">Administration</span></a>
@@ -547,10 +548,9 @@ tr{transition:background .2s}
     <div class="modal-sub">Ce numéro pourra recevoir tes retraits une fois enregistré.</div>
 
     <div class="form-label" data-i18n="wallet.operator_label">Opérateur</div>
-    <div class="op-grid" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="op-grid" style="grid-template-columns:1fr 1fr">
       <button class="op-btn sel" id="add-op-mtn" onclick="selAddOp('mtn')"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><line x1="11" y1="18.3" x2="13" y2="18.3"/></svg> MTN Money</button>
       <button class="op-btn" id="add-op-moov" onclick="selAddOp('moov')"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><line x1="11" y1="18.3" x2="13" y2="18.3"/></svg> Moov Money</button>
-      <button class="op-btn" id="add-op-celtiis" onclick="selAddOp('celtiis')"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><line x1="11" y1="18.3" x2="13" y2="18.3"/></svg> Celtiis Cash</button>
     </div>
 
     <div class="form-label">Numéro de téléphone</div>
@@ -681,7 +681,7 @@ async function boot(){
 
 async function loadAll(){
   const { data: cfg } = await supa.from('platform_config').select('commission_rate').eq('id',1).single();
-  const rate = profile?.commission_rate ?? cfg?.commission_rate ?? 5;
+  const rate = await fcMyCommissionRate(profile?.commission_rate ?? cfg?.commission_rate ?? 5);
 
   const { data: orders } = await supa
     .from('orders')
@@ -710,7 +710,8 @@ async function loadAll(){
   const withdrawnConfirmed = (withdrawals||[]).filter(w=>w.status==='confirmed').reduce((s,w)=>s+grossWithdrawn(w),0);
   const withdrawnPending = (withdrawals||[]).filter(w=>w.status==='pending').reduce((s,w)=>s+grossWithdrawn(w),0);
   availableBalance = Math.max(0, gross - withdrawnConfirmed - withdrawnPending);
-  const net = gross - Math.round(gross * rate / 100); // pour l'affichage informatif seulement
+  const commission = Math.round(gross * rate / 100); // pour l'affichage informatif seulement
+  const net = gross - commission;
 
   document.getElementById('wh-available').innerHTML = availableBalance.toLocaleString('fr-FR') + ' <span style="font-size:1rem;font-weight:400;opacity:.6">FCFA</span>';
   document.getElementById('wh-earned').innerHTML = gross.toLocaleString('fr-FR') + ' <span style="font-size:1rem;font-weight:400;opacity:.6">FCFA</span>';
@@ -893,7 +894,6 @@ function selAddOp(op){
   addOp = op;
   document.getElementById('add-op-mtn').classList.toggle('sel', op === 'mtn');
   document.getElementById('add-op-moov').classList.toggle('sel', op === 'moov');
-  document.getElementById('add-op-celtiis').classList.toggle('sel', op === 'celtiis');
 }
 
 function openAddNumberModal(){

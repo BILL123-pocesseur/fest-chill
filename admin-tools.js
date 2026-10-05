@@ -53,6 +53,7 @@
     'sec-sessions': ['📱 Connexions récentes', btn('Actualiser', 'btn-ghost', 'onclick="FCAdmin.sessions()"'), 'sess-body', () => FCAdmin.sessions()],
     'sec-audit': ['📜 Journal des actions admin', btn('Actualiser', 'btn-ghost', 'onclick="FCAdmin.audit()"'), 'audit-body', () => FCAdmin.audit()],
     'sec-announce': ['📢 Annonces aux organisateurs', '', 'announce-body', () => FCAdmin.announce()],
+    'sec-referrals': ['🤝 Parrainage des organisateurs', btn('Actualiser', 'btn-ghost', 'onclick="FCAdmin.referrals()"'), 'ref-body', () => FCAdmin.referrals()],
     'sec-search': ['🔎 Recherche d\'un ticket ou d\'un acheteur', '', 'search-body', () => FCAdmin.searchInit()]
   };
   // On n'appelle jamais le serveur avant que l'accès administrateur soit confirmé (page cachée tant que ce n'est pas le cas)
@@ -419,7 +420,7 @@
     revoke_sessions: 'Déconnexion forcée', delete_account: 'Compte supprimé', set_commission: 'Commission modifiée', block_withdrawal: 'Retrait bloqué',
     retry_withdrawal: 'Retrait relancé', event_hide: 'Événement masqué', event_unhide: 'Événement affiché', event_feature: 'Événement mis à la une',
     event_unfeature: 'Mise à la une retirée', event_flag: 'Événement signalé', event_unflag: 'Signalement retiré', event_delete: 'Événement supprimé',
-    announcement_create: 'Annonce publiée', feature_approved: 'Mise à la une validée', feature_refused: 'Mise à la une refusée', feature_waiting: 'Mise à la une payée (attend ta validation)', auto_hold_withdrawal: 'Retrait retenu', auto_block_account: 'Compte bloqué (PIN)', release_withdrawal: 'Retrait retenu autorisé', automation_feature_auto: 'Réglage mise à la une changé', automation_hold_suspect_withdrawals: 'Réglage retraits suspects changé', automation_block_on_pin_lock: 'Réglage blocage PIN changé', announcement_delete: 'Annonce supprimée', refund_ticket: 'Ticket remboursé', refund_paid: 'Remboursement payé'
+    announcement_create: 'Annonce publiée', referral_settings: 'Réglages du parrainage changés', referral_revoked: 'Parrainage annulé', referral_restored: 'Parrainage rétabli', feature_approved: 'Mise à la une validée', feature_refused: 'Mise à la une refusée', feature_waiting: 'Mise à la une payée (attend ta validation)', auto_hold_withdrawal: 'Retrait retenu', auto_block_account: 'Compte bloqué (PIN)', release_withdrawal: 'Retrait retenu autorisé', automation_feature_auto: 'Réglage mise à la une changé', automation_hold_suspect_withdrawals: 'Réglage retraits suspects changé', automation_block_on_pin_lock: 'Réglage blocage PIN changé', announcement_delete: 'Annonce supprimée', refund_ticket: 'Ticket remboursé', refund_paid: 'Remboursement payé'
   };
   FCAdmin.audit = async function () {
     const el = document.getElementById('audit-body');
@@ -429,6 +430,38 @@
         '<tr><td style="' + TD + ';white-space:nowrap">' + esc(when(a.a_created_at)) + '</td><td style="' + TD + '">' + esc(a.a_admin || '—') + '</td>'
         + '<td style="' + TD + '">' + esc(ACTION_LABELS[a.a_action] || a.a_action) + '</td><td style="' + TD + '">' + esc(a.a_target || (a.a_details && a.a_details.name) || '—') + '</td></tr>').join(''), 'Aucune action enregistrée');
     } catch (e) { fail(el, e); }
+  };
+
+
+  /* ---------- Parrainage ---------- */
+  FCAdmin.referrals = async function () {
+    const el = document.getElementById('ref-body');
+    try {
+      const d = await rpc('fc_admin_referrals');
+      const inp = 'padding:7px 9px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);width:90px';
+      el.innerHTML = '<div style="padding:14px 18px;border-bottom:1px solid var(--border)">'
+        + '<div style="font-size:.8rem;color:var(--muted);line-height:1.5;margin-bottom:10px">Un organisateur qui en invite un autre voit sa commission baisser quand l\'invité a réellement encaissé un minimum de ventes (ses propres achats ne comptent pas).</div>'
+        + '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">'
+        + '<label style="font-size:.76rem">Parrainage<br><select id="rf-on" style="' + inp + ';width:120px"><option value="1"' + (d.enabled ? ' selected' : '') + '>Activé</option><option value="0"' + (!d.enabled ? ' selected' : '') + '>Désactivé</option></select></label>'
+        + '<label style="font-size:.76rem">Réduction par invité (points)<br><input id="rf-step" type="number" min="0" max="10" step="0.5" value="' + esc(d.reward_step) + '" style="' + inp + '"></label>'
+        + '<label style="font-size:.76rem">Commission minimale (%)<br><input id="rf-min" type="number" min="0" max="30" step="0.5" value="' + esc(d.min_rate) + '" style="' + inp + '"></label>'
+        + '<label style="font-size:.76rem">Ventes de l\'invité (F)<br><input id="rf-sales" type="number" min="0" step="1000" value="' + esc(d.min_sales) + '" style="' + inp + ';width:110px"></label>'
+        + btn('Enregistrer', 'btn-success', 'onclick="FCAdmin.referralSave()"') + '</div></div>'
+        + table(['Invité', 'Parrain', 'Date', 'Ventes encaissées', 'État', ''], (d.list || []).map(r =>
+          '<tr><td style="' + TD + '"><b>' + esc(r.referee || '—') + '</b></td><td style="' + TD + '">' + esc(r.referrer || '—') + '</td>'
+          + '<td style="' + TD + ';white-space:nowrap">' + esc(when(r.applied_at)) + '</td><td style="' + TD + '">' + money(r.sales) + '</td>'
+          + '<td style="' + TD + '">' + (r.revoked ? '<span class="badge b-red">Annulé</span>' : r.qualified ? '<span class="badge b-green">Compte</span>' : '<span class="badge b-gold">En cours</span>') + '</td>'
+          + '<td style="' + TD + '">' + btn(r.revoked ? 'Rétablir' : 'Annuler', r.revoked ? 'btn-success' : 'btn-danger', 'onclick="FCAdmin.referralRevoke(\'' + r.id + '\',' + (!r.revoked) + ')"') + '</td></tr>').join(''), 'Aucun parrainage pour le moment');
+    } catch (e) { fail(el, e); }
+  };
+  FCAdmin.referralSave = async function () {
+    const on = document.getElementById('rf-on').value === '1', step = parseFloat(document.getElementById('rf-step').value), min = parseFloat(document.getElementById('rf-min').value), sales = parseInt(document.getElementById('rf-sales').value, 10);
+    if (isNaN(step) || isNaN(min) || isNaN(sales)) { toast('Remplis tous les champs', false); return; }
+    try { await rpc('fc_admin_set_referral_settings', { p_enabled: on, p_step: step, p_min_rate: min, p_min_sales: sales }); toast('Réglages du parrainage enregistrés'); FCAdmin.referrals(); } catch (e) { toast(e.message, false); }
+  };
+  FCAdmin.referralRevoke = async function (id, revoke) {
+    if (!await fcConfirm(revoke ? 'Annuler ce parrainage ? Le parrain perd la réduction liée à cet invité (par exemple en cas de fraude).' : 'Rétablir ce parrainage ?', { title: revoke ? 'Annuler le parrainage' : 'Rétablir', ok: revoke ? 'Annuler le parrainage' : 'Rétablir', danger: revoke })) return;
+    try { await rpc('fc_admin_revoke_referral', { p_referee: id, p_revoked: revoke }); toast(revoke ? 'Parrainage annulé' : 'Parrainage rétabli'); FCAdmin.referrals(); } catch (e) { toast(e.message, false); }
   };
 
   /* ---------- 6. Fraude ---------- */

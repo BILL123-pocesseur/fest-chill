@@ -688,7 +688,7 @@ tr{transition:background .2s}
   <text x="184" y="77" text-anchor="middle" font-family="monospace" font-size="14" fill="#FF8A3D" font-weight="700">₣</text>
   <circle cx="60" cy="130" r="3" fill="#FF8A3D"/>
   <circle cx="196" cy="130" r="3" fill="#34D399"/>
-</svg><div class="how-title">Paie en Mobile Money</div><div class="how-sub">MTN, Moov ou Celtiis Cash — tu confirmes directement depuis ton téléphone.</div></div>
+</svg><div class="how-title">Paie comme tu veux</div><div class="how-sub">Mobile Money (MTN, Moov) ou carte bancaire — tu confirmes en quelques secondes.</div></div>
     <div class="how-card"><span class="how-step-num">3</span><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
   <circle cx="120" cy="92" r="46" fill="none" stroke="#34D399" stroke-width="2" opacity=".35"/>
   <circle cx="120" cy="92" r="34" fill="#FFE3BE" stroke="#34D399" stroke-width="2.5"/>
@@ -775,7 +775,7 @@ tr{transition:background .2s}
           <div class="operator-grid" style="grid-template-columns:1fr 1fr 1fr">
             <button class="op-btn sel" id="op-mtn" onclick="selectOp('mtn')"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><line x1="11" y1="18.3" x2="13" y2="18.3"/></svg> MTN Money</button>
             <button class="op-btn" id="op-moov" onclick="selectOp('moov')"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><line x1="11" y1="18.3" x2="13" y2="18.3"/></svg> Moov Money</button>
-            <button class="op-btn" id="op-celtiis" onclick="selectOp('celtiis')"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><line x1="11" y1="18.3" x2="13" y2="18.3"/></svg> Celtiis Cash</button>
+            <button class="op-btn" id="op-card" onclick="selectOp('card')"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg> Carte bancaire</button>
           </div>
         </div>
 
@@ -1236,7 +1236,7 @@ function selectOp(op){
   selectedOp = op;
   document.getElementById('op-mtn').classList.toggle('sel', op==='mtn');
   document.getElementById('op-moov').classList.toggle('sel', op==='moov');
-  document.getElementById('op-celtiis').classList.toggle('sel', op==='celtiis');
+  document.getElementById('op-card').classList.toggle('sel', op==='card');
 }
 
 function checkPayBtn(){

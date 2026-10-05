@@ -121,7 +121,7 @@ footer{padding:26px 5%;border-top:1px solid var(--border);text-align:center;colo
   <div class="feature-card">
     <div class="feature-icon"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M17 11.5h2.5a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5H17a2 2 0 0 1 0-4Z"/><line x1="3" y1="8.7" x2="21" y2="8.7"/></svg></div>
     <div class="feature-title">Vends par Mobile Money</div>
-    <div class="feature-sub">MTN, Moov et Celtiis Cash. Tes fans achètent leur ticket sans créer de compte, en 30 secondes.</div>
+    <div class="feature-sub">MTN, Moov et carte bancaire. Tes fans achètent leur ticket sans créer de compte, en 30 secondes.</div>
   </div>
   <div class="feature-card">
     <div class="feature-icon"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.2A1.7 1.7 0 0 1 5.7 6.5h2.1l1-1.7h6.4l1 1.7h2.1A1.7 1.7 0 0 1 20 8.2v9.1a1.7 1.7 0 0 1-1.7 1.7H5.7A1.7 1.7 0 0 1 4 17.3Z"/><circle cx="12" cy="12.4" r="3.4"/></svg></div>
@@ -209,6 +209,8 @@ footer{padding:26px 5%;border-top:1px solid var(--border);text-align:center;colo
       <input type="email" class="form-input" id="signup-email" placeholder="toi@email.com">
       <label class="form-label">Mot de passe</label>
       <input type="password" class="form-input" id="signup-password" placeholder="6 caractères minimum">
+      <label class="form-label">Code parrain <span style="font-weight:400;color:var(--muted)">(facultatif)</span></label>
+      <input type="text" class="form-input" id="signup-ref" placeholder="Ex : QBD68W" maxlength="12" autocapitalize="characters" style="text-transform:uppercase">
       <button class="btn btn-primary btn-block" onclick="doSignup()">Créer mon compte</button>
     </div>
 
@@ -230,6 +232,7 @@ footer{padding:26px 5%;border-top:1px solid var(--border);text-align:center;colo
 <script src="supabase-client.js"></script>
 <script>
 async function boot(){
+  try { const saved = localStorage.getItem('fc-ref'); if (saved) { const el = document.getElementById('signup-ref'); if (el) el.value = saved; } } catch(e){}
   const notice = sessionStorage.getItem('fc-redirect-notice');
   if (notice){ sessionStorage.removeItem('fc-redirect-notice'); showError(notice); }
   const session = await fcGetSession();
@@ -344,6 +347,10 @@ async function doSignup(){
   const password = document.getElementById('signup-password').value;
   if (!fullName || !email || !password){ showError('Remplis tous les champs.'); return; }
   if (password.length < 6){ showError('Le mot de passe doit faire au moins 6 caractères.'); return; }
+
+  // Code parrain (saisi ou venant d'un lien ?ref=) : appliqué dès que le compte est confirmé
+  const refTyped = (document.getElementById('signup-ref').value || '').trim().toUpperCase();
+  if (/^[A-Z0-9]{4,12}$/.test(refTyped)) { try { localStorage.setItem('fc-ref', refTyped); } catch(e){} }
 
   const { error } = await fcSignUpWithEmail(email, password, fullName);
   if (error){ showError(translateAuthError(error.message)); return; }
