@@ -1,7 +1,7 @@
 /* Fest&Chill — service worker (appli installable)
    Règle d'or : on ne touche JAMAIS aux paiements, à Supabase ni aux pages admin.
    Stratégie : réseau d'abord (le site est toujours à jour), cache seulement en secours hors ligne. */
-const CACHE = 'fc-static-v1';
+const CACHE = 'fc-static-v2';
 const PRECACHE = ['offline.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -14,7 +14,8 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return;               // Supabase, FedaPay, Unsplash… : jamais interceptés
+  if (url.origin !== self.location.origin) return;
+  if (url.searchParams.has('ping')) return;                       // test de connexion : toujours le vrai réseau               // Supabase, FedaPay, Unsplash… : jamais interceptés
   if (/festchill-admin|admin-(core|tools|users)|admin\.css|sw\.js$/.test(url.pathname)) return;   // admin : jamais en cache
   e.respondWith(
     fetch(req).then((res) => {

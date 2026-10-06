@@ -100,17 +100,17 @@ nav{padding:16px 5%;display:flex;align-items:center;justify-content:space-betwee
 .success-title{font-family:var(--fd);font-size:2rem;font-weight:800;margin-bottom:8px}
 .success-sub{color:var(--muted);margin-bottom:32px}
 
-.ticket-visual{background:linear-gradient(135deg,#1E1152,#2D1B69);border:1px solid rgba(167,139,250,.3);border-radius:16px;padding:24px 28px;width:320px;text-align:left;margin:0 auto 20px;position:relative;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.5)}
-.ticket-visual::before{content:'';position:absolute;top:-40px;right:-40px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(196,50,31,.4),transparent 70%)}
-.tv-event{font-family:var(--fd);font-weight:800;font-size:1.05rem;margin-bottom:4px}
-.tv-date{font-size:.78rem;color:var(--muted);margin-bottom:16px}
+.ticket-visual{background:#FFFFFF;border:1.5px solid #241C14;border-top:8px solid #C4321F;border-radius:14px;padding:22px 24px;width:320px;max-width:100%;text-align:left;margin:0 auto 20px;position:relative;overflow:hidden;box-shadow:0 18px 40px rgba(36,28,20,.18);color:#241C14;box-sizing:border-box}
+.ticket-visual::before{display:none}
+.tv-event{font-family:var(--fd);font-weight:800;font-size:1.15rem;margin-bottom:4px;color:#241C14}
+.tv-date{font-size:.8rem;color:#6B5D4D;margin-bottom:16px}
 .tv-row{display:flex;justify-content:space-between;margin-bottom:8px}
-.tv-label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
-.tv-val{font-size:.88rem;font-weight:700}
-.tv-divider{border:none;border-top:1px dashed rgba(167,139,250,.25);margin:14px 0}
-.tv-qr{width:74px;height:74px;background:#FFFFFF;border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.tv-label{font-size:.68rem;color:#8A7A68;text-transform:uppercase;letter-spacing:.6px}
+.tv-val{font-size:.9rem;font-weight:700;color:#241C14}
+.tv-divider{border:none;border-top:2px dashed #E8D9BD;margin:14px 0}
+.tv-qr{width:84px;height:84px;background:#FFFFFF;border:1px solid #E8D9BD;border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .tv-qr canvas,.tv-qr img{width:100%;height:100%}
-.tv-num{font-family:var(--fd);font-size:1.6rem;font-weight:800;color:var(--glow)}
+.tv-num{font-family:var(--fd);font-size:1.7rem;font-weight:800;color:#C4321F}
 .success-actions{display:flex;gap:10px;width:320px;max-width:100%}
 
 .info-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:20px}
@@ -872,12 +872,12 @@ tr{transition:background .2s}
     <button class="btn btn-ghost" onclick="addTicketToCalendar()" style="margin-top:8px">📅 Ajouter à mon calendrier (avec rappels)</button>
     <button class="btn btn-ghost" onclick="downloadTicketImage()" style="margin-top:8px">🖼️ Enregistrer mon ticket en image</button>
     <button class="btn btn-ghost" onclick="giftTicket()" style="margin-top:8px">🎁 Offrir ce ticket à un ami (WhatsApp)</button>
-    <button class="btn btn-primary" onclick="location.reload()">Autre ticket</button>
+    <button class="btn btn-primary" onclick="buyAnother()">Autre ticket</button>
   </div>
   <div class="success-actions" id="success-actions-valid" style="display:none">
     <button class="btn btn-gold" onclick="downloadTicketPDF()"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11.5"/><polyline points="7.5 11 12 15.5 16.5 11"/><path d="M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7"/></svg> Reçu complet (PDF)</button>
     <button class="btn btn-ghost" onclick="downloadQrOnly()" style="margin-top:8px"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z"/></svg> QR code seul (image)</button>
-    <button class="btn btn-primary" onclick="location.reload()">Autre ticket</button>
+    <button class="btn btn-primary" onclick="buyAnother()">Autre ticket</button>
   </div>
 </div>
 
@@ -1010,7 +1010,7 @@ async function init(){
 
   if (error || !event){
     document.getElementById('load-state').innerHTML =
-      "Événement introuvable ou plus en vente. <br><span style='font-size:.8rem'>Vérifie le lien, ou l'événement n'a peut-être pas encore été publié dans Supabase.</span>";
+      "Événement introuvable ou plus en vente. <br><span style='font-size:.8rem'>Vérifie le lien. L\'événement n\'est peut-être pas encore publié.</span>";
     return;
   }
 
@@ -1277,7 +1277,7 @@ async function processPayment(){
 
     const order = Array.isArray(data) ? data[0] : data;
     if (!order) throw new Error("Réponse invalide du serveur, réessaie.");
-    lastPurchase = { ...order, buyer_phone: phone };
+    lastPurchase = { ...order, buyer_phone: phone, event_slug: (currentEvent && currentEvent.slug) || null };
     // Garde une trace locale au cas où l'acheteur ferme l'onglet FedaPay
     // avant la redirection automatique (il peut revenir sur cette page).
     localStorage.setItem('fc-pending-order', order.order_id);
@@ -1349,7 +1349,7 @@ async function checkOrderStatusNow(){
 
   if (res.payment_status === 'paid'){
     lastPurchase = {
-      ...lastPurchase, qr_code: res.qr_code, price: res.price,
+      ...lastPurchase, qr_code: res.qr_code, price: res.price, event_slug: res.event_slug,
       event_title: res.event_title, event_date: res.event_date, duration_days: res.duration_days,
       category_name: res.category_name, ticket_number: res.ticket_number,
       buyer_name: res.buyer_name, buyer_phone: res.buyer_phone,
@@ -1391,53 +1391,63 @@ async function checkOrderStatusNow(){
   }
 }
 
+function buyAnother(){
+  const slug = (lastPurchase && lastPurchase.event_slug) || (currentEvent && currentEvent.slug) || new URLSearchParams(location.search).get('event');
+  location.href = slug ? location.pathname + '?event=' + encodeURIComponent(slug) : 'festchill-explore.html';
+}
+
 async function downloadTicketPDF(){
   if (!lastPurchase) return;
   const { jsPDF } = window.jspdf;
-  const PAGE_H = 172;
-  const doc = new jsPDF({ unit: 'mm', format: [90, PAGE_H] });
+  const W = 90, H = 190;
+  const doc = new jsPDF({ unit: 'mm', format: [W, H] });
+  const qrDataUrl = await QRCode.toDataURL(lastPurchase.qr_code, { width: 400, margin: 1 });
+  // Espaces normaux : l'espace fine des milliers n'existe pas dans la police du PDF (affichait « 2/500 »)
+  const money = (n) => String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' FCFA';
+  const clean = (t) => String(t == null ? '' : t).replace(/[\u202f\u00a0]/g, ' ');
 
-  const qrDataUrl = await QRCode.toDataURL(lastPurchase.qr_code, { width: 300, margin: 1 });
+  doc.setFillColor(255, 251, 243); doc.rect(0, 0, W, H, 'F');                       // fond papier
+  doc.setFillColor(196, 50, 31);   doc.rect(0, 0, W, 34, 'F');                       // bandeau rouge
+  doc.setFillColor(232, 163, 61);  doc.rect(0, 34, W, 2.2, 'F');                     // filet or
+  doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+  doc.text('FEST&CHILL  ·  TICKET', 8, 11);
+  doc.setFontSize(17);
+  const titleLines = doc.splitTextToSize(clean(lastPurchase.event_title || 'Événement'), W - 16).slice(0, 2);
+  doc.text(titleLines, 8, 21);
 
-  // Couleurs Fest&Chill (fond papier chaud, accents rouge/jaune/vert)
-  doc.setFillColor(255, 251, 243);
-  doc.rect(0, 0, 90, PAGE_H, 'F');
-  doc.setFillColor(196, 50, 31);
-  doc.rect(0, 0, 90, 6, 'F');
+  doc.setFont('helvetica', 'normal'); doc.setTextColor(107, 93, 77); doc.setFontSize(9.5);
+  if (lastPurchase.event_date) doc.text(clean(fcFormatEventDateRange(lastPurchase.event_date, lastPurchase.duration_days)), 8, 45);
 
-  doc.setTextColor(36, 28, 20);
-  doc.setFontSize(14);
-  doc.text('Fest&Chill', 8, 16);
-  doc.setFontSize(15);
-  doc.text(lastPurchase.event_title || 'Événement', 8, 26, { maxWidth: 74 });
-  doc.setFontSize(9);
-  doc.setTextColor(138, 122, 104);
-  if (lastPurchase.event_date) {
-    doc.text(fcFormatEventDateRange(lastPurchase.event_date, lastPurchase.duration_days), 8, 34);
-  }
+  let y = 56;
+  const row = (label, value, big) => {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(138, 122, 104); doc.text(label.toUpperCase(), 8, y);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(big ? 15 : 11); doc.setTextColor(36, 28, 20);
+    doc.text(clean(value), 8, y + (big ? 6.5 : 5.2), { maxWidth: W - 16 }); y += big ? 14 : 11.5;
+  };
+  row('Ticket N°', lastPurchase.ticket_number != null ? String(lastPurchase.ticket_number) : '—', true);
+  row('Catégorie', lastPurchase.category_name || '—');
+  row('Prix', money(lastPurchase.price));
+  if (lastPurchase.buyer_name)  row('Au nom de', lastPurchase.buyer_name);
+  if (lastPurchase.buyer_phone) row('Téléphone', lastPurchase.buyer_phone);
 
-  doc.setDrawColor(235, 223, 201);
-  doc.line(8, 40, 82, 40);
+  doc.setDrawColor(232, 217, 189); doc.setLineDashPattern([1.2, 1.2], 0); doc.line(8, y, W - 8, y); doc.setLineDashPattern([], 0);
+  const qrSize = 58, qrX = (W - qrSize) / 2, qrY = y + 6;
+  doc.setFillColor(255, 255, 255); doc.setDrawColor(36, 28, 20); doc.roundedRect(qrX - 3, qrY - 3, qrSize + 6, qrSize + 6, 2, 2, 'FD');
+  doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
 
-  doc.setTextColor(36, 28, 20);
-  doc.setFontSize(10);
-  let y = 48;
-  doc.text(`Catégorie : ${lastPurchase.category_name || '—'}`, 8, y); y += 7;
-  doc.text(`Ticket N° : ${lastPurchase.ticket_number ?? '—'}`, 8, y); y += 7;
-  doc.text(`Prix : ${(lastPurchase.price ?? 0).toLocaleString('fr-FR')} FCFA`, 8, y); y += 7;
-  if (lastPurchase.buyer_name) { doc.text(`Nom : ${lastPurchase.buyer_name}`, 8, y); y += 7; }
-  if (lastPurchase.buyer_phone) { doc.text(`Téléphone : ${lastPurchase.buyer_phone}`, 8, y); y += 7; }
-
-  const qrY = y + 6;
-  doc.addImage(qrDataUrl, 'PNG', 15, qrY, 60, 60);
-  doc.setFontSize(7);
-  doc.setTextColor(138, 122, 104);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(36, 28, 20);
   const n = Number(lastPurchase.duration_days) || 1;
-  doc.text(n > 1 ? `QR valable ${n} jours — 1 scan par jour` : 'QR unique — scannable une seule fois', 45, qrY + 66, { align: 'center' });
-  doc.text(lastPurchase.qr_code, 45, qrY + 71, { align: 'center' });
-  doc.setFontSize(6.5);
-  doc.text('Après l\'événement, laisse ton avis :', 45, qrY + 76, { align: 'center' });
-  doc.text(`festchill.onrender.com/festchill-buy-ticket.html?review=${lastPurchase.qr_code}`, 45, qrY + 80, { align: 'center' });
+  doc.text(n > 1 ? `QR valable ${n} jours — 1 scan par jour` : 'QR unique — scannable une seule fois', W / 2, qrY + qrSize + 9, { align: 'center' });
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(138, 122, 104);
+  doc.text(lastPurchase.qr_code, W / 2, qrY + qrSize + 14, { align: 'center' });
+
+  // Lien cliquable (court, sur une seule ligne)
+  const reviewUrl = `${location.origin}/festchill-buy-ticket.html?review=${lastPurchase.qr_code}`;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(196, 50, 31);
+  const linkText = 'Après l\'événement : laisse ton avis';
+  doc.textWithLink(linkText, (W - doc.getTextWidth(linkText)) / 2, qrY + qrSize + 23, { url: reviewUrl });   // zone cliquable bien placée
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(138, 122, 104);
+  doc.text('Présente ce QR code à l\'entrée.', W / 2, H - 6, { align: 'center' });
 
   doc.save(`festchill-ticket-${lastPurchase.ticket_number ?? 'x'}.pdf`);
 }

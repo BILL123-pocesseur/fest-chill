@@ -670,6 +670,7 @@ async function startCamera(){
 }
 
 async function stopCamera(){
+  closeOverlay(false); locked = false;
   if (html5QrCode){
     try { await html5QrCode.stop(); html5QrCode.clear(); } catch(e){}
   }
@@ -689,83 +690,163 @@ function manualScan(){
   document.getElementById('manual-input').value = '';
 }
 
+// ------------------------------------------------------------
+// SCAN : un seul résultat par scan, pas de répétition, jamais de scan hors ligne
+// ------------------------------------------------------------
+let locked = false;                 // un résultat est affiché : la caméra est ignorée jusqu'à « Suivant » / « Réessayer »
+let lastCode = null, lastCodeAt = 0; // même QR scanné de nouveau en moins de 8 s : ignoré
+let autoCloseTimer = null;
+
+// Vraie vérification de connexion (pas seulement « navigator.onLine »)
+async function checkOnline(){
+  if (!navigator.onLine) return false;
+  try {
+    const c = new AbortController(); const t = setTimeout(() => c.abort(), 4000);
+    const r = await fetch('manifest.webmanifest?ping=' + Date.now(), { cache: 'no-store', signal: c.signal });
+    clearTimeout(t); return r.ok;
+  } catch(e){ return false; }
+}
+function isNetworkError(err){
+  if (!err) return false;
+  const m = String(err.message || err);
+  return !err.code || /failed to fetch|networkerror|network request|load failed|fetch/i.test(m);
+}
+
+function pauseCamera(){ try { if (html5QrCode) html5QrCode.pause(true); } catch(e){} }
+function resumeCamera(){ try { if (html5QrCode) html5QrCode.resume(); } catch(e){} }
+
+function beep(ok){
+  try {
+    if (navigator.vibrate) navigator.vibrate(ok ? 120 : [200, 100, 200]);
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const tone = (f, t0, d) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = f; o.connect(g); g.connect(ctx.destination); g.gain.value = .15; o.start(ctx.currentTime + t0); o.stop(ctx.currentTime + t0 + d); };
+    if (ok) tone(880, 0, .15); else { tone(220, 0, .18); tone(180, .22, .22); }
+  } catch(e){}
+}
+
+// Grand écran de résultat (vert = autorisé, rouge = refusé, orange = problème de connexion)
+function showOverlay(kind, title, sub, rows, btnLabel, onBtn, autoCloseMs){
+  closeOverlay(false);
+  const bg = kind === 'ok' ? '#12803F' : kind === 'bad' ? '#B3261E' : '#B26A00';
+  const ov = document.createElement('div'); ov.id = 'scan-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:5000;background:' + bg + ';color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;overflow:auto';
+  const icon = kind === 'ok' ? '✔' : kind === 'bad' ? '✖' : '📡';
+  ov.innerHTML = '<div style="font-size:4.2rem;line-height:1;margin-bottom:10px">' + icon + '</div>'
+    + '<div style="font-size:1.7rem;font-weight:800;margin-bottom:6px">' + fcEscapeHtml(title) + '</div>'
+    + '<div style="font-size:1rem;opacity:.95;margin-bottom:18px;max-width:420px;line-height:1.4">' + fcEscapeHtml(sub) + '</div>'
+    + (rows && rows.length ? '<div style="width:min(92vw,420px);background:rgba(255,255,255,.16);border-radius:14px;padding:6px 16px;margin-bottom:20px;text-align:left">'
+        + rows.map(r => '<div style="display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.22);font-size:.92rem"><span style="opacity:.85">' + fcEscapeHtml(r[0]) + '</span><b style="text-align:right;word-break:break-word">' + fcEscapeHtml(r[1]) + '</b></div>').join('') + '</div>' : '')
+    + '<button id="scan-overlay-btn" style="padding:15px 34px;border:none;border-radius:14px;background:#fff;color:#241C14;font-weight:800;font-size:1.05rem;cursor:pointer">' + fcEscapeHtml(btnLabel) + '</button>';
+  document.body.appendChild(ov);
+  document.getElementById('scan-overlay-btn').onclick = onBtn;
+  if (autoCloseMs) autoCloseTimer = setTimeout(() => { if (document.getElementById('scan-overlay')) onBtn(); }, autoCloseMs);
+}
+function closeOverlay(resume){
+  clearTimeout(autoCloseTimer);
+  const ov = document.getElementById('scan-overlay'); if (ov) ov.remove();
+  if (resume){ locked = false; resumeCamera(); }
+}
+function nextScan(resetSameCode){ if (resetSameCode) lastCode = null; closeOverlay(true); }
+
+function showOffline(){
+  showOverlay('warn', 'Pas de connexion internet', 'Le scan est suspendu : ce ticket n\'a pas été vérifié. Vérifie ta connexion puis réessaie.', [],
+    'Réessayer', async () => {
+      const btn = document.getElementById('scan-overlay-btn'); if (btn){ btn.disabled = true; btn.textContent = 'Vérification…'; }
+      if (await checkOnline()) { await refreshNet(); nextScan(true); }
+      else { if (btn){ btn.disabled = false; btn.textContent = 'Réessayer'; } }
+    });
+}
+
+// Bandeau « hors ligne » permanent + surveillance de la connexion
+let netOnline = true;
+async function refreshNet(){
+  const ok = await checkOnline(); netOnline = ok;
+  let bar = document.getElementById('net-banner');
+  if (!bar){
+    bar = document.createElement('div'); bar.id = 'net-banner';
+    bar.style.cssText = 'position:sticky;top:0;z-index:4000;display:none;padding:10px 14px;background:#B26A00;color:#fff;font-weight:800;font-size:.86rem;text-align:center';
+    bar.textContent = '📡 Pas de connexion internet — le scan est suspendu';
+    document.body.insertBefore(bar, document.body.firstChild);
+  }
+  bar.style.display = ok ? 'none' : 'block';
+}
+window.addEventListener('online', refreshNet);
+window.addEventListener('offline', refreshNet);
+setInterval(refreshNet, 8000);
+refreshNet();
+
 async function processResult(code){
-  if (busy) return;
+  if (locked || busy) return;
+  if (code === lastCode && Date.now() - lastCodeAt < 8000) return;       // même QR : on n'y revient pas tout seul
+  locked = true; pauseCamera();
+
+  // 1) pas de connexion : on ne scanne PAS, on ne compte rien, on n'écrit rien dans l'historique
+  if (!(await checkOnline())) { await refreshNet(); showOffline(); return; }
+
   busy = true;
-  scanCount++;
-  document.getElementById('scan-count').textContent = scanCount + ' scans ce soir';
-  const now = fcFormatTime(new Date(), {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  let data = null, error = null;
+  try { const r = await supa.rpc('scan_ticket', { p_qr_code: code }); data = r.data; error = r.error; }
+  catch(e){ error = e; }
+  busy = false;
 
-  const { data, error } = await supa.rpc('scan_ticket', { p_qr_code: code });
+  // 2) la requête a échoué (réseau coupé en route, serveur) : ce n'est PAS un ticket refusé
+  if (error && !(error.code === 'P0001' || (data && data.result))){
+    if (isNetworkError(error)) { await refreshNet(); showOffline(); }
+    else showOverlay('warn', 'Problème de vérification', 'Le serveur n\'a pas pu vérifier ce ticket. Réessaie dans un instant. Ce scan n\'a pas été compté.', [], 'Réessayer', () => nextScan(true));
+    return;
+  }
+
   const res = (Array.isArray(data) ? data[0] : data) || {};
+  const now = fcFormatTime(new Date(), {hour:'2-digit',minute:'2-digit',second:'2-digit'});
   const card = document.getElementById('result-card');
+  lastCode = code; lastCodeAt = Date.now();
+  scanCount++; document.getElementById('scan-count').textContent = scanCount + ' scans ce soir';
 
-  if (error || res.result === 'not_found'){
+  const refuse = (title, sub, rows, logNum, logCat, logWho) => {
     invalidCount++; updateStats();
     card.className = 'result-card invalid';
-    card.innerHTML = resultHTML(FCI['x-circle'],'TICKET INVALIDE','Ce QR code n\'est pas reconnu — entrée refusée', [
-      ['Code scanné', code], ['Statut','<svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg> Non reconnu']
-    ], true);
-    flashScreen('red');
-    addLog(false, '???', '—', 'Code invalide: '+code, now);
-  } else if (res.result === 'forbidden'){
-    invalidCount++; updateStats();
-    card.className = 'result-card invalid';
-    card.innerHTML = resultHTML(FCI['ban'],'ACCÈS REFUSÉ','Ce ticket appartient à un autre organisateur', [], true);
-    flashScreen('red');
-  } else if (res.result === 'already_used'){
-    invalidCount++; updateStats();
-    card.className = 'result-card invalid';
-    const sub = res.total_days > 1 ? `Ce ticket a déjà été utilisé ses ${res.total_days} jours — entrée refusée` : 'Ce ticket a déjà été scanné — entrée refusée';
-    card.innerHTML = resultHTML(FCI['dot-red'],'DÉJÀ UTILISÉ',sub, [
-      ['N° Ticket', 'N°'+res.ticket_number], ['Catégorie', res.category_name],
-      ['Scanné le', fcFormatDateTime(res.scanned_at)]
-    ], true);
-    flashScreen('red');
-    addLog(false, res.ticket_number, res.category_name, 'DÉJÀ UTILISÉ', now);
-  } else if (res.result === 'pending_payment'){
-    invalidCount++; updateStats();
-    card.className = 'result-card invalid';
-    card.innerHTML = resultHTML(FCI['x-circle'],'PAIEMENT NON CONFIRMÉ','Ce ticket est en attente de confirmation du paiement — entrée refusée', [
-      ['N° Ticket', 'N°'+res.ticket_number], ['Catégorie', res.category_name], ['Titulaire', res.buyer_name || '—']
-    ], true);
-    flashScreen('red');
-    addLog(false, res.ticket_number, res.category_name, 'PAIEMENT NON CONFIRMÉ', now);
-  } else if (res.result === 'cancelled'){
-    invalidCount++; updateStats();
-    card.className = 'result-card invalid';
-    card.innerHTML = resultHTML(FCI['x-circle'],'TICKET ANNULÉ','Ce ticket a été annulé — entrée refusée', [
-      ['N° Ticket', 'N°'+res.ticket_number], ['Catégorie', res.category_name]
-    ], true);
-    flashScreen('red');
-    addLog(false, res.ticket_number, res.category_name, 'ANNULÉ', now);
-  } else if (res.result === 'already_used_today'){
-    invalidCount++; updateStats();
-    card.className = 'result-card invalid';
-    card.innerHTML = resultHTML(FCI['dot-red'],'DÉJÀ SCANNÉ AUJOURD\'HUI','Ce ticket a déjà servi une fois aujourd\'hui — entrée refusée', [
-      ['N° Ticket', 'N°'+res.ticket_number], ['Catégorie', res.category_name],
-      ['Jour', res.day_number+' / '+res.total_days], ['Dernier scan', fcFormatDateTime(res.scanned_at)]
-    ], true);
-    flashScreen('red');
-    addLog(false, res.ticket_number, res.category_name, 'Déjà scanné aujourd\'hui', now);
-  } else if (res.result === 'valid'){
+    card.innerHTML = resultHTML(FCI['x-circle'], title, sub, rows, true);
+    flashScreen('red'); beep(false);
+    addLog(false, logNum, logCat, logWho, now);                       // UNE seule ligne dans l'historique
+    showOverlay('bad', title, sub, rows, 'Réessayer', () => nextScan(true));
+  };
+
+  if (res.result === 'valid'){
     validCount++; updateStats();
-    card.className = 'result-card valid';
     const multiDay = res.total_days > 1;
     const sub = multiDay
       ? (res.day_number >= res.total_days ? 'Ticket valide — dernier jour, accès complet utilisé' : `Ticket valide — jour ${res.day_number} sur ${res.total_days}`)
       : 'Ticket valide — première utilisation';
-    const rows = [
-      ['N° Ticket', 'N°'+res.ticket_number], ['Catégorie', res.category_name],
-      ['Titulaire', res.buyer_name || '—'], ['Événement', res.event_title],
-    ];
-    if (multiDay) rows.push(['Jour', res.day_number+' / '+res.total_days]);
-    rows.push(['Heure scan', now]);
-    card.innerHTML = resultHTML(FCI['check-circle'],'ENTRÉE AUTORISÉE',sub, rows, false);
-    flashScreen('green');
+    const rows = [['Titulaire', res.buyer_name || '—'], ['N° Ticket', 'N°' + res.ticket_number], ['Catégorie', res.category_name], ['Événement', res.event_title]];
+    if (multiDay) rows.push(['Jour', res.day_number + ' / ' + res.total_days]);
+    rows.push(['Heure du scan', now]);
+    card.className = 'result-card valid';
+    card.innerHTML = resultHTML(FCI['check-circle'], 'ENTRÉE AUTORISÉE', sub, rows, false);
+    flashScreen('green'); beep(true);
     addLog(true, res.ticket_number, res.category_name, res.buyer_name || '—', now);
+    showOverlay('ok', 'ENTRÉE AUTORISÉE', sub, rows, 'Scanner le suivant', () => nextScan(false), 5000);
   }
-  busy = false;
+  else if (res.result === 'already_used'){
+    refuse('DÉJÀ UTILISÉ', res.total_days > 1 ? `Ce ticket a déjà été utilisé ses ${res.total_days} jours` : 'Ce ticket a déjà été scanné',
+      [['N° Ticket', 'N°' + res.ticket_number], ['Catégorie', res.category_name], ['Scanné le', fcFormatDateTime(res.scanned_at)]], res.ticket_number, res.category_name, 'DÉJÀ UTILISÉ');
+  }
+  else if (res.result === 'already_used_today'){
+    refuse('DÉJÀ SCANNÉ AUJOURD\'HUI', 'Ce ticket a déjà servi une fois aujourd\'hui',
+      [['N° Ticket', 'N°' + res.ticket_number], ['Catégorie', res.category_name], ['Jour', res.day_number + ' / ' + res.total_days], ['Dernier scan', fcFormatDateTime(res.scanned_at)]], res.ticket_number, res.category_name, 'Déjà scanné aujourd\'hui');
+  }
+  else if (res.result === 'pending_payment'){
+    refuse('PAIEMENT NON CONFIRMÉ', 'Ce ticket attend la confirmation du paiement',
+      [['N° Ticket', 'N°' + res.ticket_number], ['Catégorie', res.category_name], ['Titulaire', res.buyer_name || '—']], res.ticket_number, res.category_name, 'PAIEMENT NON CONFIRMÉ');
+  }
+  else if (res.result === 'cancelled'){
+    refuse('TICKET ANNULÉ', 'Ce ticket a été annulé', [['N° Ticket', 'N°' + res.ticket_number], ['Catégorie', res.category_name]], res.ticket_number, res.category_name, 'ANNULÉ');
+  }
+  else if (res.result === 'forbidden'){
+    refuse('ACCÈS REFUSÉ', 'Ce ticket appartient à un autre organisateur', [], '—', '—', 'Autre organisateur');
+  }
+  else { // not_found ou réponse inconnue
+    refuse('TICKET INCONNU', 'Ce QR code n\'est pas reconnu', [['Code scanné', String(code).slice(0, 36)]], '???', '—', 'Code inconnu');
+  }
 }
 
 function resultHTML(icon, status, sub, rows, invalid){
