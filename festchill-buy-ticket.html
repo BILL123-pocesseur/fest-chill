@@ -248,6 +248,13 @@ tr{transition:background .2s}
 .illus{width:100%;height:auto;display:block}
 
 </style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#C4321F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Fest&amp;Chill">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 </head>
 <body>
 
@@ -1567,5 +1574,6 @@ checkForReviewLink();
 </script>
 <footer style="text-align:center;padding:28px 6%;color:var(--muted);font-size:.8rem;border-top:1px solid var(--border,rgba(0,0,0,.08))">© 2026 Fest&Chill · <a href="festchill-privacy.html" style="color:inherit">Confidentialité</a> · <a href="festchill-terms.html" style="color:inherit">CGU</a><span id="ev-org-wrap" style="display:none"> · <a href="#" id="ev-org-link" style="color:inherit" onclick="event.preventDefault();if(window.__orgId)fcShowOrganizerInfo(window.__orgId)">Infos de l'organisateur</a></span></footer>
 <script>showOrgLink();</script>
+<script src="pwa.js"></script>
 </body>
 </html>

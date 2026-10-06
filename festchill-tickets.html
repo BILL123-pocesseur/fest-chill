@@ -334,6 +334,13 @@ tr{transition:background .2s}
   .section-head > div{flex-wrap:wrap;width:100%}
 }
 </style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#C4321F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Fest&amp;Chill">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <body>
 
 <div class="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
@@ -454,5 +461,6 @@ function toggleMobileSidebar(){
   document.querySelector('.sidebar-overlay').classList.toggle('show');
 }
 </script>
+<script src="pwa.js"></script>
 </body>
 </html>

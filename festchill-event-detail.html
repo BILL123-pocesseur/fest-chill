@@ -318,6 +318,13 @@ tr{transition:background .2s}
   * { word-break: break-word; overflow-wrap: break-word; }
 }
 </style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#C4321F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Fest&amp;Chill">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 </head>
 <body>
 
@@ -1684,5 +1691,6 @@ function toggleMobileSidebar(){
   document.querySelector('.sidebar-overlay').classList.toggle('show');
 }
 </script>
+<script src="pwa.js"></script>
 </body>
 </html>
