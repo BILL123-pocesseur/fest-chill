@@ -1171,6 +1171,9 @@ async function render(){
   }
   loadSessions();
 
+  if (e.status === 'ended' || fcEventDayStatus(e.event_date, e.duration_days).phase === 'ended') {
+    document.querySelectorAll('.share-card, [onclick="copyLink()"]').forEach(el => { el.style.display = 'none'; });
+  }
   const statusMap = { published:['En vente','var(--green)'], draft:['Brouillon','var(--glow)'], suspended:['Suspendu','var(--red)'], ended:['Terminé','var(--muted)'] };
   const [label, color] = statusMap[e.status] || ['—','var(--muted)'];
   document.getElementById('ev-status-text').textContent = label;

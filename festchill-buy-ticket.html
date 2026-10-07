@@ -111,7 +111,10 @@ nav{padding:16px 5%;display:flex;align-items:center;justify-content:space-betwee
 .tv-qr{width:84px;height:84px;background:#FFFFFF;border:1px solid #E8D9BD;border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .tv-qr canvas,.tv-qr img{width:100%;height:100%}
 .tv-num{font-family:var(--fd);font-size:1.7rem;font-weight:800;color:#C4321F}
-.success-actions{display:flex;gap:10px;width:320px;max-width:100%}
+.success-actions{display:flex;flex-direction:column;gap:10px;width:320px;max-width:100%}
+.success-actions .btn{margin-top:0 !important;width:100%}
+.success-overlay:not(.paid) .ticket-visual{display:none}
+.success-sub{max-width:360px;margin-left:auto;margin-right:auto;line-height:1.5}
 
 .info-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:20px}
 .info-title{font-family:var(--fd);font-weight:700;font-size:.9rem;margin-bottom:14px}
@@ -843,8 +846,8 @@ tr{transition:background .2s}
 <!-- SUCCESS SCREEN -->
 <div class="success-overlay" id="success">
   <div class="success-icon" id="success-icon"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 14.5 4.8c.5-.7 1.6-.4 1.7.4l1.6 12a1 1 0 0 1-1.3 1.1L4 20Z"/><line x1="8" y1="4" x2="9" y2="5.6"/><line x1="3" y1="9" x2="4.8" y2="9.6"/><line x1="18" y1="2.5" x2="18" y2="4.2"/></svg></div>
-  <div class="success-title" id="success-title">Demande envoyée !</div>
-  <div class="success-sub" id="success-sub">L'organisateur doit confirmer avoir bien reçu ton paiement — ton ticket apparaîtra ici dès que ce sera fait.</div>
+  <div class="success-title" id="success-title">Vérification du paiement…</div>
+  <div class="success-sub" id="success-sub">Ton ticket apparaîtra ici dès que ton paiement sera confirmé.</div>
 
   <div class="ticket-visual">
     <div class="tv-event" id="s-event">—</div>
@@ -868,15 +871,16 @@ tr{transition:background .2s}
   </div>
 
   <div class="success-actions" id="success-actions-pending">
-    <button class="btn btn-gold" id="check-status-btn" onclick="checkOrderStatusNow()">Vérifier si mon paiement est confirmé</button>
-    <button class="btn btn-ghost" onclick="addTicketToCalendar()" style="margin-top:8px">📅 Ajouter à mon calendrier (avec rappels)</button>
-    <button class="btn btn-ghost" onclick="downloadTicketImage()" style="margin-top:8px">🖼️ Enregistrer mon ticket en image</button>
-    <button class="btn btn-ghost" onclick="giftTicket()" style="margin-top:8px">🎁 Offrir ce ticket à un ami (WhatsApp)</button>
-    <button class="btn btn-primary" onclick="buyAnother()">Autre ticket</button>
+    <button class="btn btn-gold" id="check-status-btn" onclick="checkOrderStatusNow()" style="display:none">Vérifier mon paiement</button>
+    <button class="btn btn-gold" id="retry-pay-btn" onclick="retryPayment()" style="display:none">Réessayer le paiement</button>
+    <button class="btn btn-primary" id="other-ticket-btn" onclick="buyAnother()" style="display:none">Choisir un autre ticket</button>
   </div>
   <div class="success-actions" id="success-actions-valid" style="display:none">
     <button class="btn btn-gold" onclick="downloadTicketPDF()"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11.5"/><polyline points="7.5 11 12 15.5 16.5 11"/><path d="M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7"/></svg> Reçu complet (PDF)</button>
     <button class="btn btn-ghost" onclick="downloadQrOnly()" style="margin-top:8px"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z"/></svg> QR code seul (image)</button>
+    <button class="btn btn-ghost" onclick="addTicketToCalendar()" style="margin-top:8px">📅 Ajouter à mon calendrier (avec rappels)</button>
+    <button class="btn btn-ghost" onclick="downloadTicketImage()" style="margin-top:8px">🖼️ Enregistrer mon ticket en image</button>
+    <button class="btn btn-ghost" onclick="giftTicket()" style="margin-top:8px">🎁 Offrir ce ticket à un ami (WhatsApp)</button>
     <button class="btn btn-primary" onclick="buyAnother()">Autre ticket</button>
   </div>
 </div>
@@ -1011,6 +1015,12 @@ async function init(){
   if (error || !event){
     document.getElementById('load-state').innerHTML =
       "Événement introuvable ou plus en vente. <br><span style='font-size:.8rem'>Vérifie le lien. L\'événement n\'est peut-être pas encore publié.</span>";
+    return;
+  }
+
+  if (fcEventDayStatus(event.event_date, event.duration_days).phase === 'ended'){
+    document.getElementById('load-state').innerHTML =
+      "Cet événement est terminé : la vente des tickets est fermée.<br><span style='font-size:.8rem'>Retrouve d'autres événements dans la liste.</span>";
     return;
   }
 
@@ -1287,7 +1297,8 @@ async function processPayment(){
     payBtn.textContent = 'Redirection vers le paiement...';
     const returnUrl = location.origin + location.pathname + '?order=' + order.order_id;
     const { payment_url } = await fcCreateFedaPayTransaction(order.order_id, returnUrl);
-    window.location.href = payment_url;
+    try { sessionStorage.setItem('fc-pay-retries', '0'); if (currentEvent && currentEvent.slug) localStorage.setItem('fc-pending-slug', currentEvent.slug); } catch (e) {}
+    window.location.replace(payment_url);   // replace : la page d'achat ne reste pas dans l'historique
     return; // on quitte la page, pas la peine de continuer
   } catch(e){
     fcAlert("Erreur : " + (e.message || 'Une erreur est survenue, réessaie.'));
@@ -1298,38 +1309,112 @@ async function processPayment(){
   }
 }
 
+// Bouton « Retour » : après un paiement, on saute la page FedaPay et cette page de résultat
+// et on retombe directement sur la page où tu étais avant d'acheter.
+function fcGuardPaymentHistory(params){
+  const fromGateway = params.has('status') || params.has('id') || /fedapay/i.test(document.referrer || '');
+  if (!fromGateway) return;
+  try {
+    history.pushState({ fcPayGuard: 1 }, '', location.href);
+    const onPop = function(){
+      window.removeEventListener('popstate', onPop);
+      let retries = 0; try { retries = parseInt(sessionStorage.getItem('fc-pay-retries') || '0', 10) || 0; } catch (e) {}
+      history.go(-(2 + 2 * retries));
+    };
+    window.addEventListener('popstate', onPop);
+  } catch (e) {}
+}
+
+function showPaymentProblem(kind){
+  const T = {
+    cancelled: ['↩️', 'Paiement annulé', "Tu as quitté la page de paiement. Aucun argent n'a été débité. Tu peux réessayer ou choisir un autre ticket."],
+    failed:    ['❌', 'Paiement échoué', "Le paiement n'a pas abouti et aucun ticket n'a été délivré. Tu peux choisir ton ticket et réessayer."],
+    slow:      ['⏳', 'Paiement en cours de vérification', "Ça prend un peu plus longtemps que prévu. Si tu as payé, ton ticket arrivera ici tout seul, ou clique sur « Vérifier mon paiement »."],
+  }[kind];
+  document.getElementById('success').classList.remove('paid');
+  document.getElementById('success-icon').textContent = T[0];
+  document.getElementById('success-title').textContent = T[1];
+  document.getElementById('success-sub').textContent = T[2];
+  const show = (id, on) => { const el = document.getElementById(id); if (el) { el.style.display = on ? 'flex' : 'none'; el.disabled = false; } };
+  show('check-status-btn', kind === 'slow');
+  show('retry-pay-btn', kind === 'cancelled');
+  show('other-ticket-btn', true);
+  const ob = document.getElementById('other-ticket-btn');
+  if (ob) ob.textContent = (kind === 'failed') ? 'Réessayer avec un autre ticket' : 'Choisir un autre ticket';
+  document.getElementById('check-status-btn').textContent = 'Vérifier mon paiement';
+  document.getElementById('success-actions-pending').style.display = 'flex';
+  document.getElementById('success-actions-valid').style.display = 'none';
+}
+
+// Relance le paiement de la MÊME commande (après une annulation sur la page FedaPay)
+async function retryPayment(){
+  const btn = document.getElementById('retry-pay-btn');
+  if (!lastPurchase || !lastPurchase.order_id) { buyAnother(); return; }
+  btn.disabled = true; btn.textContent = 'Redirection…';
+  try {
+    const returnUrl = location.origin + location.pathname + '?order=' + lastPurchase.order_id;
+    const { payment_url } = await fcCreateFedaPayTransaction(lastPurchase.order_id, returnUrl);
+    try { sessionStorage.setItem('fc-pay-retries', String((parseInt(sessionStorage.getItem('fc-pay-retries') || '0', 10) || 0) + 1)); } catch (e) {}
+    window.location.replace(payment_url);
+  } catch (e) {
+    fcAlert("Impossible de relancer ce paiement (" + (e.message || 'erreur') + "). Choisis ton ticket à nouveau.");
+    buyAnother();
+  }
+}
+
+// Interroge le serveur (qui connaît déjà le résultat grâce à FedaPay) : 'paid' | 'failed' | 'pending'
+async function fetchOrderState(orderId){
+  try {
+    const { data } = await supa.rpc('check_order_status', { p_order_id: orderId });
+    const res = Array.isArray(data) ? data[0] : data;
+    if (res && res.event_slug && lastPurchase) lastPurchase.event_slug = res.event_slug;
+    return (res && res.payment_status) || 'pending';
+  } catch (e) { return 'pending'; }
+}
+
 // Retour depuis FedaPay (ou onglet ré-ouvert) : ?order=<id> dans l'URL
 async function checkForReturningPayment(){
   const params = new URLSearchParams(location.search);
   const orderId = params.get('order') || localStorage.getItem('fc-pending-order');
   if (!orderId) return;
+  const urlStatus = (params.get('status') || '').toLowerCase();   // FedaPay ajoute status=canceled / declined / approved
 
   lastPurchase = { order_id: orderId };
+  fcGuardPaymentHistory(params);
   document.getElementById('success').classList.add('show');
-  document.getElementById('success-title').textContent = 'Vérification du paiement...';
+  document.getElementById('success-actions-pending').style.display = 'none';
+  document.getElementById('success-title').textContent = 'Vérification du paiement…';
   document.getElementById('success-sub').textContent = 'Merci de patienter quelques secondes.';
 
-  // Le webhook FedaPay peut mettre quelques secondes à arriver : on
-  // réessaie plusieurs fois avant d'abandonner.
-  for (let i = 0; i < 8; i++) {
-    await new Promise(r => setTimeout(r, 2500));
-    const { data } = await supa.rpc('check_order_status', { p_order_id: orderId });
-    const res = Array.isArray(data) ? data[0] : data;
-    if (res?.payment_status === 'paid' || res?.payment_status === 'failed') {
-      await checkOrderStatusNow();
-      localStorage.removeItem('fc-pending-order');
-      // Retire ?order=... de l'URL : sinon le bouton "Autre ticket" (qui
-      // recharge la page) retombe sur ce même order_id et rouvre le même
-      // écran de résultat en boucle, sans jamais revenir au choix des tickets.
-      const url = new URL(location.href);
-      url.searchParams.delete('order');
-      history.replaceState({}, '', url);
-      return;
-    }
+  const finishPaidOrFailed = async (state) => {
+    if (state === 'paid') await checkOrderStatusNow(); else showPaymentProblem('failed');
+    localStorage.removeItem('fc-pending-order');
+    // Retire ?order=... de l'URL : sinon « Autre ticket » retombe sur ce même écran en boucle.
+    const url = new URL(location.href); url.searchParams.delete('order');
+    history.replaceState(history.state, '', url);
+  };
+
+  // Annulé ou refusé sur la page FedaPay : on vérifie une fois, puis on le dit clairement (sans attendre)
+  if (urlStatus === 'canceled' || urlStatus === 'cancelled' || urlStatus === 'declined') {
+    const st = await fetchOrderState(orderId);
+    if (st === 'paid' || st === 'failed') { await finishPaidOrFailed(st); return; }
+    showPaymentProblem('cancelled');
+    return;
   }
-  // Toujours en attente après ~20s : on laisse le bouton manuel prendre le relai
-  document.getElementById('success-title').textContent = 'Paiement en cours de vérification';
-  document.getElementById('success-sub').textContent = "Ça prend plus longtemps que prévu — utilise le bouton ci-dessous dans un instant.";
+
+  // Le webhook FedaPay peut mettre quelques secondes : on vérifie tout de suite, puis toutes les 2,5 s
+  for (let i = 0; i < 8; i++) {
+    const st = await fetchOrderState(orderId);
+    if (st === 'paid' || st === 'failed') { await finishPaidOrFailed(st); return; }
+    await new Promise(r => setTimeout(r, 2500));
+  }
+  showPaymentProblem('slow');
+  // On continue de surveiller en arrière-plan : le ticket s'affichera tout seul dès que le paiement est confirmé.
+  for (let i = 0; i < 20; i++) {
+    await new Promise(r => setTimeout(r, 6000));
+    const st = await fetchOrderState(orderId);
+    if (st === 'paid' || st === 'failed') { await finishPaidOrFailed(st); return; }
+  }
 }
 
 async function checkOrderStatusNow(){
@@ -1342,8 +1427,8 @@ async function checkOrderStatusNow(){
 
   if (error || !res){
     btn.disabled = false;
-    btn.textContent = 'Vérifier si mon paiement est confirmé';
-    fcAlert('Erreur de vérification : ' + error?.message);
+    btn.textContent = 'Vérifier mon paiement';
+    fcAlert('Erreur de vérification : ' + (error && error.message ? error.message : 'réessaie'));
     return;
   }
 
@@ -1356,6 +1441,7 @@ async function checkOrderStatusNow(){
     };
 
     document.getElementById('success-icon').innerHTML = '<svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 14.5 4.8c.5-.7 1.6-.4 1.7.4l1.6 12a1 1 0 0 1-1.3 1.1L4 20Z"/><line x1="8" y1="4" x2="9" y2="5.6"/><line x1="3" y1="9" x2="4.8" y2="9.6"/><line x1="18" y1="2.5" x2="18" y2="4.2"/></svg>';
+    document.getElementById('success').classList.add('paid');
     document.getElementById('success-title').textContent = 'Ticket confirmé !';
     document.getElementById('success-sub').textContent = "Ton ticket est prêt — télécharge-le ou garde-le à l'écran";
     document.getElementById('s-qr-label').textContent = 'QR Code unique';
@@ -1380,23 +1466,22 @@ async function checkOrderStatusNow(){
     document.getElementById('success-actions-pending').style.display = 'none';
     document.getElementById('success-actions-valid').style.display = 'flex';
   } else if (res.payment_status === 'failed'){
-    document.getElementById('success-title').textContent = 'Paiement non confirmé';
-    document.getElementById('success-sub').textContent = "L'organisateur indique ne pas avoir reçu ce paiement. Contacte-le si tu penses qu'il y a une erreur.";
-    btn.disabled = true;
-    btn.textContent = 'Paiement refusé';
+    showPaymentProblem('failed');
   } else {
+    showPaymentProblem('slow');
     btn.disabled = false;
-    btn.textContent = 'Vérifier si mon paiement est confirmé';
-    fcAlert("Toujours en attente de confirmation par l'organisateur.");
+    btn.textContent = 'Vérifier mon paiement';
+    document.getElementById('success-sub').textContent = "Ton paiement n'est pas encore confirmé. Réessaie dans quelques secondes.";
   }
 }
 
 function buyAnother(){
-  const slug = (lastPurchase && lastPurchase.event_slug) || (currentEvent && currentEvent.slug) || new URLSearchParams(location.search).get('event');
-  location.href = slug ? location.pathname + '?event=' + encodeURIComponent(slug) : 'festchill-explore.html';
+  try { localStorage.removeItem('fc-pending-order'); } catch (e) {}
+  let slug = (lastPurchase && lastPurchase.event_slug) || (currentEvent && currentEvent.slug) || new URLSearchParams(location.search).get('event');
+  if (!slug) { try { slug = localStorage.getItem('fc-pending-slug'); } catch (e) {} }
+  location.replace(slug ? location.pathname + '?event=' + encodeURIComponent(slug) : 'festchill-explore.html');
 }
 
-// Photo de l'événement recadrée au format du bandeau (renvoie un JPEG en base64, ou null si indisponible)
 async function ticketBannerDataUrl(w, h){
   try {
     const url = fcHdPhoto((currentEvent && currentEvent.banner_url) || '', 900);

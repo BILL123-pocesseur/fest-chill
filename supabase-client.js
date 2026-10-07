@@ -353,7 +353,7 @@ async function fcAdminTotpGate() {
   const verified = (fl.totp || []).find(f => f.status === 'verified');
 
   return new Promise(async (resolve) => {
-    let factorId, qrBlock = '', title, intro;
+    let factorId, qrBlock = '', qrSrc = '', secretKey = '', title, intro;
     if (verified) {
       factorId = verified.id;
       title = 'Code de l\'application';
@@ -365,9 +365,20 @@ async function fcAdminTotpGate() {
       if (enErr) throw enErr;
       factorId = en.id;
       title = 'Active la double authentification';
-      intro = 'Obligatoire pour l\'administrateur. Scanne ce QR code avec Google Authenticator (ou une application équivalente), puis saisis le code à 6 chiffres affiché.';
-      qrBlock = '<div style="text-align:center;margin:10px 0"><img alt="QR code 2FA" src="' + en.totp.qr_code + '" style="width:190px;height:190px;background:#fff;border-radius:12px;padding:8px"></div>'
-        + '<div style="font-size:.74rem;opacity:.7;text-align:center;word-break:break-all;margin-bottom:4px">Ou saisis cette clé : <b>' + fcEscapeHtml(en.totp.secret) + '</b></div>';
+      intro = '<b>Obligatoire pour l\'administrateur.</b><br>1. Scanne ce QR code avec Google Authenticator (ou une application équivalente).<br>2. Saisis ci-dessous le code à 6 chiffres affiché.';
+      // Le QR renvoyé par Supabase est du SVG brut (avec des guillemets) : il faut l'encoder, sinon l'image se casse.
+      const rawQr = String(en.totp.qr_code || '');
+      const comma = rawQr.indexOf(',');
+      const svgText = comma > -1 ? rawQr.slice(comma + 1) : rawQr;
+      qrSrc = svgText.trim().startsWith('<svg') ? 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgText) : rawQr;
+      secretKey = String(en.totp.secret || '');
+      qrBlock = '<div style="display:flex;justify-content:center;margin:16px 0 12px"><div style="background:#fff;border:1px solid #E8D9BD;border-radius:16px;padding:12px;box-shadow:0 6px 18px rgba(36,28,20,.12)">'
+        + '<img id="fc2-qr" alt="QR code 2FA" style="display:block;width:180px;height:180px"></div></div>'
+        + '<div style="font-size:.74rem;opacity:.7;text-align:center">Impossible de scanner ? Saisis cette clé dans l\'application :</div>'
+        + '<div style="display:flex;gap:8px;align-items:center;justify-content:center;margin:8px 0 4px">'
+        + '<code id="fc2-secret" style="font-family:\'Courier New\',monospace;font-size:.8rem;font-weight:800;background:#FFF3E3;color:#241C14;padding:8px 10px;border-radius:8px;word-break:break-all;text-align:center">' + fcEscapeHtml(secretKey) + '</code>'
+        + '<button id="fc2-copy" type="button" style="border:1px solid #E8D9BD;background:#fff;color:#241C14;border-radius:8px;padding:8px 10px;font-weight:700;font-size:.75rem;cursor:pointer">Copier</button></div>'
+        + '<div style="font-size:.72rem;opacity:.7;text-align:center;line-height:1.4;margin-bottom:2px">Garde cette clé dans un endroit sûr : elle te permet de retrouver ton accès si tu perds ton téléphone. Ne la partage avec personne.</div>';
     }
     const ov = fcMfaOverlay('<div style="font-weight:800;font-size:1.15rem;margin-bottom:6px">' + title + '</div>'
       + '<div style="font-size:.9rem;line-height:1.5;opacity:.85">' + intro + '</div>' + qrBlock
@@ -375,6 +386,9 @@ async function fcAdminTotpGate() {
       + '<div id="fc2-err" style="color:#C4321F;font-size:.82rem;min-height:18px"></div>'
       + '<button id="fc2-ok" style="' + FC_MFA_BTN + '">Valider</button>'
       + '<div style="text-align:right;margin-top:6px"><button style="' + FC_MFA_LINK + '" onclick="fcSignOut()">Se déconnecter</button></div>');
+    const qrImg = ov.querySelector('#fc2-qr'); if (qrImg && qrSrc) qrImg.src = qrSrc;
+    const copyBtn = ov.querySelector('#fc2-copy');
+    if (copyBtn) copyBtn.onclick = async () => { try { await navigator.clipboard.writeText(secretKey); copyBtn.textContent = 'Copié ✓'; } catch (e) { copyBtn.textContent = 'Sélectionne la clé'; } };
     const input = ov.querySelector('#fc2-code'), err = ov.querySelector('#fc2-err'), ok = ov.querySelector('#fc2-ok');
     const verify = async () => {
       const code = input.value.replace(/\D/g, '');
@@ -2292,8 +2306,11 @@ function fcFormatEventDateRange(dateStr, durationDays) {
 // - ended    : dernier jour déjà passé
 function fcEventDayStatus(dateStr, durationDays) {
   const n = Number(durationDays) || 1;
-  const start = new Date(dateStr + 'T00:00:00');
-  const today = new Date(); today.setHours(0,0,0,0);
+  // Même règle que le serveur : le jour du festival change à 6 h, heure du Bénin (UTC+1), donc maintenant − 5 h en UTC.
+  const [y, m, d] = String(dateStr).slice(0, 10).split('-').map(Number);
+  const start = Date.UTC(y, m - 1, d);
+  const t = new Date(Date.now() - 5 * 3600 * 1000);
+  const today = Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate());
   const diffDays = Math.round((today - start) / 86400000);
   if (diffDays < 0) return { phase: 'upcoming', dayNumber: 0, totalDays: n };
   if (diffDays >= n) return { phase: 'ended', dayNumber: n, totalDays: n };
