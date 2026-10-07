@@ -3008,27 +3008,55 @@ async function fcShareEvent(ev, url) {
 
 // ---- Ticket enregistrable en image (remplace Apple/Google Wallet) ----
 async function fcTicketImageBlob(t) {
-  const W = 900, H = 1400; const c = document.createElement('canvas'); c.width = W; c.height = H; const ctx = c.getContext('2d');
-  const g = ctx.createLinearGradient(0, 0, W, 520); g.addColorStop(0, '#C4321F'); g.addColorStop(1, '#E8A33D');
+  const rows = [['Date', t.dateText], ['Catégorie', t.category_name], ['N° du ticket', t.ticket_number != null ? String(t.ticket_number) : ''], ['Au nom de', t.buyer_name], ['Lieu', t.place]].filter(r => r[1]);
+  const W = 900, TOP = 380, ROW = 104;
+  const qrTop = TOP + 50 + rows.length * ROW + 20;
+  const H = qrTop + 500 + 70 + 330;           // hauteur calculée : rien ne se chevauche
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const ctx = c.getContext('2d');
+  const F = '"Plus Jakarta Sans", Arial, sans-serif';
   ctx.fillStyle = '#FFFBF3'; ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, 330);
-  ctx.fillStyle = '#fff'; ctx.font = '800 36px "Plus Jakarta Sans", Arial, sans-serif'; ctx.fillText('Fest&Chill · TICKET', 60, 90);
-  ctx.font = '800 62px "Plus Jakarta Sans", Arial, sans-serif';
-  fcWrapText(ctx, t.event_title || '', W - 120).slice(0, 2).forEach((l, i) => ctx.fillText(l, 60, 180 + i * 72));
-  ctx.fillStyle = '#241C14';
-  const rows = [['Date', t.dateText], ['Catégorie', t.category_name], ['N° du ticket', t.ticket_number != null ? String(t.ticket_number) : ''], ['Au nom de', t.buyer_name], ['Lieu', t.place]];
-  let y = 420;
-  rows.forEach(([k, v]) => { if (!v) return; ctx.fillStyle = '#8A7A68'; ctx.font = '600 28px "Plus Jakarta Sans", Arial, sans-serif'; ctx.fillText(k.toUpperCase(), 60, y);
-    ctx.fillStyle = '#241C14'; ctx.font = '700 40px "Plus Jakarta Sans", Arial, sans-serif'; ctx.fillText(fcWrapText(ctx, v, W - 120)[0], 60, y + 48); y += 110; });
+
+  // Haut : photo de l'événement (ou dégradé de secours)
+  const g = ctx.createLinearGradient(0, 0, W, TOP); g.addColorStop(0, '#C4321F'); g.addColorStop(1, '#E8A33D');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, TOP);
+  const img = await fcLoadImage(t.image);
+  if (img) { const r = Math.max(W / img.width, TOP / img.height); ctx.drawImage(img, (W - img.width * r) / 2, (TOP - img.height * r) / 2, img.width * r, img.height * r); }
+  const fade = ctx.createLinearGradient(0, TOP - 230, 0, TOP); fade.addColorStop(0, 'rgba(36,28,20,0)'); fade.addColorStop(1, 'rgba(36,28,20,.88)');
+  ctx.fillStyle = fade; ctx.fillRect(0, TOP - 230, W, 230);
+  ctx.fillStyle = '#fff'; ctx.font = '800 30px ' + F; ctx.fillText('FEST&CHILL · TICKET', 50, 62);
+  ctx.font = '800 58px ' + F;
+  const tl = fcWrapText(ctx, t.event_title || '', W - 100).slice(0, 2);
+  tl.forEach((l, i) => ctx.fillText(l, 50, TOP - 30 - (tl.length - 1 - i) * 66));
+  ctx.fillStyle = '#E8A33D'; ctx.fillRect(0, TOP, W, 10);
+
+  // Détails
+  let y = TOP + 70;
+  rows.forEach(([k, v]) => {
+    ctx.fillStyle = '#8A7A68'; ctx.font = '600 26px ' + F; ctx.fillText(k.toUpperCase(), 50, y);
+    ctx.fillStyle = '#241C14'; ctx.font = '700 38px ' + F; ctx.fillText(fcWrapText(ctx, v, W - 100)[0], 50, y + 44); y += ROW;
+  });
+
+  // QR code
   const qr = document.createElement('canvas');
   await QRCode.toCanvas(qr, t.qr_code, { width: 440, margin: 1 });
-  ctx.fillStyle = '#fff'; ctx.fillRect((W - 500) / 2, H - 620, 500, 500); ctx.drawImage(qr, (W - 440) / 2, H - 590);
-  ctx.fillStyle = '#8A7A68'; ctx.font = '600 28px "Plus Jakarta Sans", Arial, sans-serif'; ctx.textAlign = 'center';
-  const manual = String(t.qr_code || '').replace(/(.{4})(?=.)/g, '$1 ');
-  ctx.fillStyle = '#241C14'; ctx.font = '700 30px "Courier New", monospace'; ctx.textAlign = 'center';
-  ctx.fillText(fcWrapText(ctx, manual, W - 80)[0] || manual, W / 2, H - 92);
-  ctx.fillStyle = '#8A7A68'; ctx.font = '600 24px "Plus Jakarta Sans", Arial, sans-serif';
-  ctx.fillText('Code manuel (si le QR ne se scanne pas) · QR unique à présenter à l\'entrée', W / 2, H - 44); ctx.textAlign = 'left';
+  ctx.fillStyle = '#fff'; ctx.fillRect((W - 500) / 2, qrTop, 500, 500);
+  ctx.strokeStyle = '#E8D9BD'; ctx.lineWidth = 3; ctx.strokeRect((W - 500) / 2, qrTop, 500, 500);
+  ctx.drawImage(qr, (W - 440) / 2, qrTop + 30);
+
+  // Bas : code manuel, avertissement, équipe
+  const code = String(t.qr_code || '');
+  const groups = code.replace(/(.{4})(?=.)/g, '$1 ').split(' ');
+  const half = Math.ceil(groups.length / 2);
+  let by = qrTop + 500 + 60;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#8A7A68'; ctx.font = '600 24px ' + F; ctx.fillText('CODE MANUEL (si le QR ne se scanne pas)', W / 2, by);
+  ctx.fillStyle = '#241C14'; ctx.font = '700 40px "Courier New", monospace';
+  ctx.fillText(groups.slice(0, half).join(' '), W / 2, by + 56);
+  ctx.fillText(groups.slice(half).join(' '), W / 2, by + 106);
+  ctx.fillStyle = '#C4321F'; ctx.font = '800 28px ' + F; ctx.fillText('Ne partage pas ce code : il est secret.', W / 2, by + 168);
+  ctx.fillStyle = '#8A7A68'; ctx.font = '600 24px ' + F; ctx.fillText('QR unique · à présenter à l\'entrée', W / 2, by + 212);
+  ctx.fillStyle = '#241C14'; ctx.font = '800 32px ' + F; ctx.fillText('L\'équipe Fest&Chill', W / 2, by + 262);
+  ctx.textAlign = 'left';
   return await new Promise(res => c.toBlob(b => res(b), 'image/png'));
 }
 

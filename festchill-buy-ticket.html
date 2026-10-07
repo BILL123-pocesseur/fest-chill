@@ -1396,10 +1396,26 @@ function buyAnother(){
   location.href = slug ? location.pathname + '?event=' + encodeURIComponent(slug) : 'festchill-explore.html';
 }
 
+// Photo de l'événement recadrée au format du bandeau (renvoie un JPEG en base64, ou null si indisponible)
+async function ticketBannerDataUrl(w, h){
+  try {
+    const url = fcHdPhoto((currentEvent && currentEvent.banner_url) || '', 900);
+    if (!url) return null;
+    const img = await fcLoadImage(url);
+    if (!img) return null;
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+    const r = Math.max(w / img.width, h / img.height);
+    ctx.drawImage(img, (w - img.width * r) / 2, (h - img.height * r) / 2, img.width * r, img.height * r);
+    return c.toDataURL('image/jpeg', 0.85);
+  } catch (e) { return null; }
+}
+
 async function downloadTicketPDF(){
   if (!lastPurchase) return;
   const { jsPDF } = window.jspdf;
-  const W = 90, H = 190;
+  const W = 90;
+  const H = 236 + (lastPurchase.buyer_name ? 11.5 : 0) + (lastPurchase.buyer_phone ? 11.5 : 0);
   const doc = new jsPDF({ unit: 'mm', format: [W, H] });
   const qrDataUrl = await QRCode.toDataURL(lastPurchase.qr_code, { width: 400, margin: 1 });
   // Espaces normaux : l'espace fine des milliers n'existe pas dans la police du PDF (affichait « 2/500 »)
@@ -1407,18 +1423,22 @@ async function downloadTicketPDF(){
   const clean = (t) => String(t == null ? '' : t).replace(/[\u202f\u00a0]/g, ' ');
 
   doc.setFillColor(255, 251, 243); doc.rect(0, 0, W, H, 'F');                       // fond papier
-  doc.setFillColor(196, 50, 31);   doc.rect(0, 0, W, 34, 'F');                       // bandeau rouge
-  doc.setFillColor(232, 163, 61);  doc.rect(0, 34, W, 2.2, 'F');                     // filet or
+  doc.setFillColor(196, 50, 31);   doc.rect(0, 0, W, 50, 'F');                       // bandeau rouge (aussi fond de secours)
+  const banner = await ticketBannerDataUrl(900, 400);
+  if (banner) { try { doc.addImage(banner, 'JPEG', 0, 0, W, 40); } catch (e) {} }   // photo de l'événement en haut
   doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
-  doc.text('FEST&CHILL  ·  TICKET', 8, 11);
-  doc.setFontSize(17);
+  doc.text('FEST&CHILL  ·  TICKET', W / 2, 46, { align: 'center' });
+  doc.setFillColor(232, 163, 61);  doc.rect(0, 50, W, 2.2, 'F');                     // filet or
+
+  // Titre + date
+  doc.setTextColor(36, 28, 20); doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
   const titleLines = doc.splitTextToSize(clean(lastPurchase.event_title || 'Événement'), W - 16).slice(0, 2);
-  doc.text(titleLines, 8, 21);
-
+  doc.text(titleLines, 8, 61);
+  let y = 61 + titleLines.length * 5.8;
   doc.setFont('helvetica', 'normal'); doc.setTextColor(107, 93, 77); doc.setFontSize(9.5);
-  if (lastPurchase.event_date) doc.text(clean(fcFormatEventDateRange(lastPurchase.event_date, lastPurchase.duration_days)), 8, 45);
+  if (lastPurchase.event_date) { doc.text(clean(fcFormatEventDateRange(lastPurchase.event_date, lastPurchase.duration_days)), 8, y); y += 7; }
+  y += 3;
 
-  let y = 56;
   const row = (label, value, big) => {
     doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(138, 122, 104); doc.text(label.toUpperCase(), 8, y);
     doc.setFont('helvetica', 'bold'); doc.setFontSize(big ? 15 : 11); doc.setTextColor(36, 28, 20);
@@ -1431,23 +1451,33 @@ async function downloadTicketPDF(){
   if (lastPurchase.buyer_phone) row('Téléphone', lastPurchase.buyer_phone);
 
   doc.setDrawColor(232, 217, 189); doc.setLineDashPattern([1.2, 1.2], 0); doc.line(8, y, W - 8, y); doc.setLineDashPattern([], 0);
-  const qrSize = 58, qrX = (W - qrSize) / 2, qrY = y + 6;
+  const qrSize = 54, qrX = (W - qrSize) / 2, qrY = y + 6;
   doc.setFillColor(255, 255, 255); doc.setDrawColor(36, 28, 20); doc.roundedRect(qrX - 3, qrY - 3, qrSize + 6, qrSize + 6, 2, 2, 'FD');
   doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
-
   doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(36, 28, 20);
   const n = Number(lastPurchase.duration_days) || 1;
   doc.text(n > 1 ? `QR valable ${n} jours — 1 scan par jour` : 'QR unique — scannable une seule fois', W / 2, qrY + qrSize + 9, { align: 'center' });
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(138, 122, 104);
-  doc.text(lastPurchase.qr_code, W / 2, qrY + qrSize + 14, { align: 'center' });
 
-  // Lien cliquable (court, sur une seule ligne)
+  // ---- Bas du ticket : code manuel, avertissement, équipe ----
+  const code = String(lastPurchase.qr_code || '');
+  const groups = code.replace(/(.{4})(?=.)/g, '$1 ').split(' ');
+  const half = Math.ceil(groups.length / 2);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(138, 122, 104);
+  doc.text('CODE MANUEL (si le QR ne se scanne pas)', W / 2, H - 52, { align: 'center' });
+  doc.setFont('courier', 'bold'); doc.setFontSize(11.5); doc.setTextColor(36, 28, 20);
+  doc.text(groups.slice(0, half).join(' '), W / 2, H - 45.5, { align: 'center' });
+  doc.text(groups.slice(half).join(' '), W / 2, H - 39, { align: 'center' });
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(196, 50, 31);
+  doc.text('Ne partage pas ce code : il est secret.', W / 2, H - 31, { align: 'center' });
+
   const reviewUrl = `${location.origin}/festchill-buy-ticket.html?review=${lastPurchase.qr_code}`;
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(196, 50, 31);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(196, 50, 31);
   const linkText = 'Après l\'événement : laisse ton avis';
-  doc.textWithLink(linkText, (W - doc.getTextWidth(linkText)) / 2, qrY + qrSize + 23, { url: reviewUrl });   // zone cliquable bien placée
+  doc.textWithLink(linkText, (W - doc.getTextWidth(linkText)) / 2, H - 22, { url: reviewUrl });
   doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(138, 122, 104);
-  doc.text('Présente ce QR code à l\'entrée.', W / 2, H - 6, { align: 'center' });
+  doc.text('Présente ce QR code à l\'entrée.', W / 2, H - 15, { align: 'center' });
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(36, 28, 20);
+  doc.text('L\'équipe Fest&Chill', W / 2, H - 8, { align: 'center' });
 
   doc.save(`festchill-ticket-${lastPurchase.ticket_number ?? 'x'}.pdf`);
 }
@@ -1542,6 +1572,7 @@ async function downloadTicketImage(){
     const blob = await fcTicketImageBlob({
       event_title: lastPurchase.event_title || ev.title, qr_code: lastPurchase.qr_code, category_name: lastPurchase.category_name,
       ticket_number: lastPurchase.ticket_number, buyer_name: lastPurchase.buyer_name, place: ev.location || '',
+      image: fcHdPhoto(ev.banner_url || '', 1200),
       dateText: fcFormatDate(lastPurchase.event_date || ev.event_date, {weekday:'long', day:'numeric', month:'long', year:'numeric'})
     });
     fcDownloadBlob(blob, 'ticket-festchill.png');
