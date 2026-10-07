@@ -684,7 +684,7 @@ async function stopCamera(){
 }
 
 function manualScan(){
-  const val = document.getElementById('manual-input').value.trim();
+  const val = document.getElementById('manual-input').value.replace(/[\s-]+/g,'').toLowerCase();
   if(!val) return;
   processResult(val);
   document.getElementById('manual-input').value = '';
@@ -764,9 +764,9 @@ async function refreshNet(){
   let bar = document.getElementById('net-banner');
   if (!bar){
     bar = document.createElement('div'); bar.id = 'net-banner';
-    bar.style.cssText = 'position:sticky;top:0;z-index:4000;display:none;padding:10px 14px;background:#B26A00;color:#fff;font-weight:800;font-size:.86rem;text-align:center';
+    bar.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:4000;pointer-events:none;display:none;padding:10px 14px;background:#B26A00;color:#fff;font-weight:800;font-size:.86rem;text-align:center';
     bar.textContent = '📡 Pas de connexion internet — le scan est suspendu';
-    document.body.insertBefore(bar, document.body.firstChild);
+    document.body.appendChild(bar);
   }
   bar.style.display = ok ? 'none' : 'block';
 }
@@ -785,7 +785,7 @@ async function processResult(code){
 
   busy = true;
   let data = null, error = null;
-  try { const r = await supa.rpc('scan_ticket', { p_qr_code: code }); data = r.data; error = r.error; }
+  try { const r = await supa.rpc('scan_ticket', { p_qr_code: code, p_event_id: currentEventId || null }); data = r.data; error = r.error; }
   catch(e){ error = e; }
   busy = false;
 
@@ -840,6 +840,18 @@ async function processResult(code){
   }
   else if (res.result === 'cancelled'){
     refuse('TICKET ANNULÉ', 'Ce ticket a été annulé', [['N° Ticket', 'N°' + res.ticket_number], ['Catégorie', res.category_name]], res.ticket_number, res.category_name, 'ANNULÉ');
+  }
+  else if (res.result === 'not_started'){
+    refuse('PAS ENCORE COMMENCÉ', 'Ticket authentique, mais l\'événement n\'a pas encore commencé',
+      [['N° Ticket', 'N°' + res.ticket_number], ['Catégorie', res.category_name], ['Événement', res.event_title], ['Date de l\'événement', fcFormatDate(res.event_date)]], res.ticket_number, res.category_name, 'Événement pas commencé');
+  }
+  else if (res.result === 'event_ended'){
+    refuse('ÉVÉNEMENT TERMINÉ', 'Ticket authentique, mais l\'événement est terminé',
+      [['N° Ticket', 'N°' + res.ticket_number], ['Catégorie', res.category_name], ['Événement', res.event_title]], res.ticket_number, res.category_name, 'Événement terminé');
+  }
+  else if (res.result === 'wrong_event'){
+    refuse('AUTRE ÉVÉNEMENT', 'Ce ticket est valable pour un autre événement',
+      [['N° Ticket', 'N°' + res.ticket_number], ['Événement du ticket', res.event_title]], res.ticket_number, res.category_name, 'Autre événement');
   }
   else if (res.result === 'forbidden'){
     refuse('ACCÈS REFUSÉ', 'Ce ticket appartient à un autre organisateur', [], '—', '—', 'Autre organisateur');

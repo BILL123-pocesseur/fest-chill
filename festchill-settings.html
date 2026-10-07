@@ -672,16 +672,8 @@ tr{transition:background .2s}
               <div class="security-info">
                 <div class="security-title" data-i18n="settings.two_fa">Authentification à deux facteurs (2FA)</div>
                 <div class="security-sub" id="mfa-status-text">—</div>
-                <div id="mfa-form" style="display:none;margin-top:12px;max-width:320px">
-                  <input class="form-input" id="mfa-phone-input" placeholder="+229 XX XX XX XX" style="margin-bottom:8px">
-                  <div class="form-hint" style="margin-bottom:10px">Ce numéro recevra tes codes de vérification par SMS dès que l'envoi de SMS sera activé par Fest&Chill.</div>
-                  <div style="display:flex;gap:8px">
-                    <button class="btn btn-primary btn-sm" onclick="saveMfaPhone()">Enregistrer ce numéro</button>
-                    <button class="btn btn-ghost btn-sm" onclick="toggleMfaForm()">Annuler</button>
-                  </div>
-                </div>
               </div>
-              <button class="btn btn-ghost btn-sm" id="mfa-toggle-btn" onclick="toggleMfaForm()">Configurer</button>
+              <button class="btn btn-ghost btn-sm" id="mfa-toggle-btn" onclick="toggleEmailMfa()">Activer</button>
             </div>
             <div class="security-item" style="align-items:flex-start">
               <div class="security-icon sec-gold"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="11" rx="2"/><circle cx="12" cy="14.5" r="1.6"/><path d="M7 9V6a5 5 0 0 1 10 0v3"/></svg></div>
@@ -1123,32 +1115,34 @@ function renderPasswordLastChanged(){
 // ------------------------------------------------------------
 // 2FA
 // ------------------------------------------------------------
-function toggleMfaForm(){
-  const form = document.getElementById('mfa-form');
-  const open = form.style.display === 'none' || !form.style.display;
-  form.style.display = open ? 'block' : 'none';
-  if (open) document.getElementById('mfa-phone-input').value = profile.mfa_phone || '';
-}
-
-async function saveMfaPhone(){
-  const phone = document.getElementById('mfa-phone-input').value.trim();
-  if (!phone){ showToast('Entre un numéro de téléphone', FCI['alert-triangle']); return; }
+async function toggleEmailMfa(){
+  if (profile.role === 'admin') { showToast('Pour l\'administrateur, la double authentification par application est obligatoire et déjà active.', FCI['check-circle']); return; }
+  const enable = !profile.mfa_enabled;
+  if (!enable) {
+    const sure = await fcConfirm('Désactiver le code de sécurité envoyé par e-mail à chaque connexion ?', { title: 'Désactiver la 2FA', ok: 'Désactiver', danger: true });
+    if (!sure) return;
+  }
   try {
-    await fcSaveMfaSettings(phone, true);
-    profile.mfa_phone = phone;
-    profile.mfa_enabled = true;
+    await fcSetEmailMfa(enable);
+    profile.mfa_enabled = enable; profile.mfa_phone = null;
     renderMfaStatus();
-    toggleMfaForm();
-    showToast('Numéro 2FA enregistré !', FCI['check-circle']);
+    showToast(enable ? 'Double authentification activée !' : 'Double authentification désactivée', FCI['check-circle']);
   } catch(e){
     showToast('Erreur : ' + e.message, FCI['x-circle']);
   }
 }
 
 function renderMfaStatus(){
-  document.getElementById('mfa-status-text').textContent = profile.mfa_enabled && profile.mfa_phone
-    ? `Numéro enregistré : ${profile.mfa_phone} (envoi SMS pas encore actif sur la plateforme)`
-    : 'Aucun numéro enregistré pour l\'instant';
+  const txt = document.getElementById('mfa-status-text'), btn = document.getElementById('mfa-toggle-btn');
+  if (profile.role === 'admin') {
+    txt.textContent = 'Application d\'authentification (Google Authenticator) : obligatoire et active pour ton compte administrateur';
+    btn.style.display = 'none';
+    return;
+  }
+  txt.textContent = profile.mfa_enabled
+    ? 'Activée : un code est envoyé à ton adresse e-mail à chaque connexion (mot de passe ou Google)'
+    : 'Désactivée (facultatif) : active-la pour recevoir un code par e-mail à chaque connexion';
+  btn.textContent = profile.mfa_enabled ? 'Désactiver' : 'Activer';
 }
 
 // ------------------------------------------------------------

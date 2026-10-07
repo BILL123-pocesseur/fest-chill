@@ -145,6 +145,7 @@ async function fcRequireAuth({ adminOnly = false } = {}) {
     window.location.replace("festchill-dashboard.html");
     return null;
   }
+  if (!(await fcSecondFactorGate(session, profile))) return null;
   fcApplyProfilePrefs(profile);
   fcRecordSession(session.user.id); // ne bloque pas le rendu de la page
   try { fcShowAnnouncements(); } catch (e) {}
@@ -238,11 +239,158 @@ async function fcSignOutOtherSessions() {
 }
 
 // ------------------------------------------------------------
-// 2FA — numéro choisi par l'utilisateur (envoi réel du SMS de code
-// à brancher plus tard sur un fournisseur SMS externe).
+// DOUBLE AUTHENTIFICATION (2FA)
+//  - Organisateur : FACULTATIVE. S'il l'active dans Paramètres, un code est
+//    envoyé par e-mail à chaque nouvelle connexion (mot de passe OU Google).
+//  - Administrateur : OBLIGATOIRE, via une application d'authentification
+//    (Google Authenticator, etc.), aussi avec « Continuer avec Google ».
+// Aucun SMS.
 // ------------------------------------------------------------
-async function fcSaveMfaSettings(phone, enabled) {
-  await fcSaveProfilePref({ mfa_phone: phone, mfa_enabled: enabled });
+function fcMfaMarkKey(uid) { return 'fc-2fa-ok:' + uid; }
+
+// Retient que la connexion en cours est vérifiée (liée à la date de connexion :
+// une nouvelle connexion redemande un code).
+async function fcMarkSecondFactorOk() {
+  try {
+    const { data: { session } } = await supa.auth.getSession();
+    if (session) localStorage.setItem(fcMfaMarkKey(session.user.id), String(session.user.last_sign_in_at || ''));
+  } catch (e) {}
+}
+
+async function fcSetEmailMfa(enabled) {
+  const session = await fcGetSession();
+  if (!session) throw new Error('Non connecté');
+  const { error } = await supa.from('profiles').update({ mfa_enabled: !!enabled, mfa_phone: null }).eq('id', session.user.id);
+  if (error) throw error;
+  if (enabled) await fcMarkSecondFactorOk(); // pas de code à redemander pour la session en cours
+}
+
+function fcMfaOverlay(innerHtml) {
+  const old = document.getElementById('fc-2fa-overlay'); if (old) old.remove();
+  const ov = document.createElement('div');
+  ov.id = 'fc-2fa-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:30000;background:rgba(20,14,8,.92);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto';
+  ov.innerHTML = '<div style="width:min(94vw,400px);background:var(--surface,#fff);color:var(--text,#241C14);border-radius:18px;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.45);font-family:inherit">' + innerHtml + '</div>';
+  document.body.appendChild(ov);
+  return ov;
+}
+const FC_MFA_INPUT_STYLE = 'width:100%;box-sizing:border-box;margin:12px 0 6px;padding:14px;border-radius:12px;border:1px solid var(--border,#ccc);background:var(--bg,#fff);color:inherit;font-size:1.4rem;letter-spacing:.35em;text-align:center;font-weight:800';
+const FC_MFA_BTN = 'width:100%;padding:13px;border:none;border-radius:12px;background:#C4321F;color:#fff;font-weight:800;font-size:1rem;cursor:pointer;margin-top:8px';
+const FC_MFA_LINK = 'background:none;border:none;color:inherit;opacity:.75;text-decoration:underline;cursor:pointer;font-size:.85rem;padding:8px';
+
+async function fcSecondFactorGate(session, profile) {
+  if (profile?.role === 'admin') {
+    try { return await fcAdminTotpGate(); }
+    catch (e) {
+      console.error('2FA admin :', e);
+      fcMfaOverlay('<div style="font-weight:800;font-size:1.1rem;margin-bottom:8px">Vérification impossible</div>'
+        + '<div style="font-size:.9rem;line-height:1.5">La double authentification n\'a pas pu être vérifiée (' + fcEscapeHtml(e.message || e) + '). Vérifie que le MFA TOTP est activé dans Supabase (Authentication → Sign In / Providers → Multi-Factor).</div>'
+        + '<button style="' + FC_MFA_BTN + '" onclick="fcSignOut()">Se déconnecter</button>');
+      return false;
+    }
+  }
+  if (profile?.mfa_enabled) {
+    try {
+      const mark = localStorage.getItem(fcMfaMarkKey(session.user.id));
+      if (mark !== null && mark === String(session.user.last_sign_in_at || '')) return true;
+    } catch (e) {}
+    return await fcEmailCodeGate(session);
+  }
+  return true;
+}
+
+// ---- Organisateur : code reçu par e-mail ----
+function fcEmailCodeGate(session) {
+  return new Promise((resolve) => {
+    const email = session.user.email;
+    const masked = email.replace(/^(.).*(@.*)$/, '$1•••$2');
+    const ov = fcMfaOverlay('<div style="font-weight:800;font-size:1.15rem;margin-bottom:6px">Vérification de sécurité</div>'
+      + '<div id="fc2-info" style="font-size:.9rem;line-height:1.5;opacity:.85">Envoi du code à ' + fcEscapeHtml(masked) + '…</div>'
+      + '<input id="fc2-code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="••••••" style="' + FC_MFA_INPUT_STYLE + '">'
+      + '<div id="fc2-err" style="color:#C4321F;font-size:.82rem;min-height:18px"></div>'
+      + '<button id="fc2-ok" style="' + FC_MFA_BTN + '">Valider</button>'
+      + '<div style="display:flex;justify-content:space-between;margin-top:6px"><button id="fc2-resend" style="' + FC_MFA_LINK + '">Renvoyer le code</button><button style="' + FC_MFA_LINK + '" onclick="fcSignOut()">Se déconnecter</button></div>');
+    const info = ov.querySelector('#fc2-info'), err = ov.querySelector('#fc2-err'), input = ov.querySelector('#fc2-code');
+    const resend = ov.querySelector('#fc2-resend'), ok = ov.querySelector('#fc2-ok');
+    let cooldown = null;
+    const startCooldown = () => {
+      let n = 60; resend.disabled = true;
+      clearInterval(cooldown);
+      cooldown = setInterval(() => { n--; resend.textContent = n > 0 ? 'Renvoyer le code (' + n + ' s)' : 'Renvoyer le code'; if (n <= 0) { clearInterval(cooldown); resend.disabled = false; } }, 1000);
+      resend.textContent = 'Renvoyer le code (60 s)';
+    };
+    const send = async () => {
+      err.textContent = '';
+      const { error } = await supa.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+      if (error) { err.textContent = 'Envoi impossible : ' + error.message; resend.disabled = false; resend.textContent = 'Renvoyer le code'; return; }
+      info.textContent = 'Un code a été envoyé à ' + masked + '. Saisis-le pour continuer.';
+      startCooldown();
+    };
+    const verify = async () => {
+      const token = input.value.replace(/\D/g, '');
+      if (token.length < 6) { err.textContent = 'Entre le code reçu par e-mail.'; return; }
+      ok.disabled = true; ok.textContent = 'Vérification…'; err.textContent = '';
+      const { error } = await supa.auth.verifyOtp({ email, token, type: 'email' });
+      ok.disabled = false; ok.textContent = 'Valider';
+      if (error) { err.textContent = 'Code incorrect ou expiré.'; return; }
+      await fcMarkSecondFactorOk();
+      clearInterval(cooldown); ov.remove(); resolve(true);
+    };
+    ok.onclick = verify; resend.onclick = send;
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') verify(); });
+    send(); input.focus();
+  });
+}
+
+// ---- Administrateur : application d'authentification (TOTP) ----
+async function fcAdminTotpGate() {
+  const { data: aal, error: aalErr } = await supa.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aalErr) throw aalErr;
+  if (aal.currentLevel === 'aal2') return true;
+
+  const { data: fl, error: flErr } = await supa.auth.mfa.listFactors();
+  if (flErr) throw flErr;
+  const verified = (fl.totp || []).find(f => f.status === 'verified');
+
+  return new Promise(async (resolve) => {
+    let factorId, qrBlock = '', title, intro;
+    if (verified) {
+      factorId = verified.id;
+      title = 'Code de l\'application';
+      intro = 'Ouvre ton application d\'authentification et saisis le code à 6 chiffres de Fest&Chill.';
+    } else {
+      // Premier accès admin : on supprime d'éventuelles tentatives inachevées puis on crée le facteur.
+      for (const f of (fl.all || [])) { if (f.status !== 'verified') { try { await supa.auth.mfa.unenroll({ factorId: f.id }); } catch (e) {} } }
+      const { data: en, error: enErr } = await supa.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Fest&Chill admin ' + new Date().toISOString().slice(0, 10) });
+      if (enErr) throw enErr;
+      factorId = en.id;
+      title = 'Active la double authentification';
+      intro = 'Obligatoire pour l\'administrateur. Scanne ce QR code avec Google Authenticator (ou une application équivalente), puis saisis le code à 6 chiffres affiché.';
+      qrBlock = '<div style="text-align:center;margin:10px 0"><img alt="QR code 2FA" src="' + en.totp.qr_code + '" style="width:190px;height:190px;background:#fff;border-radius:12px;padding:8px"></div>'
+        + '<div style="font-size:.74rem;opacity:.7;text-align:center;word-break:break-all;margin-bottom:4px">Ou saisis cette clé : <b>' + fcEscapeHtml(en.totp.secret) + '</b></div>';
+    }
+    const ov = fcMfaOverlay('<div style="font-weight:800;font-size:1.15rem;margin-bottom:6px">' + title + '</div>'
+      + '<div style="font-size:.9rem;line-height:1.5;opacity:.85">' + intro + '</div>' + qrBlock
+      + '<input id="fc2-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••" style="' + FC_MFA_INPUT_STYLE + '">'
+      + '<div id="fc2-err" style="color:#C4321F;font-size:.82rem;min-height:18px"></div>'
+      + '<button id="fc2-ok" style="' + FC_MFA_BTN + '">Valider</button>'
+      + '<div style="text-align:right;margin-top:6px"><button style="' + FC_MFA_LINK + '" onclick="fcSignOut()">Se déconnecter</button></div>');
+    const input = ov.querySelector('#fc2-code'), err = ov.querySelector('#fc2-err'), ok = ov.querySelector('#fc2-ok');
+    const verify = async () => {
+      const code = input.value.replace(/\D/g, '');
+      if (code.length !== 6) { err.textContent = 'Le code contient 6 chiffres.'; return; }
+      ok.disabled = true; ok.textContent = 'Vérification…'; err.textContent = '';
+      const { data: ch, error: chErr } = await supa.auth.mfa.challenge({ factorId });
+      if (chErr) { ok.disabled = false; ok.textContent = 'Valider'; err.textContent = chErr.message; return; }
+      const { error: vErr } = await supa.auth.mfa.verify({ factorId, challengeId: ch.id, code });
+      ok.disabled = false; ok.textContent = 'Valider';
+      if (vErr) { err.textContent = 'Code incorrect ou expiré.'; input.value = ''; return; }
+      ov.remove(); resolve(true);
+    };
+    ok.onclick = verify;
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') verify(); });
+    input.focus();
+  });
 }
 
 // ------------------------------------------------------------
@@ -2198,7 +2346,15 @@ async function fcListPayoutMethods() {
   return data || [];
 }
 
+// Numéro béninois : 10 chiffres, commence par 01 (ex. 01 97 12 34 56). Accepte +229 / 00229 / espaces.
+function fcNormalizeBjPhone(raw) {
+  let d = String(raw || '').replace(/\D/g, '');
+  if (d.startsWith('00229')) d = d.slice(5); else if (d.startsWith('229') && d.length === 13) d = d.slice(3);
+  if (!/^01\d{8}$/.test(d)) throw new Error('Numéro invalide : 10 chiffres commençant par 01 (ex. 01 97 12 34 56).');
+  return d;
+}
 async function fcAddPayoutMethod(operator, phone) {
+  phone = fcNormalizeBjPhone(phone);
   const session = await fcGetSession();
   if (!session) throw new Error('Non connecté');
   const existing = await fcListPayoutMethods();
@@ -2508,7 +2664,12 @@ async function fcRequestWithdrawal(amount, operator, phone, pin) {
   const { data, error: payoutError } = await supa.functions.invoke('fedapay-payout', {
     body: { withdrawal_id: withdrawalId },
   });
-  if (payoutError) throw payoutError;
+  if (payoutError) {
+    // Une réponse 400 de la fonction masque son message : on le relit pour afficher la vraie cause.
+    let msg = payoutError.message;
+    try { const b = await payoutError.context.json(); if (b && b.error) msg = b.error; } catch (e) {}
+    throw new Error(msg);
+  }
   if (data?.error) throw new Error(data.error);
   return withdrawalId;
 }
@@ -2863,7 +3024,11 @@ async function fcTicketImageBlob(t) {
   await QRCode.toCanvas(qr, t.qr_code, { width: 440, margin: 1 });
   ctx.fillStyle = '#fff'; ctx.fillRect((W - 500) / 2, H - 620, 500, 500); ctx.drawImage(qr, (W - 440) / 2, H - 590);
   ctx.fillStyle = '#8A7A68'; ctx.font = '600 28px "Plus Jakarta Sans", Arial, sans-serif'; ctx.textAlign = 'center';
-  ctx.fillText('QR code unique · à présenter à l\'entrée', W / 2, H - 70); ctx.textAlign = 'left';
+  const manual = String(t.qr_code || '').replace(/(.{4})(?=.)/g, '$1 ');
+  ctx.fillStyle = '#241C14'; ctx.font = '700 30px "Courier New", monospace'; ctx.textAlign = 'center';
+  ctx.fillText(fcWrapText(ctx, manual, W - 80)[0] || manual, W / 2, H - 92);
+  ctx.fillStyle = '#8A7A68'; ctx.font = '600 24px "Plus Jakarta Sans", Arial, sans-serif';
+  ctx.fillText('Code manuel (si le QR ne se scanne pas) · QR unique à présenter à l\'entrée', W / 2, H - 44); ctx.textAlign = 'left';
   return await new Promise(res => c.toBlob(b => res(b), 'image/png'));
 }
 
