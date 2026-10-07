@@ -3154,3 +3154,38 @@ async function fcMyCommissionRate(fallback) {
   } catch (e) {}
   return fallback;
 }
+
+// ------------------------------------------------------------
+// FLÈCHE « RETOUR » dans la barre du haut (ordinateur, et application installée sur téléphone).
+// Sur navigateur mobile, le bouton retour du téléphone existe déjà : la flèche reste cachée.
+// ------------------------------------------------------------
+(function fcInstallBackButton() {
+  const ROOT_PAGES = ['festchill-dashboard.html', 'festchill-admin.html'];   // pages d'accueil : rien vers quoi revenir
+  const install = () => {
+    const bar = document.querySelector('.topbar');
+    if (!bar || document.getElementById('fc-back-btn')) return;
+    const file = location.pathname.split('/').pop();
+    if (ROOT_PAGES.includes(file)) return;
+    if (!document.getElementById('fc-back-style')) {
+      const st = document.createElement('style'); st.id = 'fc-back-style';
+      st.textContent = '.fc-back-btn{display:none;align-items:center;justify-content:center;width:40px;height:40px;min-width:40px;border-radius:50%;'
+        + 'border:1px solid var(--border,#E8D9BD);background:var(--surface,#fff);color:var(--text,#241C14);cursor:pointer;margin-right:10px;flex-shrink:0;transition:background .2s,transform .2s}'
+        + '.fc-back-btn:hover{background:var(--hover,rgba(196,50,31,.08))}.fc-back-btn:active{transform:scale(.94)}'
+        + '.fc-back-btn:focus-visible{outline:2px solid #C4321F;outline-offset:2px}'
+        + 'html[dir="rtl"] .fc-back-btn svg{transform:scaleX(-1)}'
+        + '@media (min-width:769px),(display-mode:standalone){.fc-back-btn{display:inline-flex}}';
+      document.head.appendChild(st);
+    }
+    const btn = document.createElement('button');
+    btn.id = 'fc-back-btn'; btn.type = 'button'; btn.className = 'fc-back-btn';
+    btn.setAttribute('aria-label', 'Retour'); btn.title = 'Retour';
+    btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>';
+    btn.onclick = () => {
+      const sameSite = document.referrer && new URL(document.referrer).origin === location.origin;
+      if (sameSite && history.length > 1) history.back(); else location.href = 'festchill-dashboard.html';
+    };
+    const host = bar.querySelector('.topbar-title') || bar;
+    host.insertBefore(btn, host.firstChild);
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install); else install();
+})();
