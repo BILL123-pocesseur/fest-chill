@@ -91,14 +91,31 @@
       + '<div style="margin:14px 0 4px;font-size:.74rem;color:var(--muted);text-transform:uppercase;font-weight:800">Informations</div>'
       + act('📱', 'Voir ses connexions', 'Appareils et dates de ses dernières connexions.', 'sessions', 'Afficher', 'btn-ghost')
       + '<div id="u-sess"></div>'
+      + '<div style="margin:14px 0 4px;font-size:.74rem;color:var(--muted);text-transform:uppercase;font-weight:800">Affichage (langue, thème, couleur)</div>'
+      + act('🌐', 'Voir son affichage', 'Langue, thème et couleur actuellement enregistrés sur son compte.', 'viewprefs', 'Afficher', 'btn-ghost')
+      + '<div id="u-prefs"></div>'
+      + act('🔄', 'Réinitialiser langue, thème et couleur', 'Remet le site en français, thème clair et couleur par défaut. Utile si la personne a choisi l\'arabe et que son écran ne répond plus. Elle retrouve un affichage normal à sa prochaine ouverture du site.', 'prefs', 'Réinitialiser', 'btn-ghost')
       + '<div style="margin:14px 0 4px;font-size:.74rem;color:var(--red);text-transform:uppercase;font-weight:800">Zone dangereuse</div>'
       + act('🗑️', 'Supprimer le compte', 'Définitif. Refusé si le compte a des ventes ou des retraits : bloque-le plutôt pour garder l\'historique.', 'delete', 'Supprimer', 'btn-danger')
       + '</div>';
     document.body.appendChild(ov);
     ov.querySelectorAll('[data-do]').forEach(b => b.onclick = () => {
       const k = b.dataset.do;
-      if (k === 'close') closeModal(); else if (k === 'sessions') showSessions(id); else doAction(k, id);
+      if (k === 'close') closeModal(); else if (k === 'sessions') showSessions(id); else if (k === 'viewprefs') showPrefs(id); else doAction(k, id);
     });
+  }
+
+  async function showPrefs(id) {
+    const box = document.getElementById('u-prefs'); box.innerHTML = '<div class="u-sub" style="padding:8px 0">Chargement…</div>';
+    try {
+      const p = await fcAdminGetPreferences(id);
+      const langs = { fr: 'Français', en: 'English', ar: 'العربية (arabe)' };
+      box.innerHTML = p ? '<div class="u-sub" style="padding:8px 0;border-top:1px dashed var(--border)">Langue : <b>' + esc(langs[p.p_language] || p.p_language || '—') + '</b>'
+        + ' · Thème : <b>' + esc(p.p_theme || '—') + '</b> · Couleur : <b style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;height:14px;border-radius:50%;background:' + esc(p.p_accent || '#ccc') + ';display:inline-block;border:1px solid var(--border)"></span>' + esc(p.p_accent || '—') + '</b>'
+        + '<br>Fuseau : <b>' + esc(p.p_timezone || '—') + '</b> · Photo : <b>' + (p.p_avatar ? '<a href="' + esc(p.p_avatar) + '" target="_blank" rel="noopener">voir</a>' : 'aucune') + '</b>'
+        + (p.p_language === 'ar' ? '<br><b style="color:var(--red)">Langue arabe : c\'est peut-être la cause de son problème d\'affichage.</b>' : '') + '</div>'
+        : '<div class="u-sub">Aucune donnée.</div>';
+    } catch (e) { box.innerHTML = '<div class="u-sub" style="color:var(--red)">' + esc(e.message) + '</div>'; }
   }
 
   async function showSessions(id) {
@@ -119,6 +136,7 @@
       logout: 'Déconnecter ' + name + ' de tous ses appareils ?',
       block: 'Bloquer le compte de ' + name + ' ? Il sera déconnecté et ne pourra plus se connecter.',
       unblock: 'Débloquer le compte de ' + name + ' ?',
+      prefs: 'Remettre le site de ' + name + ' en français, thème clair et couleur par défaut ?',
       delete: 'SUPPRIMER DÉFINITIVEMENT le compte de ' + name + ' et ses événements ? Cette action est irréversible.'
     };
     try {
@@ -139,8 +157,9 @@
         else if (kind === 'logout') await fcAdminRevokeSessions(id);
         else if (kind === 'block') await fcAdminSetBlocked(id, true);
         else if (kind === 'unblock') await fcAdminSetBlocked(id, false);
+        else if (kind === 'prefs') await fcAdminResetPreferences(id, 'fr');
         else if (kind === 'delete') await fcAdminDeleteAccount(id);
-        toast({ pin: 'PIN supprimé : il pourra en créer un nouveau', password: 'Mot de passe supprimé', logout: 'Utilisateur déconnecté', block: 'Compte bloqué', unblock: 'Compte débloqué', delete: 'Compte supprimé' }[kind]);
+        toast({ pin: 'PIN supprimé : il pourra en créer un nouveau', password: 'Mot de passe supprimé', logout: 'Utilisateur déconnecté', block: 'Compte bloqué', unblock: 'Compte débloqué', delete: 'Compte supprimé', prefs: 'Affichage remis en français (thème clair)' }[kind]);
       }
       closeModal(); await load();
     } catch (e) { toast('Erreur : ' + (e.message || e), false); }

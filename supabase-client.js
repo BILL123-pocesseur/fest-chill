@@ -2339,7 +2339,10 @@ function fcApplyProfilePrefs(profile) {
   if (!profile) return;
   if (profile.theme) fcSetTheme(profile.theme, false);
   if (profile.accent_color) fcSetAccent(profile.accent_color, false);
-  if (profile.language) fcSetLang(profile.language, false);
+  // Lien de secours : ajoute ?lang=fr (ou en / ar) à l'adresse d'une page pour remettre la langue, même si l'écran est bloqué.
+  const urlLang = new URLSearchParams(location.search).get('lang');
+  if (urlLang && FC_I18N[urlLang]) fcSetLang(urlLang, true);
+  else if (profile.language) fcSetLang(profile.language, false);
   if (profile.timezone) fcSetTimezone(profile.timezone, false);
   fcApplyI18n();
 }
@@ -2607,6 +2610,13 @@ async function fcAdminListAudit(limit) {
 }
 async function fcAdminResetPin(userId) {
   const { error } = await supa.rpc('fc_admin_reset_pin', { p_organizer_id: userId }); if (error) throw error;
+}
+async function fcAdminGetPreferences(userId) {
+  const { data, error } = await supa.rpc('fc_admin_get_preferences', { p_user_id: userId });
+  if (error) throw error; return (Array.isArray(data) ? data[0] : data) || null;
+}
+async function fcAdminResetPreferences(userId, lang) {
+  const { error } = await supa.rpc('fc_admin_reset_preferences', { p_user_id: userId, p_language: lang || 'fr' }); if (error) throw error;
 }
 async function fcAdminSetBlocked(userId, blocked) {
   const { error } = await supa.rpc('fc_admin_set_account_blocked', { p_user_id: userId, p_blocked: blocked }); if (error) throw error;
@@ -3188,4 +3198,19 @@ async function fcMyCommissionRate(fallback) {
     host.insertBefore(btn, host.firstChild);
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install); else install();
+})();
+
+// ------------------------------------------------------------
+// ARABE (droite → gauche) SUR TÉLÉPHONE : le menu latéral passe à droite, il doit donc aussi
+// sortir de l'écran par la droite. Sans ça, il restait posé sur la page et captait tous les clics
+// (« rien ne bouge »).
+// ------------------------------------------------------------
+(function fcRtlMobileFix() {
+  if (document.getElementById('fc-rtl-fix')) return;
+  const st = document.createElement('style'); st.id = 'fc-rtl-fix';
+  st.textContent = '@media (max-width:900px){'
+    + 'html[dir="rtl"] .sidebar{transform:translateX(100%) !important}'
+    + 'html[dir="rtl"] .sidebar.open{transform:translateX(0) !important}'
+    + 'html[dir="rtl"] .main{margin-right:0 !important;margin-left:0 !important}}';
+  document.head.appendChild(st);
 })();
