@@ -2615,6 +2615,10 @@ async function fcAdminGetPreferences(userId) {
   const { data, error } = await supa.rpc('fc_admin_get_preferences', { p_user_id: userId });
   if (error) throw error; return (Array.isArray(data) ? data[0] : data) || null;
 }
+async function fcAdminSetPreferences(userId, lang, theme, accent) {
+  const { error } = await supa.rpc('fc_admin_set_preferences', { p_user_id: userId, p_language: lang || null, p_theme: theme || null, p_accent: accent || null });
+  if (error) throw error;
+}
 async function fcAdminResetPreferences(userId, lang) {
   const { error } = await supa.rpc('fc_admin_reset_preferences', { p_user_id: userId, p_language: lang || 'fr' }); if (error) throw error;
 }

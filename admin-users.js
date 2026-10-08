@@ -92,7 +92,7 @@
       + act('📱', 'Voir ses connexions', 'Appareils et dates de ses dernières connexions.', 'sessions', 'Afficher', 'btn-ghost')
       + '<div id="u-sess"></div>'
       + '<div style="margin:14px 0 4px;font-size:.74rem;color:var(--muted);text-transform:uppercase;font-weight:800">Affichage (langue, thème, couleur)</div>'
-      + act('🌐', 'Voir son affichage', 'Langue, thème et couleur actuellement enregistrés sur son compte.', 'viewprefs', 'Afficher', 'btn-ghost')
+      + act('🌐', 'Voir / changer son affichage', 'Choisis sa langue, son thème et sa couleur, puis enregistre.', 'viewprefs', 'Afficher', 'btn-ghost')
       + '<div id="u-prefs"></div>'
       + act('🔄', 'Réinitialiser langue, thème et couleur', 'Remet le site en français, thème clair et couleur par défaut. Utile si la personne a choisi l\'arabe et que son écran ne répond plus. Elle retrouve un affichage normal à sa prochaine ouverture du site.', 'prefs', 'Réinitialiser', 'btn-ghost')
       + '<div style="margin:14px 0 4px;font-size:.74rem;color:var(--red);text-transform:uppercase;font-weight:800">Zone dangereuse</div>'
@@ -109,12 +109,28 @@
     const box = document.getElementById('u-prefs'); box.innerHTML = '<div class="u-sub" style="padding:8px 0">Chargement…</div>';
     try {
       const p = await fcAdminGetPreferences(id);
-      const langs = { fr: 'Français', en: 'English', ar: 'العربية (arabe)' };
-      box.innerHTML = p ? '<div class="u-sub" style="padding:8px 0;border-top:1px dashed var(--border)">Langue : <b>' + esc(langs[p.p_language] || p.p_language || '—') + '</b>'
-        + ' · Thème : <b>' + esc(p.p_theme || '—') + '</b> · Couleur : <b style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;height:14px;border-radius:50%;background:' + esc(p.p_accent || '#ccc') + ';display:inline-block;border:1px solid var(--border)"></span>' + esc(p.p_accent || '—') + '</b>'
-        + '<br>Fuseau : <b>' + esc(p.p_timezone || '—') + '</b> · Photo : <b>' + (p.p_avatar ? '<a href="' + esc(p.p_avatar) + '" target="_blank" rel="noopener">voir</a>' : 'aucune') + '</b>'
-        + (p.p_language === 'ar' ? '<br><b style="color:var(--red)">Langue arabe : c\'est peut-être la cause de son problème d\'affichage.</b>' : '') + '</div>'
-        : '<div class="u-sub">Aucune donnée.</div>';
+      if (!p) { box.innerHTML = '<div class="u-sub">Aucune donnée.</div>'; return; }
+      const fld = 'padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface,#fff);color:inherit;font-size:.85rem;font-family:inherit';
+      const opt = (v, label, cur) => '<option value="' + v + '"' + (v === cur ? ' selected' : '') + '>' + label + '</option>';
+      const swatches = ['#0EA5A0', '#34D399', '#FF8A3D', '#FF5A5F', '#3B82F6'].map(c =>
+        '<button type="button" class="pf-sw" data-c="' + c + '" aria-label="Couleur ' + c + '" style="width:28px;height:28px;border-radius:50%;background:' + c + ';border:2px solid var(--border);cursor:pointer;padding:0"></button>').join('');
+      box.innerHTML = '<div class="u-sub" style="padding:10px 0;border-top:1px dashed var(--border);display:grid;gap:10px">'
+        + '<label style="display:grid;gap:4px">Langue<select id="pf-lang" style="' + fld + '">' + opt('fr', 'Français', p.p_language) + opt('en', 'English', p.p_language) + opt('ar', 'العربية (arabe)', p.p_language) + '</select></label>'
+        + '<label style="display:grid;gap:4px">Thème<select id="pf-theme" style="' + fld + '">' + opt('light', 'Clair', p.p_theme) + opt('dark', 'Sombre', p.p_theme) + opt('auto', 'Automatique', p.p_theme) + '</select></label>'
+        + '<div style="display:grid;gap:4px">Couleur<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' + swatches
+        + '<input type="color" id="pf-accent" value="' + esc(/^#[0-9A-Fa-f]{6}$/.test(p.p_accent || '') ? p.p_accent : '#0EA5A0') + '" aria-label="Couleur personnalisée" style="width:40px;height:32px;border:none;background:none;cursor:pointer;padding:0"></div></div>'
+        + '<div>Fuseau : <b>' + esc(p.p_timezone || '—') + '</b> · Photo : <b>' + (p.p_avatar ? '<a href="' + esc(p.p_avatar) + '" target="_blank" rel="noopener">voir</a>' : 'aucune') + '</b></div>'
+        + (p.p_language === 'ar' ? '<div style="color:var(--red);font-weight:700">Langue arabe : c\'est peut-être la cause de son problème d\'affichage.</div>' : '')
+        + '<button class="btn btn-gold btn-sm" id="pf-save" type="button">Enregistrer ces choix</button></div>';
+      box.querySelectorAll('.pf-sw').forEach(b => b.onclick = () => { document.getElementById('pf-accent').value = b.dataset.c; });
+      document.getElementById('pf-save').onclick = async () => {
+        const btn = document.getElementById('pf-save'); btn.disabled = true; btn.textContent = 'Enregistrement…';
+        try {
+          await fcAdminSetPreferences(id, document.getElementById('pf-lang').value, document.getElementById('pf-theme').value, document.getElementById('pf-accent').value);
+          toast('Affichage enregistré. La personne le verra à sa prochaine ouverture du site.');
+          showPrefs(id);
+        } catch (e) { toast('Erreur : ' + (e.message || e), false); btn.disabled = false; btn.textContent = 'Enregistrer ces choix'; }
+      };
     } catch (e) { box.innerHTML = '<div class="u-sub" style="color:var(--red)">' + esc(e.message) + '</div>'; }
   }
 
