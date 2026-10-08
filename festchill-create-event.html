@@ -299,6 +299,9 @@ tr{transition:background .2s}
 
 /* FORM */
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+#row-title-type{align-items:end}#row-title-type>div{min-width:0}
+#row-title-type .form-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#f-title,#f-type{box-sizing:border-box;width:100%;height:46px}
 .form-full{grid-column:1/-1}
 .form-group{margin-bottom:0}
 .form-label{display:block;font-size:.75rem;font-weight:700;color:var(--muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:.7px}
@@ -400,7 +403,7 @@ tr{transition:background .2s}
       </div>
       <div style="padding:22px">
         <div class="form-grid">
-          <div class="form-grid" style="grid-column:1/-1;grid-template-columns:1fr 1fr">
+          <div class="form-grid" id="row-title-type" style="grid-column:1/-1;grid-template-columns:1fr 1fr">
             <div>
               <label class="form-label" data-i18n="create.title_label">Titre de l'événement *</label>
               <input type="text" class="form-input" id="f-title" placeholder="Ex: Concert Afrobeat Cotonou" data-i18n-placeholder="create.title_placeholder">

@@ -14,6 +14,9 @@
   let users = [], filter = 'all', query = '';
 
   const isPinLocked = (u) => !!u.u_pin_locked_until;
+  // Pastille ronde : photo de profil si elle existe (clic = agrandir), sinon les initiales
+  const avatarHtml = (u) => '<div class="u-av" style="position:relative;overflow:hidden"' + (u.u_avatar ? ' data-avatar="' + esc(u.u_avatar) + '" data-name="' + esc(u.u_name || '') + '"' : '') + '>'
+    + esc(initials(u)) + (u.u_avatar ? '<img src="' + esc(u.u_avatar) + '" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;cursor:zoom-in" onerror="this.remove()">' : '') + '</div>';
   const initials = (u) => (u.u_name || u.u_email || '??').trim().slice(0, 2).toUpperCase();
 
   root.innerHTML = '<div class="section-card" style="margin-bottom:16px">'
@@ -55,13 +58,14 @@
       const acts = admin ? '<span class="badge b-gray">Administrateur (protégé)</span>'
         : (isPinLocked(u) ? '<button class="btn btn-danger btn-sm" data-a="pin" data-id="' + esc(u.u_id) + '">🔓 Débloquer le PIN</button>' : '')
           + '<button class="btn btn-primary btn-sm" data-a="manage" data-id="' + esc(u.u_id) + '">Gérer ▸</button>';
-      return '<div class="u-row"><div class="u-av">' + esc(initials(u)) + '</div>'
+      return '<div class="u-row">' + avatarHtml(u)
         + '<div class="u-main"><div class="u-name">' + esc(u.u_name || 'Sans nom') + (admin ? ' <span class="badge b-gray">Admin</span>' : '') + '</div>'
         + '<div class="u-sub">' + esc(u.u_email || '') + (u.u_phone ? ' · ' + esc(u.u_phone) : '') + '</div>'
         + '<div class="u-sub">' + esc(u.u_events) + ' événement(s) · dernière connexion : ' + esc(when(u.u_last_sign_in)) + ' · ' + esc(u.u_active_sessions) + ' appareil(s)</div>'
         + '<div class="u-badges">' + status + pin + comm + '</div></div>'
         + '<div class="u-acts">' + acts + '</div></div>';
     }).join('') || '<div style="padding:24px;text-align:center;color:var(--muted)">Aucun compte ne correspond.</div>';
+    document.querySelectorAll('#u-list [data-avatar]').forEach(a => a.onclick = () => fcOpenPhotoViewer(a.dataset.avatar, a.dataset.name));
     document.querySelectorAll('#u-list [data-a]').forEach(b => b.onclick = () => {
       if (b.dataset.a === 'pin') doAction('pin', b.dataset.id); else openManage(b.dataset.id);
     });
@@ -78,7 +82,7 @@
     const act = (icon, title, text, key, label, cls) =>
       '<div class="m-act"><div style="font-size:1.4rem">' + icon + '</div><div class="m-t"><b>' + title + '</b><span>' + text + '</span></div>'
       + '<button class="btn ' + cls + ' btn-sm" data-do="' + key + '">' + label + '</button></div>';
-    ov.innerHTML = '<div class="m-box"><div style="display:flex;gap:12px;align-items:center;margin-bottom:6px"><div class="u-av">' + esc(initials(u)) + '</div>'
+    ov.innerHTML = '<div class="m-box"><div style="display:flex;gap:12px;align-items:center;margin-bottom:6px">' + avatarHtml(u)
       + '<div style="flex:1;min-width:0"><div class="u-name" style="font-size:1.05rem">' + esc(u.u_name || 'Sans nom') + '</div><div class="u-sub">' + esc(u.u_email || '') + (u.u_phone ? ' · ' + esc(u.u_phone) : '') + '</div></div>'
       + '<button class="btn btn-ghost btn-sm" data-do="close">✕</button></div>'
       + '<div style="margin:8px 0 4px;font-size:.74rem;color:var(--muted);text-transform:uppercase;font-weight:800">Sécurité du compte</div>'

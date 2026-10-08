@@ -373,13 +373,23 @@ async function doSignup(){
 
 let pendingVerifyEmail = null;
 
+// Codes reçus par e-mail : un carreau par chiffre (comme WhatsApp)
+(function(){
+  const v = document.getElementById('verify-code'), f = document.getElementById('forgot-code');
+  if (v && window.fcOtpEnhance) fcOtpEnhance(v, { length: 6, onComplete: () => doVerifyCode() });
+  if (f && window.fcOtpEnhance) fcOtpEnhance(f, { length: 6 });
+})();
+
 async function doVerifyCode(){
-  const code = document.getElementById('verify-code').value.trim();
+  const inp = document.getElementById('verify-code');
+  const code = inp.value.trim();
   if (!/^[0-9]{6}$/.test(code)){ showError('Entre le code à 6 chiffres reçu par email.'); return; }
 
+  if (inp._otp) inp._otp.setLoading();
   const { error } = await supa.auth.verifyOtp({ email: pendingVerifyEmail, token: code, type: 'signup' });
-  if (error){ showError('Code incorrect ou expiré — clique sur "Renvoyer le code".'); return; }
+  if (error){ if (inp._otp) inp._otp.setError(); showError('Code incorrect ou expiré — clique sur "Renvoyer le code".'); return; }
 
+  if (inp._otp) inp._otp.setSuccess();
   showSuccess('Compte vérifié !');
   setTimeout(() => { window.location.href = 'festchill-dashboard.html'; }, 800);
 }

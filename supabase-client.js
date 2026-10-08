@@ -146,6 +146,7 @@ async function fcRequireAuth({ adminOnly = false } = {}) {
     return null;
   }
   if (!(await fcSecondFactorGate(session, profile))) return null;
+  fcStartSessionGuard(session, profile);
   fcApplyProfilePrefs(profile);
   fcRecordSession(session.user.id); // ne bloque pas le rendu de la page
   try { fcShowAnnouncements(); } catch (e) {}
@@ -308,7 +309,7 @@ function fcEmailCodeGate(session) {
       + '<div id="fc2-info" style="font-size:.9rem;line-height:1.5;opacity:.85">Envoi du code à ' + fcEscapeHtml(masked) + '…</div>'
       + '<input id="fc2-code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="••••••" style="' + FC_MFA_INPUT_STYLE + '">'
       + '<div id="fc2-err" style="color:#C4321F;font-size:.82rem;min-height:18px"></div>'
-      + '<button id="fc2-ok" style="' + FC_MFA_BTN + '">Valider</button>'
+      + '<button id="fc2-ok" style="display:none">Valider</button>'
       + '<div style="display:flex;justify-content:space-between;margin-top:6px"><button id="fc2-resend" style="' + FC_MFA_LINK + '">Renvoyer le code</button><button style="' + FC_MFA_LINK + '" onclick="fcSignOut()">Se déconnecter</button></div>');
     const info = ov.querySelector('#fc2-info'), err = ov.querySelector('#fc2-err'), input = ov.querySelector('#fc2-code');
     const resend = ov.querySelector('#fc2-resend'), ok = ov.querySelector('#fc2-ok');
@@ -329,16 +330,18 @@ function fcEmailCodeGate(session) {
     const verify = async () => {
       const token = input.value.replace(/\D/g, '');
       if (token.length < 6) { err.textContent = 'Entre le code reçu par e-mail.'; return; }
-      ok.disabled = true; ok.textContent = 'Vérification…'; err.textContent = '';
+      ok.disabled = true; err.textContent = ''; otp.setLoading();
       const { error } = await supa.auth.verifyOtp({ email, token, type: 'email' });
-      ok.disabled = false; ok.textContent = 'Valider';
-      if (error) { err.textContent = 'Code incorrect ou expiré.'; return; }
+      ok.disabled = false;
+      if (error) { err.textContent = 'Code incorrect ou expiré.'; otp.setError(); return; }
       await fcMarkSecondFactorOk();
+      otp.setSuccess(); await new Promise(r => setTimeout(r, 800));
       clearInterval(cooldown); ov.remove(); resolve(true);
     };
+    const otp = fcOtpEnhance(input, { length: 6, onComplete: () => verify() });
     ok.onclick = verify; resend.onclick = send;
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') verify(); });
-    send(); input.focus();
+    send(); otp.focus();
   });
 }
 
@@ -384,7 +387,7 @@ async function fcAdminTotpGate() {
       + '<div style="font-size:.9rem;line-height:1.5;opacity:.85">' + intro + '</div>' + qrBlock
       + '<input id="fc2-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••" style="' + FC_MFA_INPUT_STYLE + '">'
       + '<div id="fc2-err" style="color:#C4321F;font-size:.82rem;min-height:18px"></div>'
-      + '<button id="fc2-ok" style="' + FC_MFA_BTN + '">Valider</button>'
+      + '<button id="fc2-ok" style="display:none">Valider</button>'
       + '<div style="text-align:right;margin-top:6px"><button style="' + FC_MFA_LINK + '" onclick="fcSignOut()">Se déconnecter</button></div>');
     const qrImg = ov.querySelector('#fc2-qr'); if (qrImg && qrSrc) qrImg.src = qrSrc;
     const copyBtn = ov.querySelector('#fc2-copy');
@@ -393,17 +396,18 @@ async function fcAdminTotpGate() {
     const verify = async () => {
       const code = input.value.replace(/\D/g, '');
       if (code.length !== 6) { err.textContent = 'Le code contient 6 chiffres.'; return; }
-      ok.disabled = true; ok.textContent = 'Vérification…'; err.textContent = '';
+      ok.disabled = true; err.textContent = ''; otp.setLoading();
       const { data: ch, error: chErr } = await supa.auth.mfa.challenge({ factorId });
-      if (chErr) { ok.disabled = false; ok.textContent = 'Valider'; err.textContent = chErr.message; return; }
+      if (chErr) { ok.disabled = false; err.textContent = chErr.message; otp.setError(); return; }
       const { error: vErr } = await supa.auth.mfa.verify({ factorId, challengeId: ch.id, code });
-      ok.disabled = false; ok.textContent = 'Valider';
-      if (vErr) { err.textContent = 'Code incorrect ou expiré.'; input.value = ''; return; }
+      ok.disabled = false;
+      if (vErr) { err.textContent = 'Code incorrect ou expiré.'; otp.setError(); return; }
+      otp.setSuccess(); await new Promise(r => setTimeout(r, 800));
       ov.remove(); resolve(true);
     };
+    const otp = fcOtpEnhance(input, { length: 6, onComplete: () => verify() });
     ok.onclick = verify;
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') verify(); });
-    input.focus();
+    otp.focus();
   });
 }
 
@@ -3042,19 +3046,19 @@ async function fcTicketImageBlob(t) {
   const rows = [['Date', t.dateText], ['Catégorie', t.category_name], ['N° du ticket', t.ticket_number != null ? String(t.ticket_number) : ''], ['Au nom de', t.buyer_name], ['Lieu', t.place]].filter(r => r[1]);
   const W = 900, TOP = 380, ROW = 104;
   const qrTop = TOP + 50 + rows.length * ROW + 20;
-  const H = qrTop + 500 + 70 + 330;           // hauteur calculée : rien ne se chevauche
+  const H = qrTop + 500 + 70 + 290;           // hauteur calculée : rien ne se chevauche
   const c = document.createElement('canvas'); c.width = W; c.height = H; const ctx = c.getContext('2d');
   const F = '"Plus Jakarta Sans", Arial, sans-serif';
   ctx.fillStyle = '#FFFBF3'; ctx.fillRect(0, 0, W, H);
 
   // Haut : photo de l'événement (ou dégradé de secours)
-  const g = ctx.createLinearGradient(0, 0, W, TOP); g.addColorStop(0, '#C4321F'); g.addColorStop(1, '#E8A33D');
+  const g = ctx.createLinearGradient(0, 0, W, TOP); g.addColorStop(0, '#241C14'); g.addColorStop(1, '#4A3524');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, TOP);
   const img = await fcLoadImage(t.image);
   if (img) { const r = Math.max(W / img.width, TOP / img.height); ctx.drawImage(img, (W - img.width * r) / 2, (TOP - img.height * r) / 2, img.width * r, img.height * r); }
   const fade = ctx.createLinearGradient(0, TOP - 230, 0, TOP); fade.addColorStop(0, 'rgba(36,28,20,0)'); fade.addColorStop(1, 'rgba(36,28,20,.88)');
   ctx.fillStyle = fade; ctx.fillRect(0, TOP - 230, W, 230);
-  ctx.fillStyle = '#fff'; ctx.font = '800 30px ' + F; ctx.fillText('FEST&CHILL · TICKET', 50, 62);
+  ctx.fillStyle = '#fff'; ctx.font = '800 30px ' + F; ctx.fillText('FESTIVAL TICKET', 50, 62);
   ctx.font = '800 58px ' + F;
   const tl = fcWrapText(ctx, t.event_title || '', W - 100).slice(0, 2);
   tl.forEach((l, i) => ctx.fillText(l, 50, TOP - 30 - (tl.length - 1 - i) * 66));
@@ -3077,16 +3081,14 @@ async function fcTicketImageBlob(t) {
   // Bas : code manuel, avertissement, équipe
   const code = String(t.qr_code || '');
   const groups = code.replace(/(.{4})(?=.)/g, '$1 ').split(' ');
-  const half = Math.ceil(groups.length / 2);
   let by = qrTop + 500 + 60;
   ctx.textAlign = 'center';
   ctx.fillStyle = '#8A7A68'; ctx.font = '600 24px ' + F; ctx.fillText('CODE MANUEL (si le QR ne se scanne pas)', W / 2, by);
-  ctx.fillStyle = '#241C14'; ctx.font = '700 40px "Courier New", monospace';
-  ctx.fillText(groups.slice(0, half).join(' '), W / 2, by + 56);
-  ctx.fillText(groups.slice(half).join(' '), W / 2, by + 106);
-  ctx.fillStyle = '#C4321F'; ctx.font = '800 28px ' + F; ctx.fillText('Ne partage pas ce code : il est secret.', W / 2, by + 168);
-  ctx.fillStyle = '#8A7A68'; ctx.font = '600 24px ' + F; ctx.fillText('QR unique · à présenter à l\'entrée', W / 2, by + 212);
-  ctx.fillStyle = '#241C14'; ctx.font = '800 32px ' + F; ctx.fillText('L\'équipe Fest&Chill', W / 2, by + 262);
+  ctx.fillStyle = '#241C14'; ctx.font = '700 30px "Courier New", monospace';
+  ctx.fillText(groups.join(' '), W / 2, by + 56);                         // code manuel sur UNE ligne
+  ctx.fillStyle = '#C4321F'; ctx.font = '800 28px ' + F; ctx.fillText('Ne partage pas ce code : il est secret.', W / 2, by + 116);
+  ctx.fillStyle = '#8A7A68'; ctx.font = '600 24px ' + F; ctx.fillText(t.validityText || 'QR unique · à présenter à l\'entrée', W / 2, by + 160);
+  ctx.fillStyle = '#241C14'; ctx.font = '800 32px ' + F; ctx.fillText('L\'équipe Fest&Chill', W / 2, by + 210);
   ctx.textAlign = 'left';
   return await new Promise(res => c.toBlob(b => res(b), 'image/png'));
 }
@@ -3183,7 +3185,7 @@ async function fcMyCommissionRate(fallback) {
     if (!document.getElementById('fc-back-style')) {
       const st = document.createElement('style'); st.id = 'fc-back-style';
       st.textContent = '.fc-back-btn{display:none;align-items:center;justify-content:center;width:40px;height:40px;min-width:40px;border-radius:50%;'
-        + 'border:1px solid var(--border,#E8D9BD);background:var(--surface,#fff);color:var(--text,#241C14);cursor:pointer;margin-right:10px;flex-shrink:0;transition:background .2s,transform .2s}'
+        + 'border:1px solid var(--border,#E8D9BD);background:var(--surface,#fff);color:var(--text,#241C14);cursor:pointer;margin-right:2px;flex-shrink:0;transition:background .2s,transform .2s}'
         + '.fc-back-btn:hover{background:var(--hover,rgba(196,50,31,.08))}.fc-back-btn:active{transform:scale(.94)}'
         + '.fc-back-btn:focus-visible{outline:2px solid #C4321F;outline-offset:2px}'
         + 'html[dir="rtl"] .fc-back-btn svg{transform:scaleX(-1)}'
@@ -3199,6 +3201,7 @@ async function fcMyCommissionRate(fallback) {
       if (sameSite && history.length > 1) history.back(); else location.href = 'festchill-dashboard.html';
     };
     const host = bar.querySelector('.topbar-title') || bar;
+    if (host !== bar) { host.style.display = 'flex'; host.style.alignItems = 'center'; host.style.gap = '8px'; }
     host.insertBefore(btn, host.firstChild);
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install); else install();
@@ -3218,3 +3221,170 @@ async function fcMyCommissionRate(fallback) {
     + 'html[dir="rtl"] .main{margin-right:0 !important;margin-left:0 !important}}';
   document.head.appendChild(st);
 })();
+
+// ------------------------------------------------------------
+// EXPIRATION DES SESSIONS (site et application installée)
+//  - Inactivité : déconnexion automatique après un temps sans toucher à l'écran.
+//  - Durée maximale : déconnexion même si la personne reste active.
+// Pour changer les durées, modifie seulement les chiffres ci-dessous.
+// ------------------------------------------------------------
+const FC_SESSION_LIMITS = {
+  idleMinutes: 30,          // organisateur : inactif 30 min → déconnecté
+  adminIdleMinutes: 15,     // administrateur : inactif 15 min
+  scannerIdleMinutes: 240,  // page scanner (le scan compte comme une activité) : 4 h
+  maxHours: 24,             // organisateur : durée maximale d'une connexion
+  adminMaxHours: 8,         // administrateur
+  warnSeconds: 60,          // avertissement avant la déconnexion
+};
+
+function fcStartSessionGuard(session, profile) {
+  if (window.__fcGuardOn) return;
+  window.__fcGuardOn = true;
+  const L = FC_SESSION_LIMITS;
+  const uid = session.user.id;
+  const isAdmin = profile && profile.role === 'admin';
+  const page = location.pathname.split('/').pop();
+  const idleMs = (page === 'festchill-scanner.html' ? L.scannerIdleMinutes : isAdmin ? L.adminIdleMinutes : L.idleMinutes) * 60000;
+  const maxMs = (isAdmin ? L.adminMaxHours : L.maxHours) * 3600000;
+
+  // Début de la connexion : lié à la date de connexion (une nouvelle connexion repart de zéro)
+  const markKey = 'fc-session-start:' + uid, sig = String(session.user.last_sign_in_at || '');
+  let start = null, freshLogin = false;
+  try { const m = JSON.parse(localStorage.getItem(markKey) || 'null'); if (m && m.sig === sig) start = m.start; } catch (e) {}
+  if (!start) { start = Date.now(); freshLogin = true; try { localStorage.setItem(markKey, JSON.stringify({ sig, start })); } catch (e) {} }
+  if (freshLogin) { try { localStorage.setItem('fc-last-activity', String(Date.now())); } catch (e) {} }
+
+  let lastWrite = 0;
+  const touch = (force) => {
+    const now = Date.now();
+    if (!force && now - lastWrite < 10000) return;
+    lastWrite = now; try { localStorage.setItem('fc-last-activity', String(now)); } catch (e) {}
+  };
+  window.fcTouchActivity = () => touch(true);
+  ['pointerdown', 'keydown', 'touchstart', 'scroll', 'mousemove'].forEach(ev => window.addEventListener(ev, () => touch(false), { passive: true }));
+
+  let expired = false;
+  const expire = (reason) => {
+    if (expired) return; expired = true;
+    try { supa.auth.signOut(); } catch (e) {}                                   // la session est coupée tout de suite
+    try { localStorage.removeItem(markKey); localStorage.removeItem('fc-last-activity'); localStorage.removeItem(fcMfaMarkKey(uid)); } catch (e) {}
+    const w = document.getElementById('fc-idle-warn'); if (w) w.remove();
+    fcMfaOverlay('<div style="font-weight:800;font-size:1.15rem;margin-bottom:8px">Session expirée</div>'
+      + '<div style="font-size:.92rem;line-height:1.5;opacity:.85">' + reason + ' Pour ta sécurité, reconnecte-toi.</div>'
+      + '<button style="' + FC_MFA_BTN + '" onclick="fcSignOut()">Se reconnecter</button>');
+  };
+  const warn = (secs) => {
+    let w = document.getElementById('fc-idle-warn');
+    if (!w) {
+      w = document.createElement('div'); w.id = 'fc-idle-warn';
+      w.style.cssText = 'position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:29000;background:#241C14;color:#fff;border-radius:14px;padding:12px 16px;display:flex;gap:12px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.35);font-size:.88rem;max-width:92vw';
+      w.innerHTML = '<span id="fc-idle-txt"></span><button type="button" style="border:none;border-radius:10px;background:#E8A33D;color:#241C14;font-weight:800;padding:8px 12px;cursor:pointer">Rester connecté</button>';
+      w.querySelector('button').onclick = () => { touch(true); w.remove(); };
+      document.body.appendChild(w);
+    }
+    w.querySelector('#fc-idle-txt').textContent = 'Déconnexion pour inactivité dans ' + secs + ' s';
+  };
+  const check = () => {
+    if (expired) return;
+    const now = Date.now();
+    let last = now; try { last = parseInt(localStorage.getItem('fc-last-activity') || String(now), 10) || now; } catch (e) {}
+    if (now - start > maxMs) return expire('Ta connexion a atteint sa durée maximale.');
+    const left = idleMs - (now - last);
+    if (left <= 0) return expire('Tu es resté inactif trop longtemps.');
+    const w = document.getElementById('fc-idle-warn');
+    if (left <= L.warnSeconds * 1000) warn(Math.ceil(left / 1000)); else if (w) w.remove();
+  };
+  setInterval(check, 1000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+  window.addEventListener('focus', check);
+  window.addEventListener('pageshow', check);
+  check();
+}
+
+// ------------------------------------------------------------
+// CARREAUX DE CODE (comme WhatsApp) : une case par caractère, passage automatique à la case suivante,
+// collage d'un code entier, puis : les carreaux TOURNENT pendant la vérification, deviennent verts avec une
+// COCHE si c'est bon, ou tremblent en rouge si le code est faux.
+// fcOtpEnhance(input, { length, perRow, type: 'digit' | 'hex', onComplete(code) })
+// L'input d'origine reste (caché) et contient le code : les anciens scripts continuent donc de marcher.
+// ------------------------------------------------------------
+function fcOtpEnhance(input, opts) {
+  opts = opts || {};
+  const length = opts.length || 6, perRow = opts.perRow || length, hex = opts.type === 'hex';
+  if (!document.getElementById('fc-otp-style')) {
+    const st = document.createElement('style'); st.id = 'fc-otp-style';
+    st.textContent =
+      '.fc-otp{display:grid;grid-template-columns:repeat(var(--per-row),minmax(0,1fr));gap:8px;max-width:' + '420px;margin:12px auto;position:relative}'
+      + '.fc-otp-box{aspect-ratio:1;width:100%;min-width:0;padding:0;text-align:center;font-size:1.35rem;font-weight:800;font-family:inherit;border:2px solid var(--border,#D9CBB0);border-radius:12px;background:var(--surface,#fff);color:var(--text,#241C14);outline:none;transition:border-color .15s,background .2s,transform .15s}'
+      + '.fc-otp.is-hex .fc-otp-box{font-size:1rem;border-radius:8px;font-family:"Courier New",monospace}'
+      + '.fc-otp-box:focus{border-color:#C4321F;box-shadow:0 0 0 3px rgba(196,50,31,.18)}'
+      + '.fc-otp.is-loading .fc-otp-box{border-color:#E8A33D;animation:fcOtpSpin 1s ease-in-out infinite;animation-delay:calc(var(--i) * 70ms)}'
+      + '.fc-otp.is-success .fc-otp-box{border-color:#1E9E5A;background:#E8F7EF;color:#1E9E5A;animation:fcOtpPop .45s ease both;animation-delay:calc(var(--i) * 30ms)}'
+      + '.fc-otp.is-error .fc-otp-box{border-color:#C4321F;background:#FDECEA;animation:fcOtpShake .4s}'
+      + '.fc-otp-check{position:absolute;inset:0;display:none;align-items:center;justify-content:center;pointer-events:none}'
+      + '.fc-otp.is-success .fc-otp-check{display:flex}'
+      + '.fc-otp-check span{width:58px;height:58px;border-radius:50%;background:#1E9E5A;display:grid;place-items:center;box-shadow:0 6px 18px rgba(30,158,90,.45);animation:fcOtpCheck .4s .2s cubic-bezier(.2,.9,.3,1.4) both}'
+      + '@keyframes fcOtpSpin{0%,100%{transform:rotateY(0)}50%{transform:rotateY(180deg)}}'
+      + '@keyframes fcOtpPop{0%{transform:scale(.8)}60%{transform:scale(1.08)}100%{transform:scale(1)}}'
+      + '@keyframes fcOtpShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}'
+      + '@keyframes fcOtpCheck{0%{transform:scale(0)}100%{transform:scale(1)}}'
+      + '@media (prefers-reduced-motion:reduce){.fc-otp.is-loading .fc-otp-box{animation:none;opacity:.55}.fc-otp.is-success .fc-otp-box,.fc-otp.is-error .fc-otp-box,.fc-otp-check span{animation:none}}';
+    document.head.appendChild(st);
+  }
+  const wrap = document.createElement('div');
+  wrap.className = 'fc-otp' + (hex ? ' is-hex' : '');
+  wrap.style.setProperty('--per-row', perRow);
+  const boxes = [];
+  for (let i = 0; i < length; i++) {
+    const b = document.createElement('input');
+    b.type = 'text'; b.maxLength = 1; b.className = 'fc-otp-box';
+    b.inputMode = hex ? 'text' : 'numeric';
+    b.autocomplete = i === 0 ? 'one-time-code' : 'off';
+    b.setAttribute('aria-label', 'Caractère ' + (i + 1) + ' sur ' + length);
+    b.style.setProperty('--i', i);
+    boxes.push(b); wrap.appendChild(b);
+  }
+  const chk = document.createElement('div'); chk.className = 'fc-otp-check';
+  chk.innerHTML = '<span><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span>';
+  wrap.appendChild(chk);
+  input.style.display = 'none';
+  input.insertAdjacentElement('afterend', wrap);
+
+  let busy = false;
+  const clean = (v) => hex ? String(v).replace(/[^0-9a-fA-F]/g, '').toLowerCase() : String(v).replace(/\D/g, '');
+  const sync = () => { input.value = boxes.map(b => b.value).join(''); input.dispatchEvent(new Event('input', { bubbles: true })); };
+  const full = () => boxes.every(b => b.value);
+  const done = () => { if (!busy && full() && opts.onComplete) opts.onComplete(input.value); };
+  const fill = (str, from) => {
+    const c = clean(str);
+    for (let k = 0; k < c.length && from + k < length; k++) boxes[from + k].value = c[k];
+    sync();
+    boxes[Math.min(from + c.length, length - 1)].focus();
+    done();
+  };
+  boxes.forEach((b, i) => {
+    b.addEventListener('input', () => { const c = clean(b.value); b.value = ''; if (!c) { sync(); return; } fill(c, i); });
+    b.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !b.value && i > 0) { boxes[i - 1].value = ''; boxes[i - 1].focus(); sync(); e.preventDefault(); }
+      else if (e.key === 'ArrowLeft' && i > 0) boxes[i - 1].focus();
+      else if (e.key === 'ArrowRight' && i < length - 1) boxes[i + 1].focus();
+      else if (e.key === 'Enter') done();
+    });
+    b.addEventListener('paste', (e) => { e.preventDefault(); fill((e.clipboardData || window.clipboardData).getData('text'), 0); });
+    b.addEventListener('focus', () => b.select());
+  });
+  const lock = (on) => boxes.forEach(b => { b.disabled = on; });
+  const api = {
+    getValue: () => input.value,
+    focus: () => { const e = boxes.find(b => !b.value) || boxes[0]; e.focus(); },
+    setLoading: () => { busy = true; wrap.className = 'fc-otp is-loading' + (hex ? ' is-hex' : ''); lock(true); },
+    setSuccess: () => { busy = true; wrap.className = 'fc-otp is-success' + (hex ? ' is-hex' : ''); lock(true); },
+    setError: () => {
+      busy = false; wrap.className = 'fc-otp is-error' + (hex ? ' is-hex' : ''); lock(false);
+      setTimeout(() => { api.reset(); }, 700);
+    },
+    reset: () => { busy = false; wrap.className = 'fc-otp' + (hex ? ' is-hex' : ''); lock(false); boxes.forEach(b => { b.value = ''; }); sync(); boxes[0].focus(); },
+  };
+  input._otp = api;
+  return api;
+}

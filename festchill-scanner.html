@@ -425,7 +425,7 @@ tr{transition:background .2s}
 
         <div class="manual-section">
           <div class="manual-title" data-i18n="scanner.or_manual">Ou entrer le code manuellement</div>
-          <div class="manual-row">
+          <div class="manual-row" style="flex-direction:column;align-items:stretch;gap:10px">
             <input type="text" class="manual-input" id="manual-input" placeholder="Coller le code QR ici" data-i18n-placeholder="scanner.paste_code" maxlength="40">
             <button class="btn btn-primary" onclick="manualScan()" data-i18n="scanner.check">Vérifier</button>
           </div>
@@ -683,12 +683,22 @@ async function stopCamera(){
   document.getElementById('status-text').textContent = 'Caméra inactive';
 }
 
-function manualScan(){
-  const val = document.getElementById('manual-input').value.replace(/[\s-]+/g,'').toLowerCase();
+async function manualScan(){
+  const inp = document.getElementById('manual-input');
+  const val = inp.value.replace(/[\s-]+/g,'').toLowerCase();
   if(!val) return;
-  processResult(val);
-  document.getElementById('manual-input').value = '';
+  if (inp._otp) inp._otp.setLoading();
+  try { await processResult(val); }
+  finally { if (inp._otp) inp._otp.reset(); else inp.value = ''; }
 }
+// Code manuel : un carreau par caractère (le code complet peut aussi être collé d'un coup)
+(function(){
+  const inp = document.getElementById('manual-input');
+  if (inp && window.fcOtpEnhance) {
+    fcOtpEnhance(inp, { length: 32, perRow: 8, type: 'hex', onComplete: () => manualScan() });
+    const w = inp.nextElementSibling; if (w) w.style.maxWidth = 'none';
+  }
+})();
 
 // ------------------------------------------------------------
 // SCAN : un seul résultat par scan, pas de répétition, jamais de scan hors ligne
@@ -785,6 +795,7 @@ async function processResult(code){
 
   busy = true;
   let data = null, error = null;
+  if (window.fcTouchActivity) fcTouchActivity();
   try { const r = await supa.rpc('scan_ticket', { p_qr_code: code, p_event_id: currentEventId || null }); data = r.data; error = r.error; }
   catch(e){ error = e; }
   busy = false;

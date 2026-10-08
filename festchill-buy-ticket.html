@@ -756,7 +756,7 @@ tr{transition:background .2s}
         <div class="info-title"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5" width="13" height="16" rx="2"/><rect x="9" y="3" width="6" height="3.4" rx="1"/></svg> Informations importantes</div>
         <div class="info-item"><div class="info-dot"></div>Ton ticket est disponible immédiatement après le paiement.</div>
         <div class="info-item"><div class="info-dot"></div>Présente le QR code à l'entrée — sur écran ou imprimé (PDF téléchargeable).</div>
-        <div class="info-item"><div class="info-dot"></div>Chaque QR code est unique et ne peut être scanné qu'une seule fois.</div>
+        <div class="info-item"><div class="info-dot"></div>Chaque QR code est unique : un seul scan par jour d'événement (une seule fois si l'événement dure 1 jour).</div>
         <div class="info-item"><div class="info-dot"></div>Pas besoin de créer un compte pour acheter.</div>
       </div>
     </div>
@@ -772,16 +772,7 @@ tr{transition:background .2s}
 
       <div class="payment-form">
         <div class="pf-step">
-          <div class="pf-step-title"><span class="pf-step-num">1</span>Tes informations</div>
-          <label class="form-label">Nom complet</label>
-          <input type="text" class="form-input" id="buyer-name" placeholder="Ex: Ama Sossou" style="margin-bottom:12px" oninput="checkPayBtn()">
-          <label class="form-label">Numéro Mobile Money</label>
-          <input type="tel" class="form-input" id="buyer-phone" placeholder="97 12 34 56" oninput="checkPayBtn()">
-          <div class="form-hint">Ton ticket sera lié à ce numéro.</div>
-        </div>
-
-        <div class="pf-step">
-          <div class="pf-step-title"><span class="pf-step-num">2</span>Opérateur de paiement</div>
+          <div class="pf-step-title"><span class="pf-step-num">1</span>Comment veux-tu payer ?</div>
           <div class="operator-grid" style="grid-template-columns:1fr 1fr 1fr">
             <button class="op-btn sel" id="op-mtn" onclick="selectOp('mtn')"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><line x1="11" y1="18.3" x2="13" y2="18.3"/></svg> MTN Money</button>
             <button class="op-btn" id="op-moov" onclick="selectOp('moov')"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><line x1="11" y1="18.3" x2="13" y2="18.3"/></svg> Moov Money</button>
@@ -790,19 +781,16 @@ tr{transition:background .2s}
         </div>
 
         <div class="pf-step">
-          <div class="pf-step-title"><span class="pf-step-num">3</span>Envoie le paiement</div>
-          <div id="payout-instructions" style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:14px">
-            <div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">Envoie exactement <strong id="pi-amount" style="color:var(--gold)">— FCFA</strong> via Mobile Money à :</div>
-            <div style="display:flex;align-items:center;gap:10px">
-              <div style="font-family:var(--fm);font-size:1.15rem;font-weight:700;color:var(--text)" id="pi-number">—</div>
-              <span class="badge" id="pi-operator-badge">—</span>
-            </div>
-            <div style="font-size:.76rem;color:var(--muted);margin-top:8px">Une fois l'argent envoyé, clique sur "Payer maintenant" ci-dessous pour prévenir l'organisateur — il confirmera dès réception.</div>
-          </div>
+          <div class="pf-step-title"><span class="pf-step-num">2</span>Tes informations</div>
+          <label class="form-label">Nom complet</label>
+          <input type="text" class="form-input" id="buyer-name" placeholder="Ex: Ama Sossou" style="margin-bottom:12px" oninput="checkPayBtn()">
+          <label class="form-label" id="phone-label">Numéro Mobile Money</label>
+          <input type="tel" class="form-input" id="buyer-phone" placeholder="01 97 12 34 56" oninput="checkPayBtn()">
+          <div class="form-hint" id="phone-hint">Ton ticket sera lié à ce numéro.</div>
         </div>
 
         <div class="pf-step">
-          <div class="pf-step-title"><span class="pf-step-num">4</span>Récapitulatif</div>
+          <div class="pf-step-title"><span class="pf-step-num">3</span>Récapitulatif</div>
           <div class="price-summary" id="price-summary">
             <div class="ps-row"><span style="color:var(--muted)">Ticket</span><span id="sum-ticket">— Aucun sélectionné</span></div>
             <div class="ps-row"><span style="color:var(--muted)">Catégorie</span><span id="sum-cat">—</span></div>
@@ -1065,7 +1053,7 @@ async function init(){
   });
 
   if (categories.length) switchCat(categories[0], tabsEl.children[0]);
-  loadPayoutInstructions();
+  // (ancien affichage « envoie l'argent à l'organisateur » supprimé : le paiement passe par FedaPay)
   updateRemaining();
 }
 
@@ -1225,7 +1213,6 @@ function updateSummary(){
   const finalPrice = promoOk ? promoState.final : base;
   document.getElementById('sum-price').textContent = base.toLocaleString('fr-FR') + ' FCFA' + (promoOk && promoState.discount > 0 ? '  (−' + promoState.discount.toLocaleString('fr-FR') + ')' : '');
   document.getElementById('sum-total').textContent = finalPrice.toLocaleString('fr-FR') + ' FCFA';
-  document.getElementById('pi-amount').textContent = finalPrice.toLocaleString('fr-FR') + ' FCFA';
 }
 
 async function loadPayoutInstructions(){
@@ -1251,6 +1238,11 @@ async function loadPayoutInstructions(){
 
 function selectOp(op){
   selectedOp = op;
+  const card = op === 'card';
+  document.getElementById('phone-label').textContent = card ? 'Numéro de téléphone' : 'Numéro Mobile Money';
+  document.getElementById('phone-hint').textContent = card
+    ? "Pour retrouver ton ticket. Les informations de ta carte bancaire te seront demandées sur la page de paiement sécurisée."
+    : 'Ton ticket sera lié à ce numéro.';
   document.getElementById('op-mtn').classList.toggle('sel', op==='mtn');
   document.getElementById('op-moov').classList.toggle('sel', op==='moov');
   document.getElementById('op-card').classList.toggle('sel', op==='card');
@@ -1482,6 +1474,14 @@ function buyAnother(){
   location.replace(slug ? location.pathname + '?event=' + encodeURIComponent(slug) : 'festchill-explore.html');
 }
 
+function ticketValidityText(){
+  const n = Number(lastPurchase && lastPurchase.duration_days) || 1;
+  if (n <= 1) return 'QR unique — scannable une seule fois';
+  const st = fcEventDayStatus(lastPurchase.event_date, n);
+  const left = st.phase === 'ongoing' ? n - st.dayNumber + 1 : n;       // acheté pendant l'événement : seulement les jours restants
+  return left <= 1 ? 'QR valable une seule fois (dernier jour)' : 'QR valable ' + left + ' jours — 1 scan par jour';
+}
+
 async function ticketBannerDataUrl(w, h){
   try {
     const url = fcHdPhoto((currentEvent && currentEvent.banner_url) || '', 900);
@@ -1499,31 +1499,36 @@ async function ticketBannerDataUrl(w, h){
 async function downloadTicketPDF(){
   if (!lastPurchase) return;
   const { jsPDF } = window.jspdf;
-  const W = 90;
-  const H = 236 + (lastPurchase.buyer_name ? 11.5 : 0) + (lastPurchase.buyer_phone ? 11.5 : 0);
+  const W = 90, HEAD = 62;
+  const H = 232 + (lastPurchase.buyer_name ? 11.5 : 0) + (lastPurchase.buyer_phone ? 11.5 : 0);
   const doc = new jsPDF({ unit: 'mm', format: [W, H] });
   const qrDataUrl = await QRCode.toDataURL(lastPurchase.qr_code, { width: 400, margin: 1 });
   // Espaces normaux : l'espace fine des milliers n'existe pas dans la police du PDF (affichait « 2/500 »)
   const money = (n) => String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' FCFA';
   const clean = (t) => String(t == null ? '' : t).replace(/[\u202f\u00a0]/g, ' ');
+  const alpha = (a) => doc.setGState(new doc.GState({ opacity: a }));
 
   doc.setFillColor(255, 251, 243); doc.rect(0, 0, W, H, 'F');                       // fond papier
-  doc.setFillColor(196, 50, 31);   doc.rect(0, 0, W, 50, 'F');                       // bandeau rouge (aussi fond de secours)
-  const banner = await ticketBannerDataUrl(900, 400);
-  if (banner) { try { doc.addImage(banner, 'JPEG', 0, 0, W, 40); } catch (e) {} }   // photo de l'événement en haut
-  doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
-  doc.text('FEST&CHILL  ·  TICKET', W / 2, 46, { align: 'center' });
-  doc.setFillColor(232, 163, 61);  doc.rect(0, 50, W, 2.2, 'F');                     // filet or
+  doc.setFillColor(36, 28, 20);    doc.rect(0, 0, W, HEAD, 'F');                      // fond sombre de secours (jamais de rouge)
+  const banner = await ticketBannerDataUrl(900, Math.round(900 * HEAD / W));
+  if (banner) { try { doc.addImage(banner, 'JPEG', 0, 0, W, HEAD); } catch (e) {} }  // la photo de l'événement occupe tout le haut
+  alpha(0.30); doc.setFillColor(20, 14, 8); doc.rect(0, 0, W, HEAD, 'F');            // voile sombre léger : le texte reste lisible
+  alpha(0.45); doc.rect(0, HEAD - 26, W, 26, 'F');
+  alpha(1);
+  doc.setFillColor(232, 163, 61); doc.rect(0, HEAD, W, 1.8, 'F');                    // filet or
 
-  // Titre + date
-  doc.setTextColor(36, 28, 20); doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
+  doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+  doc.text('FESTIVAL TICKET', 8, 13);
+  doc.setFontSize(15);
   const titleLines = doc.splitTextToSize(clean(lastPurchase.event_title || 'Événement'), W - 16).slice(0, 2);
-  doc.text(titleLines, 8, 61);
-  let y = 61 + titleLines.length * 5.8;
-  doc.setFont('helvetica', 'normal'); doc.setTextColor(107, 93, 77); doc.setFontSize(9.5);
-  if (lastPurchase.event_date) { doc.text(clean(fcFormatEventDateRange(lastPurchase.event_date, lastPurchase.duration_days)), 8, y); y += 7; }
-  y += 3;
+  const titleY = HEAD - 9 - (titleLines.length - 1) * 6.2;
+  doc.text(titleLines, 8, titleY);
+  if (lastPurchase.event_date) {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+    doc.text(clean(fcFormatEventDateRange(lastPurchase.event_date, lastPurchase.duration_days)), 8, HEAD - 3);
+  }
 
+  let y = HEAD + 12;
   const row = (label, value, big) => {
     doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(138, 122, 104); doc.text(label.toUpperCase(), 8, y);
     doc.setFont('helvetica', 'bold'); doc.setFontSize(big ? 15 : 11); doc.setTextColor(36, 28, 20);
@@ -1540,27 +1545,25 @@ async function downloadTicketPDF(){
   doc.setFillColor(255, 255, 255); doc.setDrawColor(36, 28, 20); doc.roundedRect(qrX - 3, qrY - 3, qrSize + 6, qrSize + 6, 2, 2, 'FD');
   doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(36, 28, 20);
-  const n = Number(lastPurchase.duration_days) || 1;
-  doc.text(n > 1 ? `QR valable ${n} jours — 1 scan par jour` : 'QR unique — scannable une seule fois', W / 2, qrY + qrSize + 9, { align: 'center' });
+  doc.text(ticketValidityText(), W / 2, qrY + qrSize + 9, { align: 'center' });
 
-  // ---- Bas du ticket : code manuel, avertissement, équipe ----
-  const code = String(lastPurchase.qr_code || '');
-  const groups = code.replace(/(.{4})(?=.)/g, '$1 ').split(' ');
-  const half = Math.ceil(groups.length / 2);
+  // ---- Bas du ticket : code manuel (une ligne), avertissement, équipe ----
+  const code = String(lastPurchase.qr_code || '').replace(/(.{4})(?=.)/g, '$1 ');
   doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(138, 122, 104);
-  doc.text('CODE MANUEL (si le QR ne se scanne pas)', W / 2, H - 52, { align: 'center' });
-  doc.setFont('courier', 'bold'); doc.setFontSize(11.5); doc.setTextColor(36, 28, 20);
-  doc.text(groups.slice(0, half).join(' '), W / 2, H - 45.5, { align: 'center' });
-  doc.text(groups.slice(half).join(' '), W / 2, H - 39, { align: 'center' });
+  doc.text('CODE MANUEL (si le QR ne se scanne pas)', W / 2, H - 42, { align: 'center' });
+  doc.setFont('courier', 'bold'); doc.setTextColor(36, 28, 20);
+  let fs = 9; doc.setFontSize(fs);
+  while (doc.getTextWidth(code) > W - 12 && fs > 5) { fs -= 0.2; doc.setFontSize(fs); }   // tient toujours sur une seule ligne
+  doc.text(code, W / 2, H - 36, { align: 'center' });
   doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(196, 50, 31);
-  doc.text('Ne partage pas ce code : il est secret.', W / 2, H - 31, { align: 'center' });
+  doc.text('Ne partage pas ce code : il est secret.', W / 2, H - 29, { align: 'center' });
 
   const reviewUrl = `${location.origin}/festchill-buy-ticket.html?review=${lastPurchase.qr_code}`;
   doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(196, 50, 31);
   const linkText = 'Après l\'événement : laisse ton avis';
-  doc.textWithLink(linkText, (W - doc.getTextWidth(linkText)) / 2, H - 22, { url: reviewUrl });
+  doc.textWithLink(linkText, (W - doc.getTextWidth(linkText)) / 2, H - 21, { url: reviewUrl });
   doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(138, 122, 104);
-  doc.text('Présente ce QR code à l\'entrée.', W / 2, H - 15, { align: 'center' });
+  doc.text('Présente ce QR code à l\'entrée.', W / 2, H - 14.5, { align: 'center' });
   doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(36, 28, 20);
   doc.text('L\'équipe Fest&Chill', W / 2, H - 8, { align: 'center' });
 
@@ -1657,7 +1660,7 @@ async function downloadTicketImage(){
     const blob = await fcTicketImageBlob({
       event_title: lastPurchase.event_title || ev.title, qr_code: lastPurchase.qr_code, category_name: lastPurchase.category_name,
       ticket_number: lastPurchase.ticket_number, buyer_name: lastPurchase.buyer_name, place: ev.location || '',
-      image: fcHdPhoto(ev.banner_url || '', 1200),
+      image: fcHdPhoto(ev.banner_url || '', 1200), validityText: ticketValidityText(),
       dateText: fcFormatDate(lastPurchase.event_date || ev.event_date, {weekday:'long', day:'numeric', month:'long', year:'numeric'})
     });
     fcDownloadBlob(blob, 'ticket-festchill.png');
