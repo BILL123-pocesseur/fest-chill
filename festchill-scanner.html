@@ -696,7 +696,9 @@ async function manualScan(){
   const inp = document.getElementById('manual-input');
   if (inp && window.fcOtpEnhance) {
     fcOtpEnhance(inp, { length: 32, perRow: 8, type: 'hex', onComplete: () => manualScan() });
-    const w = inp.nextElementSibling; if (w) w.style.maxWidth = 'none';
+    const w = inp.nextElementSibling;
+    if (w) { const h = document.createElement('div'); h.style.cssText = 'font-size:.74rem;opacity:.7;text-align:center;margin-top:-4px';
+      h.textContent = 'Le code a 32 caractères : seulement les chiffres 0 à 9 et les lettres A à F.'; w.insertAdjacentElement('afterend', h); }
   }
 })();
 

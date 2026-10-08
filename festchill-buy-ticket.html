@@ -781,12 +781,19 @@ tr{transition:background .2s}
         </div>
 
         <div class="pf-step">
-          <div class="pf-step-title"><span class="pf-step-num">2</span>Tes informations</div>
+          <div class="pf-step-title"><span class="pf-step-num">2</span><span id="info-title">Tes informations</span></div>
           <label class="form-label">Nom complet</label>
           <input type="text" class="form-input" id="buyer-name" placeholder="Ex: Ama Sossou" style="margin-bottom:12px" oninput="checkPayBtn()">
-          <label class="form-label" id="phone-label">Numéro Mobile Money</label>
-          <input type="tel" class="form-input" id="buyer-phone" placeholder="01 97 12 34 56" oninput="checkPayBtn()">
-          <div class="form-hint" id="phone-hint">Ton ticket sera lié à ce numéro.</div>
+          <div id="field-phone">
+            <label class="form-label" id="phone-label">Numéro Mobile Money</label>
+            <input type="tel" class="form-input" id="buyer-phone" placeholder="01 97 12 34 56" oninput="checkPayBtn()">
+            <div class="form-hint" id="phone-hint">Ton ticket sera lié à ce numéro.</div>
+          </div>
+          <div id="field-email" style="display:none">
+            <label class="form-label">Adresse e-mail</label>
+            <input type="email" class="form-input" id="buyer-email" placeholder="ama@exemple.com" autocomplete="email" oninput="checkPayBtn()">
+            <div class="form-hint">Pour recevoir ton reçu. Les informations de ta carte bancaire te seront demandées juste après, sur la page de paiement sécurisée.</div>
+          </div>
         </div>
 
         <div class="pf-step">
@@ -869,6 +876,7 @@ tr{transition:background .2s}
     <button class="btn btn-ghost" onclick="addTicketToCalendar()" style="margin-top:8px">📅 Ajouter à mon calendrier (avec rappels)</button>
     <button class="btn btn-ghost" onclick="downloadTicketImage()" style="margin-top:8px">🖼️ Enregistrer mon ticket en image</button>
     <button class="btn btn-ghost" onclick="giftTicket()" style="margin-top:8px">🎁 Offrir ce ticket à un ami (WhatsApp)</button>
+    <button class="btn btn-ghost" id="review-btn" type="button" onclick="goReview()">Laisser un avis</button>
     <button class="btn btn-primary" onclick="buyAnother()">Autre ticket</button>
   </div>
 </div>
@@ -1239,24 +1247,29 @@ async function loadPayoutInstructions(){
 function selectOp(op){
   selectedOp = op;
   const card = op === 'card';
-  document.getElementById('phone-label').textContent = card ? 'Numéro de téléphone' : 'Numéro Mobile Money';
-  document.getElementById('phone-hint').textContent = card
-    ? "Pour retrouver ton ticket. Les informations de ta carte bancaire te seront demandées sur la page de paiement sécurisée."
-    : 'Ton ticket sera lié à ce numéro.';
+  document.getElementById('field-phone').style.display = card ? 'none' : '';
+  document.getElementById('field-email').style.display = card ? '' : 'none';
+  document.getElementById('info-title').textContent = card ? 'Tes informations (paiement par carte)' : 'Tes informations';
+  if (typeof checkPayBtn === 'function') checkPayBtn();
   document.getElementById('op-mtn').classList.toggle('sel', op==='mtn');
   document.getElementById('op-moov').classList.toggle('sel', op==='moov');
   document.getElementById('op-card').classList.toggle('sel', op==='card');
 }
 
 function checkPayBtn(){
+  const card = selectedOp === 'card';
   const phone = document.getElementById('buyer-phone').value;
+  const email = document.getElementById('buyer-email').value.trim();
   const name = document.getElementById('buyer-name').value;
-  document.getElementById('pay-btn').disabled = !selectedTicket || phone.length < 8 || name.trim().length < 2;
+  const infoOk = card ? /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) : phone.length >= 8;
+  document.getElementById('pay-btn').disabled = !selectedTicket || !infoOk || name.trim().length < 2;
 }
 
 async function processPayment(){
   if (!selectedTicket) return;
-  const phone = document.getElementById('buyer-phone').value;
+  const card = selectedOp === 'card';
+  const email = document.getElementById('buyer-email').value.trim();
+  const phone = card ? '' : document.getElementById('buyer-phone').value;
   const name = document.getElementById('buyer-name').value;
   const payBtn = document.getElementById('pay-btn');
   payBtn.textContent = 'Envoi de la demande...';
@@ -1271,6 +1284,7 @@ async function processPayment(){
       p_ticket_number: selectedTicket === 'auto' ? null : selectedTicket,
       p_buyer_name: name,
       p_buyer_phone: phone,
+      p_buyer_email: card ? email : null,
       p_operator: selectedOp,
       p_promo: (promoState && promoState.catId === currentCat.id) ? promoState.code : null
     });
@@ -1431,6 +1445,18 @@ async function checkOrderStatusNow(){
       category_name: res.category_name, ticket_number: res.ticket_number,
       buyer_name: res.buyer_name, buyer_phone: res.buyer_phone,
     };
+    if (res.event_slug && !(currentEvent && currentEvent.banner_url)) {
+      try {
+        const { data: evd } = await supa.from('events').select('banner_url, location').eq('slug', res.event_slug).maybeSingle();
+        if (evd) { lastPurchase.banner_url = evd.banner_url; lastPurchase.location = evd.location; }
+      } catch (e) {}
+    }
+    const rb = document.getElementById('review-btn');
+    if (rb) {
+      const started = fcEventDayStatus(lastPurchase.event_date, lastPurchase.duration_days).phase !== 'upcoming';
+      rb.disabled = !started;
+      rb.textContent = started ? 'Laisser un avis' : "Avis possible dès le début de l'événement";
+    }
 
     document.getElementById('success-icon').innerHTML = '<svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 14.5 4.8c.5-.7 1.6-.4 1.7.4l1.6 12a1 1 0 0 1-1.3 1.1L4 20Z"/><line x1="8" y1="4" x2="9" y2="5.6"/><line x1="3" y1="9" x2="4.8" y2="9.6"/><line x1="18" y1="2.5" x2="18" y2="4.2"/></svg>';
     document.getElementById('success').classList.add('paid');
@@ -1467,6 +1493,10 @@ async function checkOrderStatusNow(){
   }
 }
 
+function goReview(){
+  if (lastPurchase && lastPurchase.qr_code) location.href = location.pathname + '?review=' + encodeURIComponent(lastPurchase.qr_code);
+}
+
 function buyAnother(){
   try { localStorage.removeItem('fc-pending-order'); } catch (e) {}
   let slug = (lastPurchase && lastPurchase.event_slug) || (currentEvent && currentEvent.slug) || new URLSearchParams(location.search).get('event');
@@ -1484,7 +1514,7 @@ function ticketValidityText(){
 
 async function ticketBannerDataUrl(w, h){
   try {
-    const url = fcHdPhoto((currentEvent && currentEvent.banner_url) || '', 900);
+    const url = fcHdPhoto((lastPurchase && lastPurchase.banner_url) || (currentEvent && currentEvent.banner_url) || '', 900);
     if (!url) return null;
     const img = await fcLoadImage(url);
     if (!img) return null;
@@ -1631,7 +1661,7 @@ async function submitReview(qr){
 }
 
 function eventInfoForShare(){
-  const ev = currentEvent;
+  const ev = currentEvent || { title: lastPurchase.event_title, banner_url: lastPurchase.banner_url, location: lastPurchase.location };
   const prices = categories.map(c => fcEffectivePrice(c));
   return {
     title: ev.title, image: fcHdPhoto(ev.banner_url, 1200), place: ev.location,
@@ -1659,8 +1689,8 @@ async function downloadTicketImage(){
   try {
     const blob = await fcTicketImageBlob({
       event_title: lastPurchase.event_title || ev.title, qr_code: lastPurchase.qr_code, category_name: lastPurchase.category_name,
-      ticket_number: lastPurchase.ticket_number, buyer_name: lastPurchase.buyer_name, place: ev.location || '',
-      image: fcHdPhoto(ev.banner_url || '', 1200), validityText: ticketValidityText(),
+      ticket_number: lastPurchase.ticket_number, buyer_name: lastPurchase.buyer_name, place: ev.location || lastPurchase.location || '',
+      image: fcHdPhoto(ev.banner_url || lastPurchase.banner_url || '', 1200), validityText: ticketValidityText(),
       dateText: fcFormatDate(lastPurchase.event_date || ev.event_date, {weekday:'long', day:'numeric', month:'long', year:'numeric'})
     });
     fcDownloadBlob(blob, 'ticket-festchill.png');

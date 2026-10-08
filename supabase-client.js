@@ -3176,33 +3176,35 @@ async function fcMyCommissionRate(fallback) {
 // Sur navigateur mobile, le bouton retour du téléphone existe déjà : la flèche reste cachée.
 // ------------------------------------------------------------
 (function fcInstallBackButton() {
-  const ROOT_PAGES = ['festchill-dashboard.html', 'festchill-admin.html'];   // pages d'accueil : rien vers quoi revenir
+  // Même modèle partout : « ← Retour | Titre de la page ». (« Gestion de l'événement » a déjà son propre Retour.)
+  const SKIP = ['festchill-dashboard.html', 'festchill-admin.html', 'festchill-event-detail.html'];
   const install = () => {
     const bar = document.querySelector('.topbar');
-    if (!bar || document.getElementById('fc-back-btn')) return;
-    const file = location.pathname.split('/').pop();
-    if (ROOT_PAGES.includes(file)) return;
+    const title = bar && bar.querySelector('.topbar-title');
+    if (!bar || !title || document.getElementById('fc-back-wrap')) return;
+    if (SKIP.includes(location.pathname.split('/').pop())) return;
     if (!document.getElementById('fc-back-style')) {
       const st = document.createElement('style'); st.id = 'fc-back-style';
-      st.textContent = '.fc-back-btn{display:none;align-items:center;justify-content:center;width:40px;height:40px;min-width:40px;border-radius:50%;'
-        + 'border:1px solid var(--border,#E8D9BD);background:var(--surface,#fff);color:var(--text,#241C14);cursor:pointer;margin-right:2px;flex-shrink:0;transition:background .2s,transform .2s}'
-        + '.fc-back-btn:hover{background:var(--hover,rgba(196,50,31,.08))}.fc-back-btn:active{transform:scale(.94)}'
-        + '.fc-back-btn:focus-visible{outline:2px solid #C4321F;outline-offset:2px}'
-        + 'html[dir="rtl"] .fc-back-btn svg{transform:scaleX(-1)}'
-        + '@media (min-width:769px),(display-mode:standalone){.fc-back-btn{display:inline-flex}}';
+      st.textContent = '.fc-back-link,.fc-back-sep{display:none}'
+        + '.fc-back-link{align-items:center;gap:6px;color:var(--muted,#8A7A68);text-decoration:none;font-size:.9rem;font-weight:600;cursor:pointer;white-space:nowrap}'
+        + '.fc-back-link:hover{color:var(--text,#241C14)}.fc-back-link:focus-visible{outline:2px solid #C4321F;outline-offset:3px;border-radius:6px}'
+        + '.fc-back-sep{color:var(--border,#E8D9BD)}'
+        + 'html[dir="rtl"] .fc-back-link svg{transform:scaleX(-1)}'
+        + '@media (min-width:769px),(display-mode:standalone){.fc-back-link,.fc-back-sep{display:inline-flex}}';
       document.head.appendChild(st);
     }
-    const btn = document.createElement('button');
-    btn.id = 'fc-back-btn'; btn.type = 'button'; btn.className = 'fc-back-btn';
-    btn.setAttribute('aria-label', 'Retour'); btn.title = 'Retour';
-    btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>';
-    btn.onclick = () => {
-      const sameSite = document.referrer && new URL(document.referrer).origin === location.origin;
-      if (sameSite && history.length > 1) history.back(); else location.href = 'festchill-dashboard.html';
+    const wrap = document.createElement('div');
+    wrap.id = 'fc-back-wrap'; wrap.style.cssText = 'display:flex;align-items:center;gap:12px;min-width:0';
+    const link = document.createElement('a');
+    link.className = 'fc-back-link'; link.href = 'festchill-dashboard.html'; link.setAttribute('aria-label', 'Retour');
+    link.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg> Retour';
+    link.onclick = (e) => {
+      let same = false; try { same = document.referrer && new URL(document.referrer).origin === location.origin; } catch (x) {}
+      if (same && history.length > 1) { e.preventDefault(); history.back(); }
     };
-    const host = bar.querySelector('.topbar-title') || bar;
-    if (host !== bar) { host.style.display = 'flex'; host.style.alignItems = 'center'; host.style.gap = '8px'; }
-    host.insertBefore(btn, host.firstChild);
+    const sep = document.createElement('span'); sep.className = 'fc-back-sep'; sep.textContent = '|';
+    title.parentNode.insertBefore(wrap, title);
+    wrap.appendChild(link); wrap.appendChild(sep); wrap.appendChild(title);
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install); else install();
 })();
@@ -3314,13 +3316,13 @@ function fcOtpEnhance(input, opts) {
   if (!document.getElementById('fc-otp-style')) {
     const st = document.createElement('style'); st.id = 'fc-otp-style';
     st.textContent =
-      '.fc-otp{display:grid;grid-template-columns:repeat(var(--per-row),minmax(0,1fr));gap:8px;max-width:' + '420px;margin:12px auto;position:relative}'
-      + '.fc-otp-box{aspect-ratio:1;width:100%;min-width:0;padding:0;text-align:center;font-size:1.35rem;font-weight:800;font-family:inherit;border:2px solid var(--border,#D9CBB0);border-radius:12px;background:var(--surface,#fff);color:var(--text,#241C14);outline:none;transition:border-color .15s,background .2s,transform .15s}'
+      '.fc-otp{display:grid;grid-template-columns:repeat(var(--per-row),minmax(0,var(--box-max,52px)));gap:var(--gap,8px);justify-content:center;max-width:100%;margin:12px auto;position:relative}'
+      + '.fc-otp-box{aspect-ratio:1;width:100%;min-width:0;padding:0;text-align:center;font-size:1.35rem;font-weight:800;font-family:inherit;border:2px solid rgba(127,127,127,.6);border-radius:12px;background:rgba(127,127,127,.12);color:inherit;outline:none;transition:border-color .15s,background .2s,transform .15s}'
       + '.fc-otp.is-hex .fc-otp-box{font-size:1rem;border-radius:8px;font-family:"Courier New",monospace}'
       + '.fc-otp-box:focus{border-color:#C4321F;box-shadow:0 0 0 3px rgba(196,50,31,.18)}'
       + '.fc-otp.is-loading .fc-otp-box{border-color:#E8A33D;animation:fcOtpSpin 1s ease-in-out infinite;animation-delay:calc(var(--i) * 70ms)}'
       + '.fc-otp.is-success .fc-otp-box{border-color:#1E9E5A;background:#E8F7EF;color:#1E9E5A;animation:fcOtpPop .45s ease both;animation-delay:calc(var(--i) * 30ms)}'
-      + '.fc-otp.is-error .fc-otp-box{border-color:#C4321F;background:#FDECEA;animation:fcOtpShake .4s}'
+      + '.fc-otp.is-error .fc-otp-box{border-color:#C4321F;background:#FDECEA;color:#C4321F;animation:fcOtpShake .4s}'
       + '.fc-otp-check{position:absolute;inset:0;display:none;align-items:center;justify-content:center;pointer-events:none}'
       + '.fc-otp.is-success .fc-otp-check{display:flex}'
       + '.fc-otp-check span{width:58px;height:58px;border-radius:50%;background:#1E9E5A;display:grid;place-items:center;box-shadow:0 6px 18px rgba(30,158,90,.45);animation:fcOtpCheck .4s .2s cubic-bezier(.2,.9,.3,1.4) both}'
@@ -3334,6 +3336,8 @@ function fcOtpEnhance(input, opts) {
   const wrap = document.createElement('div');
   wrap.className = 'fc-otp' + (hex ? ' is-hex' : '');
   wrap.style.setProperty('--per-row', perRow);
+  wrap.style.setProperty('--box-max', hex ? '34px' : '52px');
+  wrap.style.setProperty('--gap', hex ? '6px' : '8px');
   const boxes = [];
   for (let i = 0; i < length; i++) {
     const b = document.createElement('input');
