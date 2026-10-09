@@ -98,6 +98,8 @@
       + '<div style="margin:14px 0 4px;font-size:.74rem;color:var(--muted);text-transform:uppercase;font-weight:800">Affichage (langue, thème, couleur)</div>'
       + act('🌐', 'Voir / changer son affichage', 'Choisis sa langue, son thème et sa couleur, puis enregistre.', 'viewprefs', 'Afficher', 'btn-ghost')
       + '<div id="u-prefs"></div>'
+      + act('🔎', 'Essais de scan ratés (24 h)', 'Codes incorrects saisis ou scannés par cette personne : utile pour repérer quelqu\'un qui devine des codes.', 'scanfail', 'Afficher', 'btn-ghost')
+      + '<div id="u-scanfail"></div>'
       + act('🔄', 'Réinitialiser langue, thème et couleur', 'Remet le site en français, thème clair et couleur par défaut. Utile si la personne a choisi l\'arabe et que son écran ne répond plus. Elle retrouve un affichage normal à sa prochaine ouverture du site.', 'prefs', 'Réinitialiser', 'btn-ghost')
       + '<div style="margin:14px 0 4px;font-size:.74rem;color:var(--red);text-transform:uppercase;font-weight:800">Zone dangereuse</div>'
       + act('🗑️', 'Supprimer le compte', 'Définitif. Refusé si le compte a des ventes ou des retraits : bloque-le plutôt pour garder l\'historique.', 'delete', 'Supprimer', 'btn-danger')
@@ -105,7 +107,7 @@
     document.body.appendChild(ov);
     ov.querySelectorAll('[data-do]').forEach(b => b.onclick = () => {
       const k = b.dataset.do;
-      if (k === 'close') closeModal(); else if (k === 'sessions') showSessions(id); else if (k === 'viewprefs') showPrefs(id); else doAction(k, id);
+      if (k === 'close') closeModal(); else if (k === 'sessions') showSessions(id); else if (k === 'viewprefs') showPrefs(id); else if (k === 'scanfail') showScanFailures(id); else doAction(k, id);
     });
   }
 
@@ -135,6 +137,18 @@
           showPrefs(id);
         } catch (e) { toast('Erreur : ' + (e.message || e), false); btn.disabled = false; btn.textContent = 'Enregistrer ces choix'; }
       };
+    } catch (e) { box.innerHTML = '<div class="u-sub" style="color:var(--red)">' + esc(e.message) + '</div>'; }
+  }
+
+  async function showScanFailures(id) {
+    const box = document.getElementById('u-scanfail'); box.innerHTML = '<div class="u-sub" style="padding:8px 0">Chargement…</div>';
+    try {
+      const rows = await fcAdminScanFailures(id);
+      box.innerHTML = rows.length
+        ? '<div class="u-sub" style="padding:8px 0;border-top:1px dashed var(--border)"><b style="color:var(--red)">' + rows.length + ' essai(s) raté(s) en 24 h</b>'
+          + (rows.length >= 10 ? ' — blocage temporaire possible' : '') + '<br>'
+          + rows.slice(0, 10).map(r => esc(new Date(r.f_at).toLocaleString('fr-FR')) + ' · début du code : <b>' + esc(r.f_hint || '—') + '</b>').join('<br>') + '</div>'
+        : '<div class="u-sub" style="padding:8px 0">Aucun essai raté sur les dernières 24 heures.</div>';
     } catch (e) { box.innerHTML = '<div class="u-sub" style="color:var(--red)">' + esc(e.message) + '</div>'; }
   }
 

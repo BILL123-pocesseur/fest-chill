@@ -1335,6 +1335,7 @@ function showPaymentProblem(kind){
   const T = {
     cancelled: ['↩️', 'Paiement annulé', "Tu as quitté la page de paiement. Aucun argent n'a été débité. Tu peux réessayer ou choisir un autre ticket."],
     failed:    ['❌', 'Paiement échoué', "Le paiement n'a pas abouti et aucun ticket n'a été délivré. Tu peux choisir ton ticket et réessayer."],
+    refunded:  ['↩️', 'Événement terminé', "Ton paiement est arrivé après la fin de l'événement : aucun ticket n'a été délivré et ton argent te sera remboursé. Contacte l'organisateur ou le support si tu ne vois rien."],
     slow:      ['⏳', 'Paiement en cours de vérification', "Ça prend un peu plus longtemps que prévu. Si tu as payé, ton ticket arrivera ici tout seul, ou clique sur « Vérifier mon paiement »."],
   }[kind];
   document.getElementById('success').classList.remove('paid');
@@ -1393,7 +1394,7 @@ async function checkForReturningPayment(){
   document.getElementById('success-sub').textContent = 'Merci de patienter quelques secondes.';
 
   const finishPaidOrFailed = async (state) => {
-    if (state === 'paid') await checkOrderStatusNow(); else showPaymentProblem('failed');
+    if (state === 'paid') await checkOrderStatusNow(); else showPaymentProblem(state === 'refunded' ? 'refunded' : 'failed');
     localStorage.removeItem('fc-pending-order');
     // Retire ?order=... de l'URL : sinon « Autre ticket » retombe sur ce même écran en boucle.
     const url = new URL(location.href); url.searchParams.delete('order');
@@ -1403,7 +1404,7 @@ async function checkForReturningPayment(){
   // Annulé ou refusé sur la page FedaPay : on vérifie une fois, puis on le dit clairement (sans attendre)
   if (urlStatus === 'canceled' || urlStatus === 'cancelled' || urlStatus === 'declined') {
     const st = await fetchOrderState(orderId);
-    if (st === 'paid' || st === 'failed') { await finishPaidOrFailed(st); return; }
+    if (st === 'paid' || st === 'failed' || st === 'refunded') { await finishPaidOrFailed(st); return; }
     showPaymentProblem('cancelled');
     return;
   }
@@ -1411,7 +1412,7 @@ async function checkForReturningPayment(){
   // Le webhook FedaPay peut mettre quelques secondes : on vérifie tout de suite, puis toutes les 2,5 s
   for (let i = 0; i < 8; i++) {
     const st = await fetchOrderState(orderId);
-    if (st === 'paid' || st === 'failed') { await finishPaidOrFailed(st); return; }
+    if (st === 'paid' || st === 'failed' || st === 'refunded') { await finishPaidOrFailed(st); return; }
     await new Promise(r => setTimeout(r, 2500));
   }
   showPaymentProblem('slow');
@@ -1419,7 +1420,7 @@ async function checkForReturningPayment(){
   for (let i = 0; i < 20; i++) {
     await new Promise(r => setTimeout(r, 6000));
     const st = await fetchOrderState(orderId);
-    if (st === 'paid' || st === 'failed') { await finishPaidOrFailed(st); return; }
+    if (st === 'paid' || st === 'failed' || st === 'refunded') { await finishPaidOrFailed(st); return; }
   }
 }
 
@@ -1483,6 +1484,8 @@ async function checkOrderStatusNow(){
 
     document.getElementById('success-actions-pending').style.display = 'none';
     document.getElementById('success-actions-valid').style.display = 'flex';
+  } else if (res.payment_status === 'refunded'){
+    showPaymentProblem('refunded');
   } else if (res.payment_status === 'failed'){
     showPaymentProblem('failed');
   } else {

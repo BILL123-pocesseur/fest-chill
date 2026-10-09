@@ -887,6 +887,9 @@ async function processResult(code){
     refuse('AUTRE ÉVÉNEMENT', 'Ce ticket est valable pour un autre événement',
       [['N° Ticket', 'N°' + res.ticket_number], ['Événement du ticket', res.event_title]], res.ticket_number, res.category_name, 'Autre événement');
   }
+  else if (res.result === 'rate_limited'){
+    refuse('TROP D\'ESSAIS', 'Trop de codes incorrects à la suite. Attends quelques minutes avant de réessayer.', [], null, null, 'Trop d\'essais');
+  }
   else if (res.result === 'forbidden'){
     refuse('ACCÈS REFUSÉ', 'Ce ticket appartient à un autre organisateur', [], '—', '—', 'Autre organisateur');
   }
