@@ -1325,7 +1325,7 @@ function fcGuardPaymentHistory(params){
     const onPop = function(){
       window.removeEventListener('popstate', onPop);
       let retries = 0; try { retries = parseInt(sessionStorage.getItem('fc-pay-retries') || '0', 10) || 0; } catch (e) {}
-      history.go(-(2 + 2 * retries));
+      buyAnother();
     };
     window.addEventListener('popstate', onPop);
   } catch (e) {}
@@ -1494,7 +1494,7 @@ async function checkOrderStatusNow(){
 }
 
 function goReview(){
-  if (lastPurchase && lastPurchase.qr_code) location.href = location.pathname + '?review=' + encodeURIComponent(lastPurchase.qr_code);
+  if (lastPurchase && lastPurchase.qr_code) location.href = location.pathname + '?review=' + encodeURIComponent(lastPurchase.qr_code) + (lastPurchase.event_slug ? '&event=' + encodeURIComponent(lastPurchase.event_slug) : '');
 }
 
 function buyAnother(){
@@ -1588,10 +1588,13 @@ async function downloadTicketPDF(){
   doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(196, 50, 31);
   doc.text('Ne partage pas ce code : il est secret.', W / 2, H - 29, { align: 'center' });
 
-  const reviewUrl = `${location.origin}/festchill-buy-ticket.html?review=${lastPurchase.qr_code}`;
+  const reviewUrl = `${location.origin}${location.pathname}?review=${lastPurchase.qr_code}` + (lastPurchase.event_slug ? `&event=${encodeURIComponent(lastPurchase.event_slug)}` : '');
   doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(196, 50, 31);
   const linkText = 'Après l\'événement : laisse ton avis';
-  doc.textWithLink(linkText, (W - doc.getTextWidth(linkText)) / 2, H - 21, { url: reviewUrl });
+  const lw = doc.getTextWidth(linkText), lx = (W - lw) / 2;
+  doc.textWithLink(linkText, lx, H - 21, { url: reviewUrl });
+  doc.setDrawColor(196, 50, 31); doc.setLineWidth(0.2); doc.line(lx, H - 20, lx + lw, H - 20);   // souligné : on voit que c'est un lien
+  doc.link(lx - 1, H - 25.5, lw + 2, 6.5, { url: reviewUrl });
   doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(138, 122, 104);
   doc.text('Présente ce QR code à l\'entrée.', W / 2, H - 14.5, { align: 'center' });
   doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(36, 28, 20);
@@ -1627,7 +1630,7 @@ async function checkForReviewLink(){
     <div style="max-width:420px;margin:60px auto;padding:24px;text-align:center">
       <div style="font-family:var(--fd);font-weight:800;font-size:1.4rem;margin-bottom:8px">Comment c'était ? 🎉</div>
       <div style="color:var(--muted);font-size:.9rem;margin-bottom:24px">Donne ton avis sur l'événement.</div>
-      <div id="review-stars" style="font-size:2.2rem;margin-bottom:18px;letter-spacing:6px;cursor:pointer">☆☆☆☆☆</div>
+      <div id="review-stars" role="radiogroup" aria-label="Note de 1 à 5" style="display:flex;justify-content:center;gap:6px;margin-bottom:18px"></div>
       <textarea class="form-input" id="review-comment" placeholder="Un commentaire (facultatif)" style="width:100%;min-height:90px;margin-bottom:16px"></textarea>
       <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="submitReview('${qr}')">Envoyer mon avis</button>
       <div id="review-msg" style="margin-top:14px;font-size:.85rem"></div>
@@ -1636,12 +1639,18 @@ async function checkForReviewLink(){
 
   let rating = 0;
   const starsEl = document.getElementById('review-stars');
-  starsEl.onclick = (e) => {
-    const rect = starsEl.getBoundingClientRect();
-    const pct = (e.clientX - rect.left) / rect.width;
-    rating = Math.max(1, Math.min(5, Math.ceil(pct * 5)));
-    starsEl.textContent = '⭐'.repeat(rating) + '☆'.repeat(5 - rating);
-  };
+  const paint = (n) => [...starsEl.children].forEach((b, i) => {
+    b.textContent = i < n ? '★' : '☆'; b.style.color = i < n ? '#E8A33D' : 'var(--muted)'; b.setAttribute('aria-checked', String(i + 1 === rating));
+  });
+  for (let i = 1; i <= 5; i++) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.setAttribute('role', 'radio'); b.setAttribute('aria-label', i + ' sur 5');
+    b.style.cssText = 'background:none;border:none;font-size:2.4rem;line-height:1;cursor:pointer;padding:4px;min-width:46px;min-height:46px';
+    b.onclick = () => { rating = i; paint(i); };
+    b.onmouseenter = () => paint(i); b.onmouseleave = () => paint(rating);
+    starsEl.appendChild(b);
+  }
+  paint(0);
   window.__reviewRating = () => rating;
 }
 
@@ -1653,7 +1662,20 @@ async function submitReview(qr){
   try {
     const { error: rvErr } = await supa.rpc('fc_submit_review', { p_qr_code: qr, p_rating: rating, p_comment: comment || null });
     if (rvErr) throw rvErr;
-    document.querySelector('#review-stars').parentElement.innerHTML = `<div style="font-family:var(--fd);font-weight:800;font-size:1.3rem">Merci pour ton avis ! 🙏</div>`;
+    const slug = new URLSearchParams(location.search).get('event');
+    const target = slug ? location.pathname + '?event=' + encodeURIComponent(slug) : 'festchill-explore.html';
+    const box = document.querySelector('#review-stars').parentElement;
+    box.innerHTML = '<div style="font-family:var(--fd);font-weight:800;font-size:1.3rem">Merci pour ton avis ! 🙏</div>'
+      + '<div id="review-count" style="margin-top:12px;color:var(--muted);font-size:.9rem"></div>'
+      + '<button class="btn btn-ghost" id="review-back" type="button" style="margin-top:14px">Revenir maintenant</button>';
+    document.getElementById('review-back').onclick = () => location.replace(target);
+    let left = 5;
+    const tick = () => {
+      if (left <= 0) { location.replace(target); return; }
+      document.getElementById('review-count').textContent = "Retour à la page de l'événement dans " + left + ' s…';
+      left--; setTimeout(tick, 1000);
+    };
+    tick();
   } catch(e) {
     msg.textContent = 'Erreur : ' + e.message;
     msg.style.color = 'var(--red)';
