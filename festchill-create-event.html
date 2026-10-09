@@ -403,6 +403,9 @@ tr{transition:background .2s}
       </div>
       <div style="padding:22px">
         <div class="form-grid">
+          <div style="grid-column:1/-1;margin-bottom:14px;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:rgba(232,163,61,.12);font-size:.85rem;line-height:1.5">
+            <b>Publie uniquement des événements réels.</b> Les faux événements, les doublons et l'usurpation d'un autre organisateur entraînent la suspension du compte. Les acheteurs verront ton nom, ta photo et tes informations de contact : ajoute un numéro et un lien officiel pour les rassurer.
+          </div>
           <div class="form-grid" id="row-title-type" style="grid-column:1/-1;grid-template-columns:1fr 1fr">
             <div>
               <label class="form-label" data-i18n="create.title_label">Titre de l'événement *</label>
@@ -416,6 +419,20 @@ tr{transition:background .2s}
                 <option value="Soirée / Club" data-i18n="create.type_party">🎉 Soirée / Club</option>
                 <option value="Sport" data-i18n="create.type_sport">⚽ Sport</option>
                 <option value="Théâtre / Art" data-i18n="create.type_theatre">🎭 Théâtre / Art</option>
+                <option value="Festival">🎪 Festival</option>
+                <option value="Religion / Église">⛪ Religion / Église</option>
+                <option value="Éducation / Formation">🎓 Éducation / Formation</option>
+                <option value="Gastronomie / Food">🍽️ Gastronomie / Food</option>
+                <option value="Mode / Défilé">👗 Mode / Défilé</option>
+                <option value="Business / Networking">💼 Business / Networking</option>
+                <option value="Humour / Spectacle">😂 Humour / Spectacle</option>
+                <option value="Danse">💃 Danse</option>
+                <option value="Cinéma">🎬 Cinéma</option>
+                <option value="Débat / Politique">🗣️ Débat / Politique</option>
+                <option value="Famille / Enfants">👨‍👩‍👧 Famille / Enfants</option>
+                <option value="Salon / Exposition">🖼️ Salon / Exposition</option>
+                <option value="Bien-être / Santé">🧘 Bien-être / Santé</option>
+                <option value="Mariage / Fête privée">💍 Mariage / Fête privée</option>
                 <option value="Autre" data-i18n="create.type_other">✨ Autre</option>
               </select>
             </div>
@@ -445,6 +462,15 @@ tr{transition:background .2s}
             <label class="form-label">Lien Google Maps <span style="color:var(--muted);font-weight:400">(facultatif)</span></label>
             <input type="url" class="form-input" id="f-location-url" placeholder="Colle ici le lien copié depuis Google Maps">
             <div style="font-size:.74rem;color:var(--muted);margin-top:4px">Ouvre Google Maps → cherche le lieu → Partager → Copier le lien, et colle-le ici. Un bouton "Voir sur la carte" apparaîtra sur ta page événement.</div>
+          </div>
+          <div class="form-grid" style="grid-column:1/-1">
+            <div class="form-group"><label class="form-label">Ville</label><input type="text" class="form-input" id="f-city" placeholder="Ex : Cotonou" maxlength="80"></div>
+            <div class="form-group"><label class="form-label">Public autorisé</label>
+              <select class="form-select" id="f-age"><option value="">Tous âges</option><option value="+12 ans">+12 ans</option><option value="+16 ans">+16 ans</option><option value="+18 ans">+18 ans</option><option value="+21 ans">+21 ans</option></select></div>
+          </div>
+          <div class="form-grid" style="grid-column:1/-1">
+            <div class="form-group"><label class="form-label">Numéro de contact de l'événement</label><input type="tel" class="form-input" id="f-contact" placeholder="Ex : 01 97 12 34 56" maxlength="30"></div>
+            <div class="form-group"><label class="form-label">Lien officiel (recommandé)</label><input type="url" class="form-input" id="f-proof" placeholder="Page Facebook, Instagram ou site de l'événement" maxlength="300"></div>
           </div>
           <div class="form-full">
             <label class="form-label" data-i18n="create.description_label">Description</label>
@@ -614,7 +640,7 @@ async function submitEvent(status){
   // cache — voir fcGetCategoryPhoto), pour illustrer l'événement partout.
   let banner_url = null;
   try {
-    const photo = await fcGetCategoryPhoto(event_type);
+    const photo = await fcPickEventPhoto(event_type, title);
     if (photo) {
       banner_url = photo.photo_url;
     } else if (window.__fcLastPhotoError) {
@@ -625,7 +651,11 @@ async function submitEvent(status){
 
   const { data: event, error } = await supa.from('events').insert({
     organizer_id: profile.id, slug, title, event_type, description,
-    location, location_url, event_date, event_time, status, numbering_mode, banner_url, duration_days
+    location, location_url, event_date, event_time, status, numbering_mode, banner_url, duration_days,
+    city: (document.getElementById('f-city').value || '').trim() || null,
+    age_limit: document.getElementById('f-age').value || null,
+    contact_phone: (document.getElementById('f-contact').value || '').trim() || null,
+    proof_url: /^https?:\/\//i.test((document.getElementById('f-proof').value || '').trim()) ? document.getElementById('f-proof').value.trim() : null
   }).select().single();
 
   if (error){ showFormError(fcT('common.error_prefix') + ' ' + error.message); btn.disabled = false; btn.innerHTML = '🚀 ' + fcT('create.publish'); return; }

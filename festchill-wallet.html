@@ -447,7 +447,7 @@ tr{transition:background .2s}
               <select style="padding:5px 10px;border-radius:6px;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:.75rem;outline:none">
                 <option>Tous</option><option>Entrées</option><option>Retraits</option>
               </select>
-              <button class="btn btn-ghost btn-sm" onclick="showToast('Export CSV téléchargé !',FCI['download'])"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11.5"/><polyline points="7.5 11 12 15.5 16.5 11"/><path d="M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7"/></svg> Export</button>
+              <button class="btn btn-ghost btn-sm" onclick="fcRunExport(this,'wallet')"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11.5"/><polyline points="7.5 11 12 15.5 16.5 11"/><path d="M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7"/></svg> Export</button>
             </div>
           </div>
           <div id="tx-list"></div>

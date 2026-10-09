@@ -23,6 +23,20 @@ const CATEGORY_PHOTO_QUERIES = {
   'Concert / Musique': 'live concert stage lights crowd silhouette',
   'Conférence': 'business conference audience professional stage',
   'Soirée / Club': 'nightclub party neon lights dancing crowd',
+  "Festival": "music festival crowd stage lights",
+  "Religion / Église": "church worship congregation",
+  "Éducation / Formation": "training workshop classroom seminar",
+  "Gastronomie / Food": "food festival street food gourmet",
+  "Mode / Défilé": "fashion show runway",
+  "Business / Networking": "business networking conference people",
+  "Humour / Spectacle": "stand up comedy stage microphone",
+  "Danse": "dance performance dancers stage",
+  "Cinéma": "cinema movie screening audience",
+  "Débat / Politique": "public debate panel speakers audience",
+  "Famille / Enfants": "family kids fun event",
+  "Salon / Exposition": "exhibition expo fair visitors",
+  "Bien-être / Santé": "wellness yoga outdoor group",
+  "Mariage / Fête privée": "wedding reception celebration decoration",
   'Sport': 'stadium crowd sports fans cheering',
   'Théâtre / Art': 'theater stage dramatic lighting performance',
   'Autre': 'festival crowd celebration confetti lights',
@@ -3059,7 +3073,7 @@ async function fcTicketImageBlob(t) {
   const g = ctx.createLinearGradient(0, 0, W, TOP); g.addColorStop(0, '#241C14'); g.addColorStop(1, '#4A3524');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, TOP);
   const img = await fcLoadImage(t.image);
-  if (img) { const r = Math.max(W / img.width, TOP / img.height); ctx.drawImage(img, (W - img.width * r) / 2, (TOP - img.height * r) / 2, img.width * r, img.height * r); }
+  if (img) { ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, TOP); ctx.clip(); const r = Math.max(W / img.width, TOP / img.height); ctx.drawImage(img, (W - img.width * r) / 2, (TOP - img.height * r) / 2, img.width * r, img.height * r); ctx.restore(); }
   const fade = ctx.createLinearGradient(0, TOP - 230, 0, TOP); fade.addColorStop(0, 'rgba(36,28,20,0)'); fade.addColorStop(1, 'rgba(36,28,20,.88)');
   ctx.fillStyle = fade; ctx.fillRect(0, TOP - 230, W, 230);
   ctx.fillStyle = '#fff'; ctx.font = '800 30px ' + F; ctx.fillText('FESTIVAL TICKET', 50, 62);
@@ -3395,4 +3409,154 @@ function fcOtpEnhance(input, opts) {
   };
   input._otp = api;
   return api;
+}
+
+// ------------------------------------------------------------
+// PHOTOS D'ÉVÉNEMENT : chaque événement reçoit une photo qui n'a pas été utilisée récemment
+// (même organisateur : 30 jours, autre organisateur : 90 jours). Pour « Autre », la recherche se fait avec le nom.
+// ------------------------------------------------------------
+async function fcSearchPhotoCandidates(query, page) {
+  const res = await fetch('https://api.unsplash.com/search/photos?query=' + encodeURIComponent(query) + '&per_page=30&page=' + (page || 1) + '&orientation=landscape&content_filter=high&client_id=' + FC_UNSPLASH_KEY_REF());
+  if (!res.ok) throw new Error('Unsplash ' + res.status);
+  const data = await res.json();
+  return (data.results || []).map(p => ({
+    id: p.id, regular: p.urls.regular, small: p.urls.small,
+    name: (p.user && p.user.name) || 'Unsplash',
+    user_url: ((p.user && p.user.links && p.user.links.html) || 'https://unsplash.com') + '?utm_source=festchill&utm_medium=referral',
+  }));
+}
+function FC_UNSPLASH_KEY_REF() { return UNSPLASH_ACCESS_KEY; }
+
+async function fcPickEventPhoto(eventType, title) {
+  window.__fcLastPhotoError = null;
+  const base = CATEGORY_PHOTO_QUERIES[eventType] || CATEGORY_PHOTO_QUERIES['Autre'] || 'event';
+  const t = String(title || '').trim();
+  const queries = (eventType === 'Autre' && t.length >= 3) ? [t, base] : [base];
+  try {
+    for (const query of queries) {
+      for (let page = 1; page <= 3; page++) {
+        const cands = await fcSearchPhotoCandidates(query, page);
+        if (!cands.length) break;
+        const { data: chosen, error } = await supa.rpc('fc_claim_event_photo', { p_candidates: cands });
+        if (error) { window.__fcLastPhotoError = error.message; return null; }
+        if (chosen) return chosen;
+      }
+    }
+  } catch (e) { window.__fcLastPhotoError = e.message || String(e); }
+  return null;
+}
+
+// Fenêtre « Changer l'image » (page de gestion d'un événement)
+function fcOpenPhotoChooser(ev) {
+  if (!ev) return;
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:26000;background:rgba(20,14,8,.8);display:flex;align-items:center;justify-content:center;padding:14px;overflow:auto';
+  ov.innerHTML = '<div style="width:min(96vw,640px);background:var(--surface,#fff);color:var(--text,#241C14);border-radius:18px;padding:20px;max-height:92vh;overflow:auto">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><b style="font-size:1.1rem">Changer l\'image de l\'événement</b>'
+    + '<button id="pc-close" type="button" aria-label="Fermer" style="border:none;background:none;font-size:1.4rem;cursor:pointer;color:inherit">✕</button></div>'
+    + '<div style="display:flex;gap:8px;margin:12px 0"><input id="pc-q" class="form-input" style="flex:1" placeholder="Mot-clé (ex : football, église, concert)">'
+    + '<button id="pc-go" type="button" class="btn btn-gold btn-sm">Chercher</button></div>'
+    + '<div id="pc-msg" style="font-size:.85rem;opacity:.8;min-height:20px"></div>'
+    + '<div id="pc-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:8px"></div>'
+    + '<div style="font-size:.72rem;opacity:.65;margin-top:12px">Photos : Unsplash. Une photo déjà utilisée récemment par un autre événement n\'est pas proposée.</div></div>';
+  document.body.appendChild(ov);
+  const q = ov.querySelector('#pc-q'), msg = ov.querySelector('#pc-msg'), grid = ov.querySelector('#pc-grid');
+  q.value = (ev.event_type === 'Autre' ? ev.title : (CATEGORY_PHOTO_QUERIES[ev.event_type] || ev.title)) || '';
+  const choose = async (c) => {
+    msg.textContent = 'Enregistrement…';
+    try {
+      const { data: chosen, error } = await supa.rpc('fc_claim_event_photo', { p_candidates: [c] });
+      if (error) throw error;
+      if (!chosen) { msg.textContent = 'Cette photo vient d\'être prise par un autre événement. Choisis-en une autre.'; return; }
+      const { error: e2 } = await supa.from('events').update({ banner_url: chosen.photo_url }).eq('id', ev.id);
+      if (e2) throw e2;
+      ov.remove(); location.reload();
+    } catch (e) { msg.textContent = 'Erreur : ' + (e.message || e); }
+  };
+  const run = async () => {
+    grid.innerHTML = ''; msg.textContent = 'Recherche…';
+    const free = [];
+    try {
+      for (let page = 1; page <= 3 && free.length < 12; page++) {
+        const cands = await fcSearchPhotoCandidates(q.value.trim() || ev.title, page);
+        if (!cands.length) break;
+        const { data, error } = await supa.rpc('fc_filter_event_photos', { p_candidates: cands });
+        if (error) throw error;
+        free.push(...(data || []));
+      }
+    } catch (e) { msg.textContent = 'Recherche impossible : ' + (e.message || e); return; }
+    if (!free.length) { msg.textContent = 'Aucune photo disponible pour ce mot-clé. Essaie un autre mot.'; return; }
+    msg.textContent = 'Clique sur la photo de ton choix.';
+    free.slice(0, 12).forEach(c => {
+      const b = document.createElement('button'); b.type = 'button';
+      b.style.cssText = 'padding:0;border:2px solid transparent;border-radius:12px;overflow:hidden;cursor:pointer;background:none;aspect-ratio:16/10';
+      b.innerHTML = '<img alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block" src="' + fcEscapeHtml(c.small) + '">';
+      b.onclick = () => choose(c); grid.appendChild(b);
+    });
+  };
+  ov.querySelector('#pc-go').onclick = run;
+  q.addEventListener('keydown', (e) => { if (e.key === 'Enter') run(); });
+  ov.querySelector('#pc-close').onclick = () => ov.remove();
+  run();
+}
+
+// ------------------------------------------------------------
+// EXPORT CSV (s'ouvre dans Excel) : transactions du portefeuille, et tickets d'un événement
+// ------------------------------------------------------------
+function fcDownloadCsv(filename, header, rows) {
+  const esc = (v) => { let t = v == null ? '' : String(v); if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; return '"' + t.replace(/"/g, '""') + '"'; };
+  const csv = '\uFEFF' + [header].concat(rows).map(r => r.map(esc).join(';')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = filename; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+const fcCsvDate = (d) => d ? new Date(d).toLocaleString('fr-FR') : '';
+
+async function fcExportWalletCsv() {
+  const session = await fcGetSession(); if (!session) throw new Error('Non connecté');
+  const uid = session.user.id;
+  const [o, w] = await Promise.all([
+    supa.from('orders').select('created_at, amount, payment_status, buyer_name, buyer_phone, buyer_email, payment_operator, events!inner(title, organizer_id), ticket_categories(name)')
+      .eq('events.organizer_id', uid).in('payment_status', ['paid', 'refunded']).order('created_at', { ascending: false }).limit(5000),
+    supa.from('withdrawals').select('created_at, amount, operator, phone, status').eq('organizer_id', uid).order('created_at', { ascending: false }).limit(5000),
+  ]);
+  if (o.error) throw o.error; if (w.error) throw w.error;
+  const wStatus = { confirmed: 'Envoyé', pending: 'En cours', failed: 'Échoué' };
+  const rows = [];
+  (o.data || []).forEach(r => rows.push([r.created_at, 'Vente', r.events && r.events.title, r.ticket_categories && r.ticket_categories.name,
+    [r.buyer_name, r.buyer_phone || r.buyer_email].filter(Boolean).join(' · '), r.payment_operator, r.amount, r.payment_status === 'refunded' ? 'Remboursée' : 'Payée']));
+  (w.data || []).forEach(r => rows.push([r.created_at, 'Retrait', '', '', r.phone, r.operator, r.amount, wStatus[r.status] || r.status]));
+  rows.sort((a, b) => new Date(b[0]) - new Date(a[0]));
+  rows.forEach(r => { r[0] = fcCsvDate(r[0]); });
+  fcDownloadCsv('festchill-transactions-' + new Date().toISOString().slice(0, 10) + '.csv',
+    ['Date', 'Type', 'Événement', 'Catégorie', 'Acheteur / Numéro', 'Opérateur', 'Montant (FCFA)', 'Statut'], rows);
+  return rows.length;
+}
+
+async function fcExportEventCsv(ev) {
+  if (!ev || !ev.id) throw new Error('Événement introuvable');
+  const { data, error } = await supa.from('tickets')
+    .select('ticket_number, status, scan_count, scanned_at, ticket_categories(name), orders(buyer_name, buyer_phone, buyer_email, amount, created_at, payment_status)')
+    .eq('event_id', ev.id).order('ticket_number', { ascending: true }).limit(20000);
+  if (error) throw error;
+  const st = { valid: 'Valide', used: 'Utilisé', pending: 'En attente', cancelled: 'Annulé' };
+  const rows = (data || []).map(t => [t.ticket_number, t.ticket_categories && t.ticket_categories.name, st[t.status] || t.status,
+    t.orders && t.orders.payment_status, t.orders && t.orders.buyer_name, t.orders && t.orders.buyer_phone, t.orders && t.orders.buyer_email,
+    t.orders && t.orders.amount, fcCsvDate(t.orders && t.orders.created_at), t.scan_count || 0, fcCsvDate(t.scanned_at)]);
+  const slug = String(ev.title || 'evenement').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  fcDownloadCsv('festchill-' + slug + '-tickets-' + new Date().toISOString().slice(0, 10) + '.csv',
+    ['N° ticket', 'Catégorie', 'Statut du ticket', 'Paiement', 'Acheteur', 'Téléphone', 'E-mail', 'Prix payé (FCFA)', "Date d'achat", 'Nombre de scans', 'Dernier scan'], rows);
+  return rows.length;
+}
+
+async function fcRunExport(btn, kind) {
+  btn.disabled = true;
+  try {
+    const n = kind === 'wallet' ? await fcExportWalletCsv() : await fcExportEventCsv(typeof currentEvent !== 'undefined' ? currentEvent : null);
+    if (typeof showToast === 'function') showToast(n + ' ligne(s) exportée(s)'); else alert(n + ' ligne(s) exportée(s)');
+  } catch (e) {
+    const m = 'Export impossible : ' + (e.message || e);
+    if (typeof showToast === 'function') showToast(m); else alert(m);
+  } finally { btn.disabled = false; }
 }

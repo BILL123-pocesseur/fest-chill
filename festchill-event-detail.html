@@ -765,6 +765,7 @@ tr{transition:background .2s}
           <div id="ev-sessions" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px"></div>
         </div>
         <div class="ev-actions">
+          <button class="btn btn-ghost btn-sm" type="button" onclick="fcOpenPhotoChooser(currentEvent)">🖼️ Changer l'image</button>
           <button class="btn btn-ghost btn-sm" onclick="copyLink()"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5.5 18.5 10 8 20.5H3.5V16Z"/><line x1="12" y1="7.5" x2="16.5" y2="12"/></svg> Copier le lien</button>
           <button class="btn btn-danger btn-sm" id="ev-suspend-btn" onclick="toggleSuspend()"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4.5" width="4" height="15" rx="1"/><rect x="14" y="4.5" width="4" height="15" rx="1"/></svg> Suspendre</button>
         </div>
@@ -864,7 +865,7 @@ tr{transition:background .2s}
               <select style="padding:5px 10px;border-radius:6px;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:.75rem;outline:none">
                 <option>Tous</option><option>Normal</option><option>VIP</option>
               </select>
-              <button class="btn btn-ghost btn-sm" onclick="showToast('Export CSV téléchargé !',FCI['download'])"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11.5"/><polyline points="7.5 11 12 15.5 16.5 11"/><path d="M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7"/></svg> Exporter</button>
+              <button class="btn btn-ghost btn-sm" onclick="fcRunExport(this,'event')"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11.5"/><polyline points="7.5 11 12 15.5 16.5 11"/><path d="M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7"/></svg> Exporter</button>
             </div>
           </div>
           <div style="max-height:420px;overflow:auto;-webkit-overflow-scrolling:touch">

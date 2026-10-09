@@ -1021,6 +1021,7 @@ async function init(){
   }
 
   currentEvent = event;
+  fcRenderOrganizerCard(event);
   categories = (event.ticket_categories || []).sort((a,b)=>a.position-b.position);
 
   if (event.banner_url){
@@ -1496,6 +1497,50 @@ async function checkOrderStatusNow(){
   }
 }
 
+// Fiche de l'organisateur, affichée avant le paiement : pour vérifier que c'est le bon événement
+async function fcRenderOrganizerCard(ev) {
+  try {
+    const { data } = await supa.rpc('fc_event_organizer_info', { p_event_id: ev.id });
+    const o = Array.isArray(data) ? data[0] : data; if (!o) return;
+    const first = document.querySelector('.pf-step'); if (!first || document.getElementById('org-card')) return;
+    const digits = String(o.o_contact || '').replace(/\D/g, '');
+    let wa = digits; if (wa.length === 10 && wa.startsWith('01')) wa = '229' + wa;
+    const since = o.o_since ? new Date(o.o_since).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : '';
+    const badge = o.o_certified ? '✅ Organisateur certifié' : (o.o_verified ? '✔️ Identité vérifiée' : 'Identité non vérifiée');
+    const proof = /^https?:\/\//i.test(o.o_proof || '') ? '<a href="' + fcEscapeHtml(o.o_proof) + '" target="_blank" rel="noopener noreferrer nofollow" style="color:inherit;font-weight:700">Lien officiel</a>' : '';
+    const meta = [o.o_city && ('📍 ' + fcEscapeHtml(o.o_city)), o.o_age && ('Public : ' + fcEscapeHtml(o.o_age)), proof].filter(Boolean).join(' · ');
+    const initial = fcEscapeHtml(((o.o_name || '?').trim()[0] || '?').toUpperCase());
+    const card = document.createElement('div');
+    card.id = 'org-card';
+    card.style.cssText = 'margin:0 0 18px;padding:16px;border-radius:16px;border:1.5px solid var(--border);background:var(--surface,#fff)';
+    card.innerHTML = '<div style="font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;opacity:.65;margin-bottom:10px">Organisateur de cet événement</div>'
+      + '<div style="display:flex;gap:12px;align-items:center">'
+      + '<div style="position:relative;overflow:hidden;width:54px;height:54px;border-radius:50%;background:#E8A33D;color:#241C14;font-weight:800;font-size:1.3rem;display:grid;place-items:center;flex-shrink:0">' + initial
+      + (o.o_avatar ? '<img src="' + fcEscapeHtml(o.o_avatar) + '" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.remove()">' : '') + '</div>'
+      + '<div style="min-width:0"><div style="font-weight:800;font-size:1.02rem">' + fcEscapeHtml(o.o_name || 'Organisateur') + '</div>'
+      + '<div style="font-size:.82rem;opacity:.85">' + badge + '</div>'
+      + '<div style="font-size:.78rem;opacity:.7">' + (since ? 'Membre depuis ' + since + ' · ' : '') + (o.o_events || 0) + ' événement(s) publié(s)</div></div></div>'
+      + (meta ? '<div style="font-size:.82rem;margin-top:10px">' + meta + '</div>' : '')
+      + (digits ? '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><a class="btn btn-ghost btn-sm" href="tel:+' + (wa.startsWith('229') ? wa : digits) + '">📞 Appeler</a>'
+        + '<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener noreferrer" href="https://wa.me/' + wa + '">💬 WhatsApp</a></div>' : '')
+      + '<div style="font-size:.76rem;margin-top:12px;line-height:1.45;opacity:.8">⚠️ Avant de payer, vérifie que cet organisateur est bien celui de l\'événement que tu veux (nom, photo, contact). En cas de doute, contacte-le.</div>';
+    first.parentNode.insertBefore(card, first);
+  } catch (e) { console.warn('fiche organisateur', e); }
+}
+
+// Après « Autre ticket » : le bouton Retour doit mener à la liste des événements (et non à la page de paiement)
+(function fcExploreBackGuard() {
+  const p = new URLSearchParams(location.search);
+  if (p.get('from') !== 'pay') return;
+  p.delete('from');
+  history.replaceState(history.state, '', location.pathname + (p.toString() ? '?' + p.toString() : ''));
+  try {
+    history.pushState({ fcExploreGuard: 1 }, '', location.href);
+    const onPop = () => { window.removeEventListener('popstate', onPop); location.replace('festchill-explore.html'); };
+    window.addEventListener('popstate', onPop);
+  } catch (e) {}
+})();
+
 function goReview(){
   if (lastPurchase && lastPurchase.qr_code) location.href = location.pathname + '?review=' + encodeURIComponent(lastPurchase.qr_code) + (lastPurchase.event_slug ? '&event=' + encodeURIComponent(lastPurchase.event_slug) : '');
 }
@@ -1504,7 +1549,7 @@ function buyAnother(){
   try { localStorage.removeItem('fc-pending-order'); } catch (e) {}
   let slug = (lastPurchase && lastPurchase.event_slug) || (currentEvent && currentEvent.slug) || new URLSearchParams(location.search).get('event');
   if (!slug) { try { slug = localStorage.getItem('fc-pending-slug'); } catch (e) {} }
-  location.replace(slug ? location.pathname + '?event=' + encodeURIComponent(slug) : 'festchill-explore.html');
+  location.replace(slug ? location.pathname + '?event=' + encodeURIComponent(slug) + '&from=pay' : 'festchill-explore.html');
 }
 
 function ticketValidityText(){
