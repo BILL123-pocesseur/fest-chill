@@ -1578,11 +1578,11 @@ async function downloadTicketPDF(){
   doc.text(ticketValidityText(), W / 2, qrY + qrSize + 9, { align: 'center' });
 
   // ---- Bas du ticket : code manuel (une ligne), avertissement, équipe ----
-  const code = String(lastPurchase.qr_code || '').replace(/(.{4})(?=.)/g, '$1 ');
+  const code = String(lastPurchase.qr_code || '').slice(0, 16).replace(/(.{4})(?=.)/g, '$1 ');
   doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(138, 122, 104);
   doc.text('CODE MANUEL (si le QR ne se scanne pas)', W / 2, H - 42, { align: 'center' });
   doc.setFont('courier', 'bold'); doc.setTextColor(36, 28, 20);
-  let fs = 9; doc.setFontSize(fs);
+  let fs = 13; doc.setFontSize(fs);
   while (doc.getTextWidth(code) > W - 12 && fs > 5) { fs -= 0.2; doc.setFontSize(fs); }   // tient toujours sur une seule ligne
   doc.text(code, W / 2, H - 36, { align: 'center' });
   doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(196, 50, 31);

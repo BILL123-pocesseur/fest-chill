@@ -686,20 +686,41 @@ async function stopCamera(){
 async function manualScan(){
   const inp = document.getElementById('manual-input');
   const val = inp.value.replace(/[\s-]+/g,'').toLowerCase();
-  if(!val) return;
-  if (inp._otp) inp._otp.setLoading();
+  const ui = window.__manualUI;
+  if (val.length < 16) { if (ui) ui.error(); return; }          // un code complet fait 16 caractères
+  if (ui) ui.busy(true);
   try { await processResult(val); }
-  finally { if (inp._otp) inp._otp.reset(); else inp.value = ''; }
+  finally { if (ui) ui.reset(); else inp.value = ''; }
 }
-// Code manuel : un carreau par caractère (le code complet peut aussi être collé d'un coup)
+// Code manuel : un seul champ lisible (groupes de 4), une jauge x/16, envoi automatique à 16 caractères
 (function(){
-  const inp = document.getElementById('manual-input');
-  if (inp && window.fcOtpEnhance) {
-    fcOtpEnhance(inp, { length: 32, perRow: 8, type: 'hex', onComplete: () => manualScan() });
-    const w = inp.nextElementSibling;
-    if (w) { const h = document.createElement('div'); h.style.cssText = 'font-size:.74rem;opacity:.7;text-align:center;margin-top:-4px';
-      h.textContent = 'Le code a 32 caractères : seulement les chiffres 0 à 9 et les lettres A à F.'; w.insertAdjacentElement('afterend', h); }
+  const inp = document.getElementById('manual-input'); if (!inp) return;
+  inp.removeAttribute('maxlength'); inp.setAttribute('inputmode', 'text'); inp.setAttribute('autocapitalize', 'off');
+  inp.setAttribute('autocorrect', 'off'); inp.setAttribute('autocomplete', 'off'); inp.spellcheck = false;
+  inp.placeholder = 'xxxx xxxx xxxx xxxx';
+  const css = {'font-family':'"Courier New",monospace','font-size':'1.4rem','font-weight':'800','letter-spacing':'.06em','text-align':'center','width':'100%','box-sizing':'border-box','padding':'16px 12px','flex':'none'};
+  Object.keys(css).forEach(k => inp.style.setProperty(k, css[k], 'important'));
+  if (!document.getElementById('mc-style')) {
+    const st = document.createElement('style'); st.id = 'mc-style';
+    st.textContent = '@keyframes mcSlide{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}@keyframes mcShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}';
+    document.head.appendChild(st);
   }
+  const bar = document.createElement('div'); bar.style.cssText = 'height:6px;border-radius:6px;background:rgba(127,127,127,.25);overflow:hidden;position:relative';
+  const fill = document.createElement('div'); fill.style.cssText = 'height:100%;width:0;background:#E8A33D;transition:width .15s,background .2s'; bar.appendChild(fill);
+  const info = document.createElement('div'); info.style.cssText = 'display:flex;justify-content:space-between;gap:8px;font-size:.76rem;opacity:.8';
+  info.innerHTML = '<span>Code de 16 caractères : chiffres 0-9 et lettres A-F</span><b id="mc-n">0/16</b>';
+  inp.insertAdjacentElement('afterend', bar); bar.insertAdjacentElement('afterend', info);
+  const n = info.querySelector('#mc-n');
+  let busy = false;
+  const raw = () => inp.value.replace(/[^0-9a-f]/gi, '').toLowerCase().slice(0, 32);
+  const paint = () => { const v = raw(); inp.value = v.replace(/(.{4})(?=.)/g, '$1 '); n.textContent = Math.min(v.length, 16) + '/16'; fill.style.width = Math.min(v.length / 16 * 100, 100) + '%'; fill.style.background = v.length >= 16 ? '#1E9E5A' : '#E8A33D'; return v; };
+  inp.addEventListener('input', () => { if (busy) return; const v = paint(); if (v.length >= 16) manualScan(); });
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') manualScan(); });
+  window.__manualUI = {
+    busy(on) { busy = on; inp.disabled = on; if (on) { fill.style.width = '40%'; fill.style.background = '#E8A33D'; fill.style.animation = 'mcSlide 1s linear infinite'; } },
+    reset() { busy = false; inp.disabled = false; inp.value = ''; fill.style.animation = ''; paint(); inp.focus(); },
+    error() { inp.style.setProperty('border-color', '#C4321F', 'important'); inp.style.animation = 'mcShake .4s'; setTimeout(() => { inp.style.removeProperty('border-color'); inp.style.animation = ''; }, 600); },
+  };
 })();
 
 // ------------------------------------------------------------

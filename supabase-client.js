@@ -3079,12 +3079,12 @@ async function fcTicketImageBlob(t) {
   ctx.drawImage(qr, (W - 440) / 2, qrTop + 30);
 
   // Bas : code manuel, avertissement, équipe
-  const code = String(t.qr_code || '');
+  const code = String(t.qr_code || '').slice(0, 16);
   const groups = code.replace(/(.{4})(?=.)/g, '$1 ').split(' ');
   let by = qrTop + 500 + 60;
   ctx.textAlign = 'center';
   ctx.fillStyle = '#8A7A68'; ctx.font = '600 24px ' + F; ctx.fillText('CODE MANUEL (si le QR ne se scanne pas)', W / 2, by);
-  ctx.fillStyle = '#241C14'; ctx.font = '700 30px "Courier New", monospace';
+  ctx.fillStyle = '#241C14'; ctx.font = '700 44px "Courier New", monospace';
   ctx.fillText(groups.join(' '), W / 2, by + 56);                         // code manuel sur UNE ligne
   ctx.fillStyle = '#C4321F'; ctx.font = '800 28px ' + F; ctx.fillText('Ne partage pas ce code : il est secret.', W / 2, by + 116);
   ctx.fillStyle = '#8A7A68'; ctx.font = '600 24px ' + F; ctx.fillText(t.validityText || 'QR unique · à présenter à l\'entrée', W / 2, by + 160);
