@@ -439,7 +439,7 @@ tr{transition:background .2s}
           </div>
           <div>
             <label class="form-label" data-i18n="create.date_label">Date *</label>
-            <input type="date" class="form-input" id="f-date">
+            <input type="date" class="form-input" id="f-date" onfocus="this.min=new Date(Date.now()-5*3600*1000).toISOString().slice(0,10)">
           </div>
           <div>
             <label class="form-label" data-i18n="create.time_label">Heure</label>
@@ -628,6 +628,13 @@ async function submitEvent(status){
 
   if (!categories.length){ showFormError(fcT('create.error_category')); return; }
 
+  // La date ne peut pas être dans le passé (le jour change à 6 h, comme partout sur le site)
+  const festToday = new Date(Date.now() - 5 * 3600 * 1000).toISOString().slice(0, 10);
+  if (event_date < festToday) { showFormError("La date de l'événement doit être aujourd'hui ou dans le futur."); return; }
+  const contactRaw = (document.getElementById('f-contact').value || '').trim();
+  const contactNorm = contactRaw ? fcBjPhoneOrNull(contactRaw) : null;
+  if (contactRaw && !contactNorm) { showFormError('Numéro de contact invalide : 10 chiffres commençant par 01 (ex : 01 97 12 34 56).'); return; }
+
   const btn = document.getElementById('publish-btn');
   btn.disabled = true; btn.textContent = fcT('create.publishing');
 
@@ -654,7 +661,7 @@ async function submitEvent(status){
     location, location_url, event_date, event_time, status, numbering_mode, banner_url, duration_days,
     city: (document.getElementById('f-city').value || '').trim() || null,
     age_limit: document.getElementById('f-age').value || null,
-    contact_phone: (document.getElementById('f-contact').value || '').trim() || null,
+    contact_phone: contactNorm,
     proof_url: /^https?:\/\//i.test((document.getElementById('f-proof').value || '').trim()) ? document.getElementById('f-proof').value.trim() : null
   }).select().single();
 

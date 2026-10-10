@@ -3503,12 +3503,21 @@ function fcOpenPhotoChooser(ev) {
 // ------------------------------------------------------------
 // EXPORT CSV (s'ouvre dans Excel) : transactions du portefeuille, et tickets d'un événement
 // ------------------------------------------------------------
-function fcDownloadCsv(filename, header, rows) {
+async function fcDownloadCsv(filename, header, rows) {
   const esc = (v) => { let t = v == null ? '' : String(v); if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; return '"' + t.replace(/"/g, '""') + '"'; };
   const csv = '\uFEFF' + [header].concat(rows).map(r => r.map(esc).join(';')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  window.__fcLastCsv = { filename, mode: 'download' };
+  // Sur téléphone : feuille de partage (Enregistrer dans Fichiers, Drive, WhatsApp…) quand le navigateur le permet
+  try {
+    const file = new File([blob], filename, { type: 'text/csv' });
+    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '') && navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: filename });
+      window.__fcLastCsv.mode = 'share'; return;
+    }
+  } catch (e) { if (e && e.name === 'AbortError') { window.__fcLastCsv.mode = 'share'; return; } }
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-  a.download = filename; document.body.appendChild(a); a.click();
+  a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
 }
 const fcCsvDate = (d) => d ? new Date(d).toLocaleString('fr-FR') : '';
@@ -3529,7 +3538,7 @@ async function fcExportWalletCsv() {
   (w.data || []).forEach(r => rows.push([r.created_at, 'Retrait', '', '', r.phone, r.operator, r.amount, wStatus[r.status] || r.status]));
   rows.sort((a, b) => new Date(b[0]) - new Date(a[0]));
   rows.forEach(r => { r[0] = fcCsvDate(r[0]); });
-  fcDownloadCsv('festchill-transactions-' + new Date().toISOString().slice(0, 10) + '.csv',
+  await fcDownloadCsv('festchill-transactions-' + new Date().toISOString().slice(0, 10) + '.csv',
     ['Date', 'Type', 'Événement', 'Catégorie', 'Acheteur / Numéro', 'Opérateur', 'Montant (FCFA)', 'Statut'], rows);
   return rows.length;
 }
@@ -3545,7 +3554,7 @@ async function fcExportEventCsv(ev) {
     t.orders && t.orders.payment_status, t.orders && t.orders.buyer_name, t.orders && t.orders.buyer_phone, t.orders && t.orders.buyer_email,
     t.orders && t.orders.amount, fcCsvDate(t.orders && t.orders.created_at), t.scan_count || 0, fcCsvDate(t.scanned_at)]);
   const slug = String(ev.title || 'evenement').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  fcDownloadCsv('festchill-' + slug + '-tickets-' + new Date().toISOString().slice(0, 10) + '.csv',
+  await fcDownloadCsv('festchill-' + slug + '-tickets-' + new Date().toISOString().slice(0, 10) + '.csv',
     ['N° ticket', 'Catégorie', 'Statut du ticket', 'Paiement', 'Acheteur', 'Téléphone', 'E-mail', 'Prix payé (FCFA)', "Date d'achat", 'Nombre de scans', 'Dernier scan'], rows);
   return rows.length;
 }
@@ -3554,9 +3563,44 @@ async function fcRunExport(btn, kind) {
   btn.disabled = true;
   try {
     const n = kind === 'wallet' ? await fcExportWalletCsv() : await fcExportEventCsv(typeof currentEvent !== 'undefined' ? currentEvent : null);
-    if (typeof showToast === 'function') showToast(n + ' ligne(s) exportée(s)'); else alert(n + ' ligne(s) exportée(s)');
+    const info = window.__fcLastCsv || {};
+    const msg = n + ' ligne(s) exportée(s)' + (info.mode === 'download' ? ' — fichier « ' + info.filename + ' » dans tes Téléchargements.' : '.');
+    if (typeof showToast === 'function') showToast(msg); else alert(msg);
   } catch (e) {
     const m = 'Export impossible : ' + (e.message || e);
     if (typeof showToast === 'function') showToast(m); else alert(m);
   } finally { btn.disabled = false; }
+}
+
+// Numéro béninois valide (10 chiffres, commence par 01) ou null
+function fcBjPhoneOrNull(raw) { try { return fcNormalizeBjPhone(raw); } catch (e) { return null; } }
+
+// Signaler un événement (sans compte ; limité par appareil)
+function fcOpenReportEvent(ev) {
+  if (!ev) return;
+  let dev = '';
+  try { dev = localStorage.getItem('fc-device-id') || ''; if (!dev) { dev = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now(); localStorage.setItem('fc-device-id', dev); } }
+  catch (e) { dev = String(Math.random()).slice(2) + Date.now(); }
+  const reasons = ['Faux événement / arnaque', 'Doublon ou usurpation', 'Informations fausses', 'Contenu inapproprié', 'Autre'];
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:27000;background:rgba(20,14,8,.85);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto';
+  const fld = 'width:100%;box-sizing:border-box;margin-top:6px;padding:11px;border-radius:10px;border:1px solid var(--border,#ccc);background:var(--bg,#fff);color:inherit;font-family:inherit;font-size:.9rem';
+  ov.innerHTML = '<div style="width:min(94vw,420px);background:var(--surface,#fff);color:var(--text,#241C14);border-radius:18px;padding:22px">'
+    + '<div id="rp-body"><div style="font-weight:800;font-size:1.1rem">Signaler cet événement</div>'
+    + '<div style="font-size:.84rem;opacity:.8;margin:6px 0 12px">Dis-nous ce qui te semble faux. Notre équipe vérifie les signalements.</div>'
+    + '<label style="font-size:.8rem;font-weight:700">Motif<select id="rp-reason" style="' + fld + '">' + reasons.map(r => '<option>' + r + '</option>').join('') + '</select></label>'
+    + '<label style="font-size:.8rem;font-weight:700;display:block;margin-top:10px">Détails (facultatif)<textarea id="rp-details" maxlength="300" rows="3" style="' + fld + '" placeholder="Ex : ce n\'est pas le vrai organisateur"></textarea></label>'
+    + '<div id="rp-err" style="color:#C4321F;font-size:.82rem;min-height:18px;margin-top:6px"></div>'
+    + '<button id="rp-send" type="button" style="' + FC_MFA_BTN + '">Envoyer le signalement</button>'
+    + '<button id="rp-cancel" type="button" style="' + FC_MFA_LINK + ';width:100%;margin-top:4px">Annuler</button></div></div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#rp-cancel').onclick = () => ov.remove();
+  ov.querySelector('#rp-send').onclick = async () => {
+    const btn = ov.querySelector('#rp-send'); btn.disabled = true; btn.textContent = 'Envoi…';
+    const { error } = await supa.rpc('fc_report_event', { p_event_id: ev.id, p_device_id: dev, p_reason: ov.querySelector('#rp-reason').value, p_details: ov.querySelector('#rp-details').value });
+    if (error) { ov.querySelector('#rp-err').textContent = error.message; btn.disabled = false; btn.textContent = 'Envoyer le signalement'; return; }
+    ov.querySelector('#rp-body').innerHTML = '<div style="font-weight:800;font-size:1.1rem">Merci 🙏</div><div style="font-size:.9rem;margin:8px 0 14px;opacity:.85">Ton signalement a été reçu. Notre équipe va l\'examiner.</div>'
+      + '<button id="rp-close" type="button" style="' + FC_MFA_BTN + '">Fermer</button>';
+    ov.querySelector('#rp-close').onclick = () => ov.remove();
+  };
 }

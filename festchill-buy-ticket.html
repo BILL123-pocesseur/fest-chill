@@ -787,7 +787,7 @@ tr{transition:background .2s}
           <div id="field-phone">
             <label class="form-label" id="phone-label">Numéro Mobile Money</label>
             <input type="tel" class="form-input" id="buyer-phone" placeholder="01 97 12 34 56" oninput="checkPayBtn()">
-            <div class="form-hint" id="phone-hint">Ton ticket sera lié à ce numéro.</div>
+            <div class="form-hint" id="phone-hint">10 chiffres, commence par 01. Ton ticket sera lié à ce numéro.</div>
           </div>
           <div id="field-email" style="display:none">
             <label class="form-label">Adresse e-mail</label>
@@ -1262,7 +1262,7 @@ function checkPayBtn(){
   const phone = document.getElementById('buyer-phone').value;
   const email = document.getElementById('buyer-email').value.trim();
   const name = document.getElementById('buyer-name').value;
-  const infoOk = card ? /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) : phone.length >= 8;
+  const infoOk = card ? /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) : !!fcBjPhoneOrNull(phone);
   document.getElementById('pay-btn').disabled = !selectedTicket || !infoOk || name.trim().length < 2;
 }
 
@@ -1270,7 +1270,8 @@ async function processPayment(){
   if (!selectedTicket) return;
   const card = selectedOp === 'card';
   const email = document.getElementById('buyer-email').value.trim();
-  const phone = card ? '' : document.getElementById('buyer-phone').value;
+  const phone = card ? '' : (fcBjPhoneOrNull(document.getElementById('buyer-phone').value) || '');
+  if (!card && !phone) { fcAlert('Numéro invalide : 10 chiffres commençant par 01 (ex : 01 97 12 34 56).'); return; }
   const name = document.getElementById('buyer-name').value;
   const payBtn = document.getElementById('pay-btn');
   payBtn.textContent = 'Envoi de la demande...';
@@ -1447,10 +1448,14 @@ async function checkOrderStatusNow(){
       category_name: res.category_name, ticket_number: res.ticket_number,
       buyer_name: res.buyer_name, buyer_phone: res.buyer_phone,
     };
-    if (res.event_slug && !(currentEvent && currentEvent.banner_url)) {
+    if (res.event_slug) {
       try {
-        const { data: evd } = await supa.from('events').select('banner_url, location').eq('slug', res.event_slug).maybeSingle();
-        if (evd) { lastPurchase.banner_url = evd.banner_url; lastPurchase.location = evd.location; }
+        const { data: evd } = await supa.from('events').select('id, banner_url, location').eq('slug', res.event_slug).maybeSingle();
+        if (evd) {
+          lastPurchase.banner_url = evd.banner_url; lastPurchase.location = evd.location; lastPurchase.event_id = evd.id;
+          const { data: oi } = await supa.rpc('fc_event_organizer_info', { p_event_id: evd.id });
+          const org = Array.isArray(oi) ? oi[0] : oi; if (org) lastPurchase.organizer_name = org.o_name;
+        }
       } catch (e) {}
     }
     const rb = document.getElementById('review-btn');
@@ -1525,6 +1530,11 @@ async function fcRenderOrganizerCard(ev) {
         + '<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener noreferrer" href="https://wa.me/' + wa + '">💬 WhatsApp</a></div>' : '')
       + '<div style="font-size:.76rem;margin-top:12px;line-height:1.45;opacity:.8">⚠️ Avant de payer, vérifie que cet organisateur est bien celui de l\'événement que tu veux (nom, photo, contact). En cas de doute, contacte-le.</div>';
     first.parentNode.insertBefore(card, first);
+    const rb = document.createElement('button');
+    rb.type = 'button'; rb.textContent = '🚩 Signaler cet événement';
+    rb.style.cssText = 'margin-top:10px;background:none;border:none;color:inherit;opacity:.7;text-decoration:underline;cursor:pointer;font-size:.78rem;padding:4px 0';
+    rb.onclick = () => fcOpenReportEvent(ev);
+    card.appendChild(rb);
   } catch (e) { console.warn('fiche organisateur', e); }
 }
 
@@ -1578,7 +1588,7 @@ async function downloadTicketPDF(){
   if (!lastPurchase) return;
   const { jsPDF } = window.jspdf;
   const W = 90, HEAD = 62;
-  const H = 232 + (lastPurchase.buyer_name ? 11.5 : 0) + (lastPurchase.buyer_phone ? 11.5 : 0);
+  const H = 232 + (lastPurchase.organizer_name ? 11.5 : 0) + (lastPurchase.buyer_name ? 11.5 : 0) + (lastPurchase.buyer_phone ? 11.5 : 0);
   const doc = new jsPDF({ unit: 'mm', format: [W, H] });
   const qrDataUrl = await QRCode.toDataURL(lastPurchase.qr_code, { width: 400, margin: 1 });
   // Espaces normaux : l'espace fine des milliers n'existe pas dans la police du PDF (affichait « 2/500 »)
@@ -1614,6 +1624,7 @@ async function downloadTicketPDF(){
   };
   row('Ticket N°', lastPurchase.ticket_number != null ? String(lastPurchase.ticket_number) : '—', true);
   row('Catégorie', lastPurchase.category_name || '—');
+  if (lastPurchase.organizer_name) row('Organisateur', lastPurchase.organizer_name);
   row('Prix', money(lastPurchase.price));
   if (lastPurchase.buyer_name)  row('Au nom de', lastPurchase.buyer_name);
   if (lastPurchase.buyer_phone) row('Téléphone', lastPurchase.buyer_phone);
@@ -1759,7 +1770,7 @@ async function downloadTicketImage(){
   try {
     const blob = await fcTicketImageBlob({
       event_title: lastPurchase.event_title || ev.title, qr_code: lastPurchase.qr_code, category_name: lastPurchase.category_name,
-      ticket_number: lastPurchase.ticket_number, buyer_name: lastPurchase.buyer_name, place: ev.location || lastPurchase.location || '',
+      ticket_number: lastPurchase.ticket_number, buyer_name: lastPurchase.buyer_name, place: ev.location || lastPurchase.location || '', organizer_name: lastPurchase.organizer_name,
       image: fcHdPhoto(ev.banner_url || lastPurchase.banner_url || '', 1200), validityText: ticketValidityText(),
       dateText: fcFormatDate(lastPurchase.event_date || ev.event_date, {weekday:'long', day:'numeric', month:'long', year:'numeric'})
     });
