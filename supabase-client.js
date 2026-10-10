@@ -3633,8 +3633,11 @@ async function fcInitAlerts() {
     '<div style="padding:10px 0;border-top:1px solid var(--border,#E8D9BD);font-size:.84rem;line-height:1.45' + (a.read_at ? ';opacity:.7' : '') + '">'
     + (a.read_at ? '' : '<b style="color:#C4321F">● </b>') + esc(a.message)
     + '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:.74rem;opacity:.8"><span>' + when(a.created_at) + '</span>'
-    + '<a href="' + safeLink(a.link) + '" style="font-weight:800;color:#C4321F;text-decoration:none">Voir →</a></div></div>').join('');
+    + '<a href="' + safeLink(a.link) + '" style="font-weight:800;color:#C4321F;text-decoration:none">Voir →</a></div>'
+    + (a.read_at ? '' : '<button type="button" class="fc-notme" style="margin-top:8px;background:none;border:1px solid #C4321F;color:#C4321F;border-radius:8px;padding:5px 10px;font-weight:700;font-size:.74rem;cursor:pointer">Ce n\'était pas moi</button>')
+    + '</div>').join('');
   document.body.appendChild(panel);
+  panel.querySelectorAll('.fc-notme').forEach(b => { b.onclick = () => fcNotMe(); });
   bell.onclick = async () => {
     const open = panel.style.display === 'none';
     panel.style.display = open ? 'block' : 'none';
@@ -3649,8 +3652,21 @@ async function fcInitAlerts() {
     bn.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:29500;width:min(94vw,520px);background:#241C14;color:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 12px 34px rgba(0,0,0,.4);font-size:.88rem;line-height:1.45';
     bn.innerHTML = '<div style="font-weight:800;margin-bottom:4px">🔔 Alerte de sécurité</div>' + esc(fresh.message)
       + '<div style="display:flex;gap:8px;margin-top:10px"><a href="' + safeLink(fresh.link) + '" style="background:#E8A33D;color:#241C14;font-weight:800;border-radius:10px;padding:8px 14px;text-decoration:none">Voir</a>'
-      + '<button type="button" id="fc-alert-ok" style="background:none;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:10px;padding:8px 14px;cursor:pointer;font-weight:700">C\'est moi, OK</button></div>';
+      + '<button type="button" id="fc-alert-ok" style="background:none;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:10px;padding:8px 14px;cursor:pointer;font-weight:700">C\'est moi, OK</button>'
+      + '<button type="button" id="fc-alert-notme" style="background:#C4321F;border:none;color:#fff;border-radius:10px;padding:8px 14px;cursor:pointer;font-weight:800">Ce n\'était pas moi</button></div>';
     document.body.appendChild(bn);
+    bn.querySelector('#fc-alert-notme').onclick = () => fcNotMe();
     bn.querySelector('#fc-alert-ok').onclick = async () => { bn.remove(); try { await supa.rpc('fc_mark_alerts_read'); const b = bell.querySelector('span'); if (b) b.remove(); } catch (e) {} };
   }
+}
+
+// « Ce n'était pas moi » : déconnecte TOUS les appareils et bloque les retraits pendant 24 h
+async function fcNotMe() {
+  const ok = await fcConfirm("On va te déconnecter de TOUS tes appareils et bloquer les retraits pendant 24 h. Reconnecte-toi ensuite, puis change ton mot de passe (et ton code PIN de retrait).",
+    { title: "Ce n'était pas moi", ok: 'Tout déconnecter', danger: true });
+  if (!ok) return;
+  try { await supa.rpc('fc_revoke_all_my_sessions'); } catch (e) {}
+  try { await supa.auth.signOut({ scope: 'global' }); } catch (e) {}
+  try { localStorage.clear(); } catch (e) {}
+  location.href = 'festchill-landing.html';
 }
