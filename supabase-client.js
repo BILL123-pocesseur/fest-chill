@@ -161,6 +161,7 @@ async function fcRequireAuth({ adminOnly = false } = {}) {
   }
   if (!(await fcSecondFactorGate(session, profile))) return null;
   fcStartSessionGuard(session, profile);
+  setTimeout(() => { try { fcInitAlerts(); } catch (e) {} }, 2500);   // laisse le temps d'enregistrer l'appareil
   fcApplyProfilePrefs(profile);
   fcRecordSession(session.user.id); // ne bloque pas le rendu de la page
   try { fcShowAnnouncements(); } catch (e) {}
@@ -3603,4 +3604,53 @@ function fcOpenReportEvent(ev) {
       + '<button id="rp-close" type="button" style="' + FC_MFA_BTN + '">Fermer</button>';
     ov.querySelector('#rp-close').onclick = () => ov.remove();
   };
+}
+
+// ------------------------------------------------------------
+// ALERTES DE SÉCURITÉ DANS L'APPLICATION (nouvel appareil, retrait demandé, PIN modifié) — aucun e-mail.
+// Une bannière s'affiche à l'ouverture si une alerte est récente ; la cloche 🔔 garde l'historique.
+// Un clic sur « Voir » ouvre la page où l'on peut agir (paramètres, portefeuille).
+// ------------------------------------------------------------
+async function fcInitAlerts() {
+  if (document.getElementById('fc-bell')) return;
+  const { data, error } = await supa.from('security_alerts').select('id, kind, message, link, created_at, read_at').order('created_at', { ascending: false }).limit(15);
+  if (error || !data || !data.length) return;
+  const unread = data.filter(a => !a.read_at);
+  const when = (d) => new Date(d).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const esc = (t) => fcEscapeHtml(String(t == null ? '' : t));
+  const safeLink = (l) => (/^festchill-[a-z-]+\.html$/.test(l || '') ? l : 'festchill-settings.html');
+
+  const bell = document.createElement('button');
+  bell.id = 'fc-bell'; bell.type = 'button'; bell.setAttribute('aria-label', 'Alertes de sécurité');
+  bell.style.cssText = 'position:fixed;top:74px;right:14px;z-index:900;width:40px;height:40px;border-radius:50%;border:1px solid var(--border,#E8D9BD);background:var(--surface,#fff);color:var(--text,#241C14);cursor:pointer;display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.18)';
+  bell.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>'
+    + (unread.length ? '<span style="position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#C4321F;color:#fff;font-size:.68rem;font-weight:800;display:grid;place-items:center">' + unread.length + '</span>' : '');
+  document.body.appendChild(bell);
+
+  const panel = document.createElement('div');
+  panel.style.cssText = 'position:fixed;top:122px;right:14px;z-index:901;width:min(92vw,360px);max-height:60vh;overflow:auto;background:var(--surface,#fff);color:var(--text,#241C14);border:1px solid var(--border,#E8D9BD);border-radius:16px;box-shadow:0 14px 40px rgba(0,0,0,.28);padding:14px;display:none';
+  panel.innerHTML = '<div style="font-weight:800;margin-bottom:8px">Alertes de sécurité</div>' + data.map(a =>
+    '<div style="padding:10px 0;border-top:1px solid var(--border,#E8D9BD);font-size:.84rem;line-height:1.45' + (a.read_at ? ';opacity:.7' : '') + '">'
+    + (a.read_at ? '' : '<b style="color:#C4321F">● </b>') + esc(a.message)
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:.74rem;opacity:.8"><span>' + when(a.created_at) + '</span>'
+    + '<a href="' + safeLink(a.link) + '" style="font-weight:800;color:#C4321F;text-decoration:none">Voir →</a></div></div>').join('');
+  document.body.appendChild(panel);
+  bell.onclick = async () => {
+    const open = panel.style.display === 'none';
+    panel.style.display = open ? 'block' : 'none';
+    if (open && unread.length) { try { await supa.rpc('fc_mark_alerts_read'); const b = bell.querySelector('span'); if (b) b.remove(); } catch (e) {} }
+  };
+
+  // Bannière à l'ouverture : alerte non lue des 10 dernières minutes
+  const fresh = unread.find(a => Date.now() - new Date(a.created_at).getTime() < 10 * 60 * 1000);
+  if (fresh) {
+    const bn = document.createElement('div');
+    bn.setAttribute('role', 'alert');
+    bn.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:29500;width:min(94vw,520px);background:#241C14;color:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 12px 34px rgba(0,0,0,.4);font-size:.88rem;line-height:1.45';
+    bn.innerHTML = '<div style="font-weight:800;margin-bottom:4px">🔔 Alerte de sécurité</div>' + esc(fresh.message)
+      + '<div style="display:flex;gap:8px;margin-top:10px"><a href="' + safeLink(fresh.link) + '" style="background:#E8A33D;color:#241C14;font-weight:800;border-radius:10px;padding:8px 14px;text-decoration:none">Voir</a>'
+      + '<button type="button" id="fc-alert-ok" style="background:none;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:10px;padding:8px 14px;cursor:pointer;font-weight:700">C\'est moi, OK</button></div>';
+    document.body.appendChild(bn);
+    bn.querySelector('#fc-alert-ok').onclick = async () => { bn.remove(); try { await supa.rpc('fc_mark_alerts_read'); const b = bell.querySelector('span'); if (b) b.remove(); } catch (e) {} };
+  }
 }

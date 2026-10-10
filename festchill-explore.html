@@ -115,7 +115,7 @@ async function toggleHistory(){
 async function boot(){
   const today = new Date().toISOString().slice(0,10);
   // On ne peut pas comparer "event_date + duration_days" directement dans
-  // le filtre Supabase, donc on élargit la fenêtre côté requête (30 jours
+  // le filtre de la base, donc on élargit la fenêtre côté requête (30 jours
   // = durée max autorisée pour un événement) puis on affine précisément
   // côté client avec fcEventDayStatus, qui tient compte de duration_days.
   const past30 = new Date(); past30.setDate(past30.getDate() - 30);

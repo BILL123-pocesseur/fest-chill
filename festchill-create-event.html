@@ -472,6 +472,14 @@ tr{transition:background .2s}
             <div class="form-group"><label class="form-label">Numéro de contact de l'événement</label><input type="tel" class="form-input" id="f-contact" placeholder="Ex : 01 97 12 34 56" maxlength="30"></div>
             <div class="form-group"><label class="form-label">Lien officiel (recommandé)</label><input type="url" class="form-input" id="f-proof" placeholder="Page Facebook, Instagram ou site de l'événement" maxlength="300"></div>
           </div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label class="form-label">Obligations pour entrer (facultatif)</label>
+            <textarea class="form-textarea" id="f-requirements" rows="2" maxlength="400" placeholder="Ex : tenue blanche obligatoire, pièce d'identité exigée, pas d'enfants de moins de 12 ans"></textarea>
+          </div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label class="form-label">Autres informations utiles (facultatif)</label>
+            <textarea class="form-textarea" id="f-extra" rows="2" maxlength="400" placeholder="Ex : parking gratuit, ouverture des portes à 19 h, boissons sur place"></textarea>
+          </div>
           <div class="form-full">
             <label class="form-label" data-i18n="create.description_label">Description</label>
             <textarea class="form-textarea" id="f-description" placeholder="Ex : Viens vibrer avec nous pour une soirée inoubliable ! Au programme : DJ live, jeux, bar sur place. Tenue correcte exigée. Ouverture des portes à 20h."></textarea>
@@ -662,6 +670,8 @@ async function submitEvent(status){
     city: (document.getElementById('f-city').value || '').trim() || null,
     age_limit: document.getElementById('f-age').value || null,
     contact_phone: contactNorm,
+    requirements: (document.getElementById('f-requirements').value || '').trim() || null,
+    extra_info: (document.getElementById('f-extra').value || '').trim() || null,
     proof_url: /^https?:\/\//i.test((document.getElementById('f-proof').value || '').trim()) ? document.getElementById('f-proof').value.trim() : null
   }).select().single();
 

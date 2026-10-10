@@ -1515,6 +1515,13 @@ async function fcRenderOrganizerCard(ev) {
     const proof = /^https?:\/\//i.test(o.o_proof || '') ? '<a href="' + fcEscapeHtml(o.o_proof) + '" target="_blank" rel="noopener noreferrer nofollow" style="color:inherit;font-weight:700">Lien officiel</a>' : '';
     const meta = [o.o_city && ('📍 ' + fcEscapeHtml(o.o_city)), o.o_age && ('Public : ' + fcEscapeHtml(o.o_age)), proof].filter(Boolean).join(' · ');
     const initial = fcEscapeHtml(((o.o_name || '?').trim()[0] || '?').toUpperCase());
+    let more = { requirements: ev.requirements, extra_info: ev.extra_info };
+    if (more.requirements === undefined) {
+      const { data: x } = await supa.from('events').select('requirements, extra_info').eq('id', ev.id).maybeSingle();
+      more = x || {};
+    }
+    const todo = (more.requirements ? '<div style="margin-top:12px;padding:10px 12px;border-radius:10px;background:rgba(232,163,61,.16);font-size:.82rem;line-height:1.45"><b>À respecter :</b> ' + fcEscapeHtml(more.requirements) + '</div>' : '')
+      + (more.extra_info ? '<div style="margin-top:8px;padding:10px 12px;border-radius:10px;background:rgba(127,127,127,.1);font-size:.82rem;line-height:1.45"><b>Infos utiles :</b> ' + fcEscapeHtml(more.extra_info) + '</div>' : '');
     const card = document.createElement('div');
     card.id = 'org-card';
     card.style.cssText = 'margin:0 0 18px;padding:16px;border-radius:16px;border:1.5px solid var(--border);background:var(--surface,#fff)';
@@ -1528,6 +1535,7 @@ async function fcRenderOrganizerCard(ev) {
       + (meta ? '<div style="font-size:.82rem;margin-top:10px">' + meta + '</div>' : '')
       + (digits ? '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><a class="btn btn-ghost btn-sm" href="tel:+' + (wa.startsWith('229') ? wa : digits) + '">📞 Appeler</a>'
         + '<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener noreferrer" href="https://wa.me/' + wa + '">💬 WhatsApp</a></div>' : '')
+      + todo
       + '<div style="font-size:.76rem;margin-top:12px;line-height:1.45;opacity:.8">⚠️ Avant de payer, vérifie que cet organisateur est bien celui de l\'événement que tu veux (nom, photo, contact). En cas de doute, contacte-le.</div>';
     first.parentNode.insertBefore(card, first);
     const rb = document.createElement('button');
