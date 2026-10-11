@@ -100,6 +100,8 @@
       + '<div id="u-prefs"></div>'
       + act('🔎', 'Essais de scan ratés (24 h)', 'Codes incorrects saisis ou scannés par cette personne : utile pour repérer quelqu\'un qui devine des codes.', 'scanfail', 'Afficher', 'btn-ghost')
       + '<div id="u-scanfail"></div>'
+      + act('📝', 'Notes internes', 'Notes privées sur cette personne, visibles par les administrateurs seulement.', 'notes', 'Afficher / ajouter', 'btn-ghost')
+      + '<div id="u-notes"></div>'
       + act('🔄', 'Réinitialiser langue, thème et couleur', 'Remet le site en français, thème clair et couleur par défaut. Utile si la personne a choisi l\'arabe et que son écran ne répond plus. Elle retrouve un affichage normal à sa prochaine ouverture du site.', 'prefs', 'Réinitialiser', 'btn-ghost')
       + '<div style="margin:14px 0 4px;font-size:.74rem;color:var(--red);text-transform:uppercase;font-weight:800">Zone dangereuse</div>'
       + act('🗑️', 'Supprimer le compte', 'Définitif. Refusé si le compte a des ventes ou des retraits : bloque-le plutôt pour garder l\'historique.', 'delete', 'Supprimer', 'btn-danger')
@@ -107,7 +109,7 @@
     document.body.appendChild(ov);
     ov.querySelectorAll('[data-do]').forEach(b => b.onclick = () => {
       const k = b.dataset.do;
-      if (k === 'close') closeModal(); else if (k === 'sessions') showSessions(id); else if (k === 'viewprefs') showPrefs(id); else if (k === 'scanfail') showScanFailures(id); else doAction(k, id);
+      if (k === 'close') closeModal(); else if (k === 'sessions') showSessions(id); else if (k === 'viewprefs') showPrefs(id); else if (k === 'scanfail') showScanFailures(id); else if (k === 'notes') showNotes(id); else doAction(k, id);
     });
   }
 
@@ -149,6 +151,23 @@
           + (rows.length >= 10 ? ' — blocage temporaire possible' : '') + '<br>'
           + rows.slice(0, 10).map(r => esc(new Date(r.f_at).toLocaleString('fr-FR')) + ' · début du code : <b>' + esc(r.f_hint || '—') + '</b>').join('<br>') + '</div>'
         : '<div class="u-sub" style="padding:8px 0">Aucun essai raté sur les dernières 24 heures.</div>';
+    } catch (e) { box.innerHTML = '<div class="u-sub" style="color:var(--red)">' + esc(e.message) + '</div>'; }
+  }
+
+  async function showNotes(id) {
+    const box = document.getElementById('u-notes'); box.innerHTML = '<div class="u-sub" style="padding:8px 0">Chargement…</div>';
+    try {
+      const { data, error } = await supa.rpc('fc_admin_list_notes', { p_user: id }); if (error) throw error;
+      box.innerHTML = '<div style="padding:8px 0;border-top:1px dashed var(--border)">'
+        + (data || []).map(n => '<div class="u-sub" style="padding:6px 0;border-bottom:1px solid var(--border)">' + esc(n.n_note)
+          + '<div style="font-size:.7rem;opacity:.7">' + esc(n.n_author || 'Admin') + ' · ' + esc(new Date(n.n_at).toLocaleString('fr-FR')) + ' · <a href="#" data-del="' + n.n_id + '" style="color:var(--red)">supprimer</a></div></div>').join('')
+        + '<textarea id="u-note-text" maxlength="1000" rows="2" placeholder="Ajouter une note privée…" style="width:100%;box-sizing:border-box;margin-top:8px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--surface,#fff);color:inherit"></textarea>'
+        + '<button class="btn btn-gold btn-sm" id="u-note-add" type="button" style="margin-top:6px">Ajouter la note</button></div>';
+      box.querySelectorAll('[data-del]').forEach(a => { a.onclick = async (e) => { e.preventDefault(); await supa.rpc('fc_admin_delete_note', { p_id: Number(a.dataset.del) }); showNotes(id); }; });
+      document.getElementById('u-note-add').onclick = async () => {
+        const { error: er } = await supa.rpc('fc_admin_add_note', { p_user: id, p_note: document.getElementById('u-note-text').value });
+        if (er) { toast(er.message, false); return; } showNotes(id);
+      };
     } catch (e) { box.innerHTML = '<div class="u-sub" style="color:var(--red)">' + esc(e.message) + '</div>'; }
   }
 

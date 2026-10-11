@@ -160,6 +160,10 @@ async function fcRequireAuth({ adminOnly = false } = {}) {
     return null;
   }
   if (!(await fcSecondFactorGate(session, profile))) return null;
+  const __st = await fcLoadSettings();
+  try { if (profile.role === 'admin') localStorage.setItem('fc-is-admin', '1'); else localStorage.removeItem('fc-is-admin'); } catch (e) {}
+  if (profile.role === 'admin') { const m = document.getElementById('fc-maint'); if (m) m.remove(); }
+  else if (__st && __st.maintenance) { fcShowMaintenance(__st.maintenance_message); return null; }
   fcStartSessionGuard(session, profile);
   setTimeout(() => { try { fcInitAlerts(); } catch (e) {} }, 2500);   // laisse le temps d'enregistrer l'appareil
   fcApplyProfilePrefs(profile);
@@ -3670,3 +3674,48 @@ async function fcNotMe() {
   try { localStorage.clear(); } catch (e) {}
   location.href = 'festchill-landing.html';
 }
+
+// ------------------------------------------------------------
+// RÉGLAGES DE LA PLATEFORME (modifiables dans l'admin) : mode maintenance et durées de session
+// ------------------------------------------------------------
+let __fcSettingsPromise = null;
+function fcApplySettings(st) {
+  if (!st) return;
+  if (Number(st.session_idle_minutes) > 0) FC_SESSION_LIMITS.idleMinutes = Number(st.session_idle_minutes);
+  if (Number(st.session_admin_idle_minutes) > 0) FC_SESSION_LIMITS.adminIdleMinutes = Number(st.session_admin_idle_minutes);
+}
+function fcLoadSettings() {
+  if (__fcSettingsPromise) return __fcSettingsPromise;
+  __fcSettingsPromise = (async () => {
+    try {
+      const c = JSON.parse(sessionStorage.getItem('fc-settings') || 'null');
+      if (c && Date.now() - c.t < 300000) { fcApplySettings(c.v); return c.v; }
+    } catch (e) {}
+    try {
+      const { data, error } = await supa.rpc('fc_public_settings');
+      if (error || !data) return {};
+      try { sessionStorage.setItem('fc-settings', JSON.stringify({ t: Date.now(), v: data })); } catch (e) {}
+      fcApplySettings(data); return data;
+    } catch (e) { return {}; }
+  })();
+  return __fcSettingsPromise;
+}
+function fcShowMaintenance(msg) {
+  if (document.getElementById('fc-maint')) return;
+  const ov = document.createElement('div'); ov.id = 'fc-maint';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:31000;background:rgba(20,14,8,.96);display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;color:#fff';
+  ov.innerHTML = '<div style="max-width:420px"><div style="font-size:2.4rem">🛠️</div><div style="font-weight:800;font-size:1.3rem;margin:10px 0">Maintenance en cours</div><div style="opacity:.85;line-height:1.5">'
+    + fcEscapeHtml(msg || 'Reviens dans quelques instants.') + '</div></div>';
+  document.body.appendChild(ov);
+}
+// Pages publiques : message de maintenance (la page d'accueil reste ouverte pour que l'admin puisse se connecter)
+(function fcMaintenanceCheck() {
+  const page = location.pathname.split('/').pop();
+  if (['festchill-landing.html', 'festchill-welcome.html', 'festchill-privacy.html', 'festchill-terms.html', 'index.html', ''].includes(page)) return;
+  const run = async () => {
+    const st = await fcLoadSettings();
+    let adm = false; try { adm = localStorage.getItem('fc-is-admin') === '1'; } catch (e) {}
+    if (st && st.maintenance && !adm) fcShowMaintenance(st.maintenance_message);
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
+})();

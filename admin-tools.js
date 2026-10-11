@@ -54,6 +54,11 @@
     'sec-audit': ['📜 Journal des actions admin', btn('Actualiser', 'btn-ghost', 'onclick="FCAdmin.audit()"'), 'audit-body', () => FCAdmin.audit()],
     'sec-announce': ['📢 Annonces aux organisateurs', '', 'announce-body', () => FCAdmin.announce()],
     'sec-referrals': ['🤝 Parrainage des organisateurs', btn('Actualiser', 'btn-ghost', 'onclick="FCAdmin.referrals()"'), 'ref-body', () => FCAdmin.referrals()],
+    'sec-reports': ['🚩 Signalements d\'événements', btn('Actualiser', 'btn-ghost', 'onclick="FCAdmin.reports()"'), 'reports-body', () => FCAdmin.reports()],
+    'sec-alerts': ['🔔 Alertes de sécurité et essais de scan', btn('Actualiser', 'btn-ghost', 'onclick="FCAdmin.secAlerts()"'), 'secalerts-body', () => FCAdmin.secAlerts()],
+    'sec-event-tools': ['🖼️ Images et doublons', '<input id="evtools-search" placeholder="Rechercher…" oninput="FCAdmin.eventToolsRender()" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text)">', 'evtools-body', () => FCAdmin.eventTools()],
+    'sec-stats': ['📊 Statistiques détaillées (30 jours)', btn('Actualiser', 'btn-ghost', 'onclick="FCAdmin.statsPlus()"'), 'statsplus-body', () => FCAdmin.statsPlus()],
+    'sec-settings': ['⚙️ Réglages de la plateforme', '', 'settings-body', () => FCAdmin.settingsForm()],
     'sec-search': ['🔎 Recherche d\'un ticket ou d\'un acheteur', '', 'search-body', () => FCAdmin.searchInit()]
   };
   // On n'appelle jamais le serveur avant que l'accès administrateur soit confirmé (page cachée tant que ce n'est pas le cas)
@@ -89,6 +94,12 @@
     feature_auto: ['⭐ Mise à la une payée',
       'Dès que le paiement est reçu, l\'événement passe à la une tout seul, même si tu n\'es pas là.',
       'Chaque mise à la une payée attend ta validation (page Événements). Tu peux la refuser.'],
+    hold_new_organizers: ['🆕 Nouveaux organisateurs',
+      'Les retraits des comptes récents (durée réglable dans Réglages) sont retenus : tu les vérifies avant l\'envoi.',
+      'Les retraits des nouveaux comptes partent sans vérification.'],
+    first_withdrawal_review: ['1️⃣ Premier retrait',
+      'Le premier retrait de chaque organisateur est retenu pour que tu le valides.',
+      'Le premier retrait n\'est pas vérifié.'],
     hold_suspect_withdrawals: ['💸 Retraits suspects',
       'Le retrait d\'un organisateur qui a acheté ses propres tickets est retenu tout de suite, en attendant ta vérification.',
       'Tous les retraits partent normalement. Tu surveilles les alertes de fraude toi-même.'],
@@ -415,7 +426,134 @@
         + '<td style="' + TD + '">' + (r.s_revoked ? '<span class="badge b-gray">Révoquée</span>' : '<span class="badge b-green">Active</span>') + '</td></tr>').join(''), 'Aucune connexion');
     } catch (e) { fail(el, e); }
   };
+
+  /* ---------- Signalements d'événements ---------- */
+  FCAdmin.reports = async function () {
+    const el = document.getElementById('reports-body');
+    try {
+      const rows = await rpc('fc_admin_list_reports');
+      el.innerHTML = table(['Événement', 'Organisateur', 'Signalements', 'Motifs', 'Actions'], rows.map(r =>
+        '<tr><td style="' + TD + '"><b>' + esc(r.r_title) + '</b><div style="color:var(--muted);font-size:.72rem">' + esc(r.r_date || '') + (r.r_hidden ? ' · masqué' : '') + '</div></td>'
+        + '<td style="' + TD + '">' + esc(r.r_org || '—') + '</td>'
+        + '<td style="' + TD + ';text-align:center"><b style="color:var(--red)">' + r.r_count + '</b><div style="color:var(--muted);font-size:.7rem">' + esc(when(r.r_last)) + '</div></td>'
+        + '<td style="' + TD + ';font-size:.76rem">' + esc(r.r_reasons) + (r.r_details ? '<div style="color:var(--muted)">« ' + esc(r.r_details) + ' »</div>' : '') + '</td>'
+        + '<td style="' + TD + '"><div style="display:flex;gap:6px;flex-wrap:wrap">'
+        + btn('Masquer', 'btn-danger', 'onclick="FCAdmin.reportAct(\'' + r.r_event + '\',\'hide\')"')
+        + btn('Suspendre l\'organisateur', 'btn-danger', 'onclick="FCAdmin.reportAct(\'' + r.r_event + '\',\'suspend\')"')
+        + btn('Sans suite', 'btn-ghost', 'onclick="FCAdmin.reportAct(\'' + r.r_event + '\',\'dismiss\')"') + '</div></td></tr>').join(''), 'Aucun signalement 🎉');
+    } catch (e) { fail(el, e); }
+  };
+  FCAdmin.reportAct = async function (id, action) {
+    const msgs = { hide: 'Masquer cet événement ?', suspend: 'Suspendre le compte de l\'organisateur et masquer cet événement ?', dismiss: 'Classer sans suite (les signalements sont supprimés) ?' };
+    if (!await fcConfirm(msgs[action], { title: 'Signalements', ok: 'Confirmer', danger: action !== 'dismiss' })) return;
+    try { await rpc('fc_admin_resolve_reports', { p_event_id: id, p_action: action }); toast('Fait'); FCAdmin.reports(); } catch (e) { toast(e.message || e, false); }
+  };
+
+  /* ---------- Centre de sécurité : alertes + essais de scan ---------- */
+  FCAdmin.secAlerts = async function () {
+    const el = document.getElementById('secalerts-body');
+    try {
+      const [al, sf] = await Promise.all([rpc('fc_admin_list_alerts', { p_limit: 100 }), rpc('fc_admin_scan_failures_summary')]);
+      const kinds = { new_device: 'Nouvel appareil', withdrawal: 'Retrait demandé', pin_change: 'PIN modifié' };
+      const sub = (t) => '<div style="padding:12px 18px 4px;font-weight:800;font-size:.85rem">' + t + '</div>';
+      el.innerHTML = sub('Essais de scan ratés (24 h)')
+        + table(['Organisateur', 'Essais ratés', 'Dernier essai', ''], sf.map(r => '<tr><td style="' + TD + '"><b>' + esc(r.f_name || 'Sans nom') + '</b></td>'
+          + '<td style="' + TD + '"><b style="color:' + (r.f_count >= 10 ? 'var(--red)' : 'inherit') + '">' + r.f_count + '</b></td><td style="' + TD + '">' + esc(when(r.f_last)) + '</td>'
+          + '<td style="' + TD + '">' + btn('Déconnecter', 'btn-danger', 'onclick="FCAdmin.kick(\'' + r.f_user + '\')"') + '</td></tr>').join(''), 'Aucun essai raté')
+        + sub('Alertes récentes')
+        + table(['Utilisateur', 'Type', 'Message', 'Date', ''], al.map(r => '<tr><td style="' + TD + '"><b>' + esc(r.a_name || 'Sans nom') + '</b><div style="color:var(--muted);font-size:.72rem">' + esc(r.a_email || '') + '</div></td>'
+          + '<td style="' + TD + '">' + esc(kinds[r.a_kind] || r.a_kind) + '</td><td style="' + TD + ';font-size:.76rem;max-width:340px">' + esc(r.a_message) + '</td>'
+          + '<td style="' + TD + ';white-space:nowrap">' + esc(when(r.a_at)) + '</td>'
+          + '<td style="' + TD + '">' + btn('Déconnecter', 'btn-danger', 'onclick="FCAdmin.kick(\'' + r.a_user + '\')"') + '</td></tr>').join(''), 'Aucune alerte');
+    } catch (e) { fail(el, e); }
+  };
+  FCAdmin.kick = async function (id) {
+    if (!await fcConfirm('Déconnecter cet utilisateur de tous ses appareils ?', { title: 'Déconnexion forcée', ok: 'Déconnecter', danger: true })) return;
+    try { await fcAdminRevokeSessions(id); toast('Utilisateur déconnecté'); } catch (e) { toast(e.message || e, false); }
+  };
+
+  /* ---------- Images et doublons ---------- */
+  let evRows = [];
+  FCAdmin.eventTools = async function () {
+    const el = document.getElementById('evtools-body');
+    try {
+      const { data, error } = await supa.from('events').select('id, title, event_type, event_date, status, is_hidden, flagged, profiles(full_name)').order('event_date', { ascending: false }).limit(80);
+      if (error) throw error; evRows = data || []; FCAdmin.eventToolsRender();
+    } catch (e) { fail(el, e); }
+  };
+  FCAdmin.eventToolsRender = function () {
+    const el = document.getElementById('evtools-body'); if (!el) return;
+    const q = ((document.getElementById('evtools-search') || {}).value || '').toLowerCase();
+    const rows = evRows.filter(e => !q || (e.title + ' ' + ((e.profiles && e.profiles.full_name) || '')).toLowerCase().includes(q));
+    el.innerHTML = table(['Événement', 'Organisateur', 'État', 'Actions'], rows.map(e =>
+      '<tr><td style="' + TD + '"><b>' + esc(e.title) + '</b><div style="color:var(--muted);font-size:.72rem">' + esc(e.event_date || '') + ' · ' + esc(e.event_type || '') + '</div></td>'
+      + '<td style="' + TD + '">' + esc((e.profiles && e.profiles.full_name) || '—') + '</td>'
+      + '<td style="' + TD + '">' + esc(e.status) + (e.is_hidden ? ' · masqué' : '') + (e.flagged ? ' · 🚩' : '') + '</td>'
+      + '<td style="' + TD + '"><div style="display:flex;gap:6px;flex-wrap:wrap">'
+      + btn('Changer l\'image', 'btn-ghost', 'onclick="FCAdmin.evImage(\'' + e.id + '\')"')
+      + btn('Doublon', 'btn-danger', 'onclick="FCAdmin.evDup(\'' + e.id + '\')"') + '</div></td></tr>').join(''), 'Aucun événement');
+  };
+  FCAdmin.evImage = async function (id) {
+    const { data, error } = await supa.from('events').select('id, title, event_type').eq('id', id).single();
+    if (error) { toast(error.message, false); return; }
+    fcOpenPhotoChooser(data);
+  };
+  FCAdmin.evDup = async function (id) {
+    if (!await fcConfirm('Marquer cet événement comme doublon ? Il sera masqué et signalé.', { title: 'Doublon', ok: 'Masquer', danger: true })) return;
+    try {
+      await rpc('fc_admin_event_action', { p_event: id, p_action: 'hide' });
+      await rpc('fc_admin_event_action', { p_event: id, p_action: 'flag', p_text: 'Doublon' });
+      toast('Événement masqué comme doublon'); FCAdmin.eventTools();
+    } catch (e) { toast(e.message || e, false); }
+  };
+
+  /* ---------- Statistiques détaillées ---------- */
+  FCAdmin.statsPlus = async function () {
+    const el = document.getElementById('statsplus-body');
+    try {
+      const d = await rpc('fc_admin_stats_plus', { p_days: 30 });
+      const t = d.totals || {}, daily = d.daily || [], max = Math.max(1, ...daily.map(x => Number(x.amount)));
+      const kpi = (l, v) => '<div style="padding:12px;border:1px solid var(--border);border-radius:12px"><div style="font-size:.7rem;color:var(--muted);text-transform:uppercase">' + l + '</div><div style="font-weight:800;font-size:1.15rem;margin-top:2px">' + v + '</div></div>';
+      const bars = daily.length ? '<div style="display:flex;align-items:flex-end;gap:3px;height:110px;padding:6px 18px 0">' + daily.map(x =>
+        '<div title="' + esc(x.day) + ' : ' + money(x.amount) + ' · ' + x.tickets + ' ticket(s)" style="flex:1;min-width:4px;height:' + Math.max(4, Math.round(Number(x.amount) / max * 100)) + '%;background:var(--gold,#E8A33D);border-radius:4px 4px 0 0"></div>').join('') + '</div>'
+        + '<div style="padding:2px 18px 10px;font-size:.7rem;color:var(--muted)">Ventes par jour (survole une barre)</div>' : '<div style="padding:14px 18px;color:var(--muted)">Pas encore de ventes sur 30 jours.</div>';
+      const list = (title, rows) => '<div style="flex:1 1 260px;min-width:0"><div style="font-weight:800;font-size:.85rem;padding:6px 0">' + title + '</div>'
+        + (rows && rows.length ? rows.map(r => '<div style="display:flex;justify-content:space-between;gap:10px;font-size:.8rem;padding:5px 0;border-top:1px solid var(--border)"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis">' + esc(r.name) + '</span><b style="white-space:nowrap">' + money(r.amount) + ' · ' + r.tickets + '</b></div>').join('') : '<div style="color:var(--muted);font-size:.8rem">—</div>') + '</div>';
+      el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:14px 18px">'
+        + kpi('Ventes', money(t.amount)) + kpi('Tickets vendus', t.tickets || 0) + kpi('Organisateurs actifs', t.active_organizers || 0) + kpi('Événements en vente', t.live_events || 0) + '</div>'
+        + bars + '<div style="display:flex;gap:18px;flex-wrap:wrap;padding:6px 18px 16px">' + list('Meilleurs événements', d.top_events) + list('Villes', d.by_city) + list('Catégories', d.by_type) + '</div>';
+    } catch (e) { fail(el, e); }
+  };
+
+  /* ---------- Réglages de la plateforme ---------- */
+  FCAdmin.settingsForm = async function () {
+    const el = document.getElementById('settings-body');
+    try {
+      const rows = await rpc('fc_admin_get_settings'); const v = {}; rows.forEach(r => { v[r.s_key] = r.s_value; });
+      const fld = 'padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);width:110px';
+      const num = (k, label) => '<label style="display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 18px;border-top:1px solid var(--border);font-size:.85rem">' + label + '<input type="number" data-k="' + k + '" value="' + esc(v[k]) + '" style="' + fld + '"></label>';
+      el.innerHTML = num('withdrawals_per_day', 'Retraits maximum par jour (par organisateur)')
+        + num('new_org_days', 'Un compte est « nouveau » pendant (jours)')
+        + num('session_idle_minutes', 'Déconnexion d\'un organisateur après inactivité (minutes)')
+        + num('session_admin_idle_minutes', 'Déconnexion de l\'administrateur après inactivité (minutes)')
+        + '<div style="padding:12px 18px;border-top:1px solid var(--border);font-size:.85rem"><label style="display:flex;gap:10px;align-items:center;font-weight:800"><input type="checkbox" id="set-maint"' + (v.maintenance === true ? ' checked' : '') + '> 🛠️ Mode maintenance : bloque les achats et affiche un message à tous (sauf aux admins)</label>'
+        + '<textarea id="set-maint-msg" maxlength="300" rows="2" style="width:100%;box-sizing:border-box;margin-top:8px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text)">' + esc(v.maintenance_message || '') + '</textarea></div>'
+        + '<div style="padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center;flex-wrap:wrap">' + btn('Enregistrer les réglages', 'btn-gold', 'onclick="FCAdmin.saveSettings()"')
+        + '<span style="font-size:.76rem;color:var(--muted);flex:1 1 260px">La commission se règle par organisateur (Utilisateurs → Gérer). Les retenues automatiques de retraits se règlent dans Finances (Automatique / Manuel).</span></div>';
+    } catch (e) { fail(el, e); }
+  };
+  FCAdmin.saveSettings = async function () {
+    try {
+      for (const i of document.querySelectorAll('#settings-body input[data-k]')) await rpc('fc_admin_set_setting', { p_key: i.dataset.k, p_value: Number(i.value) });
+      await rpc('fc_admin_set_setting', { p_key: 'maintenance', p_value: document.getElementById('set-maint').checked });
+      await rpc('fc_admin_set_setting', { p_key: 'maintenance_message', p_value: document.getElementById('set-maint-msg').value });
+      try { sessionStorage.removeItem('fc-settings'); } catch (e) {}
+      toast('Réglages enregistrés');
+    } catch (e) { toast(e.message || e, false); }
+  };
+
   const ACTION_LABELS = {
+    resolve_reports: 'Signalements traités', set_setting: 'Réglage modifié', add_note: 'Note ajoutée', reset_preferences: 'Affichage réinitialisé', set_preferences: 'Affichage modifié', auto_hold_withdrawal: 'Retrait retenu automatiquement',
     reset_pin: 'PIN supprimé / débloqué', block_account: 'Compte bloqué', unblock_account: 'Compte débloqué', invalidate_password: 'Mot de passe supprimé',
     revoke_sessions: 'Déconnexion forcée', delete_account: 'Compte supprimé', set_commission: 'Commission modifiée', block_withdrawal: 'Retrait bloqué',
     retry_withdrawal: 'Retrait relancé', event_hide: 'Événement masqué', event_unhide: 'Événement affiché', event_feature: 'Événement mis à la une',
