@@ -41,7 +41,7 @@ function toggleMobileSidebar(){
 :root{
   --ink:#071619;--deep:#0D2126;--surface:#123037;
   --purple:#0EA5A0;--violet:#0B7A76;--glow:#5EEAD4;
-  --gold:#FF8A3D;--green:#34D399;--red:#FF5A5F;
+  --gold:#FF8A3D;--gold-text:#FF8A3D;--green:#34D399;--red:#FF5A5F;
   --white:#F7FBFA;--muted:#7C9A9A;--text:#DCEEEC;
   --sand:#FFD9A8;--card:rgba(14,165,160,.08);--border:rgba(94,234,212,.14);
   --topbar-bg:rgba(13,10,30,.9);--accent-rgb:14,165,160;
@@ -55,7 +55,7 @@ function toggleMobileSidebar(){
 :root[data-theme="light"]{
   --ink:#FFFBF3;--deep:#FFFFFF;--surface:#FFFFFF;
   --purple:#C4321F;--violet:#E8432E;--glow:#1E8A5F;
-  --gold:#E8A012;--green:#1E8A5F;--red:#C4321F;
+  --gold:#E8A012;--gold-text:#7A4A00;--green:#1E8A5F;--red:#C4321F;
   --white:#FFFFFF;--muted:#8A7A68;--text:#241C14;
   --sand:#FFE3BE;--card:rgba(232,67,46,.05);--border:#EBDFC9;
   --topbar-bg:rgba(255,251,243,.85);--accent-rgb:196,50,31;
@@ -136,14 +136,14 @@ html[dir="rtl"] body{direction:rtl}
 .tx-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
 .tx-icon.green{background:rgba(16,185,129,.12);color:var(--green)}
 .tx-icon.red{background:rgba(239,68,68,.12);color:var(--red)}
-.tx-icon.gold{background:rgba(245,158,11,.12);color:var(--gold)}
+.tx-icon.gold{background:rgba(245,158,11,.12);color:var(--gold-text)}
 .tx-info{flex:1;min-width:0}
 .tx-title{font-size:.86rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tx-sub{font-size:.75rem;color:var(--muted);margin-top:1px}
 .tx-amount{font-family:var(--fd);font-weight:700;font-size:.95rem;white-space:nowrap}
 .tx-amount.in{color:var(--green)}
 .tx-amount.out{color:var(--red)}
-.tx-amount.neutral{color:var(--gold)}
+.tx-amount.neutral{color:var(--gold-text)}
 
 /* CHART MINI */
 .chart-wrap{padding:20px;height:140px;display:flex;align-items:flex-end;gap:6px}
@@ -163,7 +163,7 @@ html[dir="rtl"] body{direction:rtl}
 /* BADGES */
 .badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:100px;font-size:.7rem;font-weight:700}
 .b-green{background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.25)}
-.b-gold{background:rgba(245,158,11,.12);color:var(--gold);border:1px solid rgba(245,158,11,.25)}
+.b-gold{background:rgba(245,158,11,.12);color:var(--gold-text);border:1px solid rgba(245,158,11,.25)}
 .b-red{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25)}
 
 /* BUTTONS */
@@ -366,7 +366,7 @@ tr{transition:background .2s}
     <div class="wallet-hero">
       <div class="wh-block">
         <div class="wh-label" data-i18n="dashboard.stat_balance">Solde disponible</div>
-        <div class="wh-amount" style="color:var(--gold)" id="wh-available">— <span style="font-size:1rem;font-weight:400;opacity:.6">FCFA</span></div>
+        <div class="wh-amount" style="color:var(--gold-text)" id="wh-available">— <span style="font-size:1rem;font-weight:400;opacity:.6">FCFA</span></div>
         <div class="wh-sub" data-i18n="wallet.ready_withdraw">Prêt à retirer</div>
       </div>
       <div class="wh-divider"></div>
@@ -515,12 +515,12 @@ tr{transition:background .2s}
 
     <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:14px;text-align:center;margin-bottom:20px">
       <div style="font-size:.72rem;color:rgba(245,158,11,.7);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px">Solde disponible</div>
-      <div style="font-family:var(--fd);font-size:1.8rem;font-weight:800;color:var(--gold)" id="modal-balance">0 FCFA</div>
+      <div style="font-family:var(--fd);font-size:1.8rem;font-weight:800;color:var(--gold-text)" id="modal-balance">0 FCFA</div>
     </div>
 
     <div class="form-label" data-i18n="wallet.receiving_number">Numéro de réception</div>
     <select class="form-input" id="wd-phone-select" onchange="onWithdrawPhoneChange()"></select>
-    <div id="wd-no-number-hint" style="display:none;font-size:.76rem;color:var(--gold);margin:6px 0 0">Tu n'as aucun numéro Mobile Money enregistré. <a href="festchill-settings.html?panel=mobile" style="color:var(--glow)">Ajoutes-en un dans Paramètres</a> avant de retirer.</div>
+    <div id="wd-no-number-hint" style="display:none;font-size:.76rem;color:var(--gold-text);margin:6px 0 0">Tu n'as aucun numéro Mobile Money enregistré. <a href="festchill-settings.html?panel=mobile" style="color:var(--glow)">Ajoutes-en un dans Paramètres</a> avant de retirer.</div>
 
     <div class="form-label" data-i18n="wallet.amount_to_withdraw">Montant à retirer (FCFA)</div>
     <div class="amount-input-wrap">

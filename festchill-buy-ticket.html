@@ -250,6 +250,11 @@ tr{transition:background .2s}
 
 .illus{width:100%;height:auto;display:block}
 
+
+/* Logo mis en valeur : pastille + texte gras bien lisible */
+.logo{font-family:'Plus Jakarta Sans',system-ui,sans-serif !important;font-style:normal !important;font-weight:800 !important;font-size:1.35rem !important;letter-spacing:-.02em;color:#241C14 !important;display:inline-flex;align-items:center;gap:10px;text-decoration:none}
+.logo::before{content:"F";display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#E8432E,#C4321F);color:#fff;font-weight:800;font-size:1.1rem;box-shadow:0 4px 12px rgba(196,50,31,.35)}
+.logo em{color:#C4321F !important;font-style:normal !important}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#C4321F">
@@ -784,6 +789,20 @@ tr{transition:background .2s}
           <div class="pf-step-title"><span class="pf-step-num">2</span><span id="info-title">Tes informations</span></div>
           <label class="form-label">Nom complet</label>
           <input type="text" class="form-input" id="buyer-name" placeholder="Ex: Ama Sossou" style="margin-bottom:12px" oninput="checkPayBtn()">
+          <div id="qty-block" style="display:none;margin:0 0 12px">
+            <label class="form-label">Nombre de tickets</label>
+            <div style="display:flex;align-items:center;gap:12px">
+              <button type="button" class="btn btn-ghost btn-sm" onclick="changeQty(-1)" aria-label="Moins de tickets">−</button>
+              <b id="qty-val" style="min-width:24px;text-align:center;font-size:1.1rem">1</b>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="changeQty(1)" aria-label="Plus de tickets">+</button>
+              <span id="qty-hint" style="font-size:.76rem;color:var(--muted)"></span>
+            </div>
+            <div id="names-mode" style="display:none;margin-top:10px;font-size:.84rem">
+              <label style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><input type="radio" name="nm" value="same" checked onchange="setNamesMode('same')"> Le même nom sur tous les tickets</label>
+              <label style="display:flex;gap:8px;align-items:center"><input type="radio" name="nm" value="each" onchange="setNamesMode('each')"> Un nom par ticket</label>
+            </div>
+            <div id="extra-names" style="margin-top:8px"></div>
+          </div>
           <div id="field-phone">
             <label class="form-label" id="phone-label">Numéro Mobile Money</label>
             <input type="tel" class="form-input" id="buyer-phone" placeholder="01 97 12 34 56" oninput="checkPayBtn()">
@@ -870,6 +889,7 @@ tr{transition:background .2s}
     <button class="btn btn-gold" id="retry-pay-btn" onclick="retryPayment()" style="display:none">Réessayer le paiement</button>
     <button class="btn btn-primary" id="other-ticket-btn" onclick="buyAnother()" style="display:none">Choisir un autre ticket</button>
   </div>
+  <div id="group-tickets" style="display:none;width:320px;max-width:100%;margin:0 auto 14px;text-align:left"></div>
   <div class="success-actions" id="success-actions-valid" style="display:none">
     <button class="btn btn-gold" onclick="downloadTicketPDF()"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11.5"/><polyline points="7.5 11 12 15.5 16.5 11"/><path d="M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7"/></svg> Reçu complet (PDF)</button>
     <button class="btn btn-ghost" onclick="downloadQrOnly()" style="margin-top:8px"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z"/></svg> QR code seul (image)</button>
@@ -1212,16 +1232,47 @@ function resetDetail(){
   `;
 }
 
+// ---- Plusieurs tickets en un seul paiement (uniquement quand les numéros sont attribués automatiquement) ----
+let qty = 1, namesMode = 'same', qtyCatId = null;
+function maxQty(){
+  const rem = selectedTicketData ? (Number(selectedTicketData.quota) - Number(selectedTicketData.sold || 0)) : 1;
+  return Math.max(1, Math.min(10, rem));
+}
+function changeQty(d){ qty = Math.max(1, Math.min(maxQty(), qty + d)); renderQty(); updateSummary(); checkPayBtn(); }
+function setNamesMode(m){ namesMode = m; renderQty(); checkPayBtn(); }
+function renderQty(){
+  document.getElementById('qty-val').textContent = qty;
+  document.getElementById('qty-hint').textContent = 'max ' + maxQty() + ' par achat';
+  document.getElementById('names-mode').style.display = qty > 1 ? '' : 'none';
+  const box = document.getElementById('extra-names');
+  if (qty > 1 && namesMode === 'each') {
+    const old = [...box.querySelectorAll('input')].map(i => i.value);
+    box.innerHTML = Array.from({ length: qty - 1 }, (_, i) =>
+      '<label class="form-label">Nom du ticket ' + (i + 2) + '</label><input type="text" class="form-input extra-name" placeholder="Nom complet" style="margin-bottom:10px" oninput="checkPayBtn()" value="' + fcEscapeHtml(old[i] || '') + '">').join('');
+  } else box.innerHTML = '';
+}
+function buyerNames(){
+  const first = document.getElementById('buyer-name').value.trim();
+  if (qty <= 1) return [first];
+  if (namesMode === 'same') return Array(qty).fill(first);
+  return [first].concat([...document.querySelectorAll('.extra-name')].map(i => i.value.trim()));
+}
+
 function updateSummary(){
   if (!selectedTicket) return;
+  const multiOk = selectedTicket === 'auto';
+  document.getElementById('qty-block').style.display = multiOk ? '' : 'none';
+  if (!multiOk || qtyCatId !== selectedTicketData.id) { qty = 1; }
+  qtyCatId = selectedTicketData.id;
+  qty = Math.min(qty, maxQty()); renderQty();
   const num = selectedTicket === 'auto' ? 'Auto' : (selectedTicket < 10 ? '0'+selectedTicket : selectedTicket);
-  document.getElementById('sum-ticket').textContent = 'N°' + num;
+  document.getElementById('sum-ticket').textContent = 'N°' + num + (qty > 1 ? ' × ' + qty : '');
   document.getElementById('sum-cat').textContent = selectedTicketData.name;
   const base = fcEffectivePrice(selectedTicketData);
   const promoOk = promoState && promoState.catId === selectedTicketData.id;
   const finalPrice = promoOk ? promoState.final : base;
   document.getElementById('sum-price').textContent = base.toLocaleString('fr-FR') + ' FCFA' + (promoOk && promoState.discount > 0 ? '  (−' + promoState.discount.toLocaleString('fr-FR') + ')' : '');
-  document.getElementById('sum-total').textContent = finalPrice.toLocaleString('fr-FR') + ' FCFA';
+  document.getElementById('sum-total').textContent = (finalPrice * qty).toLocaleString('fr-FR') + ' FCFA';
 }
 
 async function loadPayoutInstructions(){
@@ -1263,7 +1314,7 @@ function checkPayBtn(){
   const email = document.getElementById('buyer-email').value.trim();
   const name = document.getElementById('buyer-name').value;
   const infoOk = card ? /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) : !!fcBjPhoneOrNull(phone);
-  document.getElementById('pay-btn').disabled = !selectedTicket || !infoOk || name.trim().length < 2;
+  document.getElementById('pay-btn').disabled = !selectedTicket || !infoOk || name.trim().length < 2 || (qty > 1 && namesMode === 'each' && [...document.querySelectorAll('.extra-name')].some(i => i.value.trim().length < 2));
 }
 
 async function processPayment(){
@@ -1281,15 +1332,21 @@ async function processPayment(){
     // La commande est créée EN ATTENTE : l'organisateur doit confirmer
     // manuellement avoir bien reçu l'argent sur son Mobile Money avant
     // que le ticket ne devienne valide pour l'entrée.
-    const { data, error } = await supa.rpc('purchase_ticket', {
-      p_category_id: currentCat.id,
-      p_ticket_number: selectedTicket === 'auto' ? null : selectedTicket,
-      p_buyer_name: name,
-      p_buyer_phone: phone,
-      p_buyer_email: card ? email : null,
-      p_operator: selectedOp,
-      p_promo: (promoState && promoState.catId === currentCat.id) ? promoState.code : null
-    });
+    const promoCode = (promoState && promoState.catId === currentCat.id) ? promoState.code : null;
+    const multi = qty > 1 && selectedTicket === 'auto';
+    const { data, error } = multi
+      ? await supa.rpc('purchase_tickets', {
+          p_category_id: currentCat.id, p_buyer_names: buyerNames(), p_buyer_phone: phone,
+          p_operator: selectedOp, p_promo: promoCode, p_buyer_email: card ? email : null })
+      : await supa.rpc('purchase_ticket', {
+          p_category_id: currentCat.id,
+          p_ticket_number: selectedTicket === 'auto' ? null : selectedTicket,
+          p_buyer_name: name,
+          p_buyer_phone: phone,
+          p_buyer_email: card ? email : null,
+          p_operator: selectedOp,
+          p_promo: promoCode
+        });
 
     if (error) throw error;
 
@@ -1458,6 +1515,10 @@ async function checkOrderStatusNow(){
         }
       } catch (e) {}
     }
+    try {
+      const { data: grp } = await supa.rpc('fc_group_tickets', { p_order_id: lastPurchase.order_id });
+      fcShowGroupTickets(grp || []);
+    } catch (e) {}
     const rb = document.getElementById('review-btn');
     if (rb) {
       const started = fcEventDayStatus(lastPurchase.event_date, lastPurchase.duration_days).phase !== 'upcoming';
@@ -1558,6 +1619,26 @@ async function fcRenderOrganizerCard(ev) {
     window.addEventListener('popstate', onPop);
   } catch (e) {}
 })();
+
+// Achat de plusieurs tickets : une ligne par ticket, avec son propre PDF et sa propre image
+let groupTickets = [];
+function fcShowGroupTickets(g){
+  const box = document.getElementById('group-tickets');
+  groupTickets = (g || []).filter(x => x.payment_status === 'paid' && x.qr_code);
+  if (groupTickets.length < 2) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  box.innerHTML = '<div style="font-weight:800;margin-bottom:8px">Tes ' + groupTickets.length + ' tickets</div>' + groupTickets.map((t, i) =>
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--border);font-size:.86rem">'
+    + '<span><b>N°' + t.ticket_number + '</b> · ' + fcEscapeHtml(t.buyer_name || '') + '</span>'
+    + '<span style="display:flex;gap:6px"><button type="button" class="btn btn-ghost btn-sm" onclick="downloadGroupTicket(' + i + ',\'pdf\')">PDF</button>'
+    + '<button type="button" class="btn btn-ghost btn-sm" onclick="downloadGroupTicket(' + i + ',\'img\')">Image</button></span></div>').join('');
+}
+async function downloadGroupTicket(i, kind){
+  const saved = lastPurchase;
+  lastPurchase = Object.assign({}, saved, groupTickets[i]);
+  try { if (kind === 'pdf') await downloadTicketPDF(); else await downloadTicketImage(); }
+  finally { lastPurchase = saved; }
+}
 
 function goReview(){
   if (lastPurchase && lastPurchase.qr_code) location.href = location.pathname + '?review=' + encodeURIComponent(lastPurchase.qr_code) + (lastPurchase.event_slug ? '&event=' + encodeURIComponent(lastPurchase.event_slug) : '');
