@@ -427,6 +427,18 @@
     } catch (e) { fail(el, e); }
   };
 
+  /* ---------- Renvoyer le lien permanent d'un ticket à l'acheteur ---------- */
+  FCAdmin.ticketLink = async function (ticketId, mode, phone) {
+    try {
+      const orderId = await rpc('fc_admin_ticket_link', { p_ticket_id: ticketId });
+      const link = location.origin + '/festchill-buy-ticket.html?tickets=' + orderId;
+      if (mode === 'wa') {
+        let d = String(phone || '').replace(/\D/g, ''); if (d.length === 10 && d.startsWith('01')) d = '229' + d;
+        window.open('https://wa.me/' + d + '?text=' + encodeURIComponent('Voici tes tickets Fest&Chill : ' + link), '_blank', 'noopener');
+      } else { await navigator.clipboard.writeText(link); toast('Lien copié : envoie-le à l\'acheteur'); }
+    } catch (e) { toast(e.message || e, false); }
+  };
+
   /* ---------- Signalements d'événements ---------- */
   FCAdmin.reports = async function () {
     const el = document.getElementById('reports-body');
@@ -677,7 +689,9 @@
         + '<td style="' + TD + '">' + esc(r.s_event) + '<div style="color:var(--muted);font-size:.72rem">' + esc(r.s_organizer || '') + ' · ' + esc(r.s_category || '') + '</div></td>'
         + '<td style="' + TD + '">N°' + esc(r.s_number) + ' ' + (tb[r.s_ticket_status] || '') + '</td>'
         + '<td style="' + TD + '">' + money(r.s_amount) + ' · ' + esc(ob[r.s_order_status] || r.s_order_status) + '<div style="color:var(--muted);font-size:.72rem">' + esc(when(r.s_created_at)) + '</div></td>'
-        + '<td style="' + TD + '">' + (r.s_order_status === 'paid' && r.s_ticket_status !== 'used' ? btn('↩️ Rembourser', 'btn-danger', 'onclick="FCAdmin.refund(\'' + r.s_ticket + '\')"') : '') + '</td></tr>').join(''), 'Aucun résultat');
+        + '<td style="' + TD + '">' + (r.s_order_status === 'paid' ? btn('🔗 Lien', 'btn-ghost', 'onclick="FCAdmin.ticketLink(\'' + r.s_ticket + '\',\'copy\',\'\')"')
+        + btn('💬 WhatsApp', 'btn-ghost', 'onclick="FCAdmin.ticketLink(\'' + r.s_ticket + '\',\'wa\',\'' + esc(String(r.s_phone || '').replace(/\D/g, '')) + '\')"') : '')
+        + (r.s_order_status === 'paid' && r.s_ticket_status !== 'used' ? btn('↩️ Rembourser', 'btn-danger', 'onclick="FCAdmin.refund(\'' + r.s_ticket + '\')"') : '') + '</td></tr>').join(''), 'Aucun résultat');
     } catch (e) { fail(res, e); }
   };
   FCAdmin.refund = async function (ticketId) {

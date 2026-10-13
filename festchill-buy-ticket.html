@@ -889,6 +889,14 @@ tr{transition:background .2s}
     <button class="btn btn-gold" id="retry-pay-btn" onclick="retryPayment()" style="display:none">Réessayer le paiement</button>
     <button class="btn btn-primary" id="other-ticket-btn" onclick="buyAnother()" style="display:none">Choisir un autre ticket</button>
   </div>
+  <div id="keep-link" style="display:none;width:320px;max-width:100%;margin:0 auto 14px;padding:12px 14px;border-radius:14px;border:1.5px dashed var(--border);text-align:left;font-size:.82rem;line-height:1.45">
+    <b>💾 Garde ce lien</b> pour retrouver tes tickets à tout moment, même si ton téléphone s'éteint ou si tu actualises la page.
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="keepLinkAct('copy')">Copier le lien</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="keepLinkAct('wa')">Envoyer sur WhatsApp</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="keep-share" style="display:none" onclick="keepLinkAct('share')">Partager</button>
+    </div>
+  </div>
   <div id="group-tickets" style="display:none;width:320px;max-width:100%;margin:0 auto 14px;text-align:left"></div>
   <div class="success-actions" id="success-actions-valid" style="display:none">
     <button class="btn btn-gold" onclick="downloadTicketPDF()"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11.5"/><polyline points="7.5 11 12 15.5 16.5 11"/><path d="M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7"/></svg> Reçu complet (PDF)</button>
@@ -1362,6 +1370,11 @@ async function processPayment(){
     payBtn.textContent = 'Redirection vers le paiement...';
     const returnUrl = location.origin + location.pathname + '?order=' + order.order_id;
     const { payment_url } = await fcCreateFedaPayTransaction(order.order_id, returnUrl);
+    try {
+      const L = JSON.parse(localStorage.getItem('fc-my-orders') || '[]');
+      L.unshift({ id: order.order_id, title: order.event_title, date: order.event_date, n: (qty > 1 && selectedTicket === 'auto') ? qty : 1, t: Date.now() });
+      localStorage.setItem('fc-my-orders', JSON.stringify(L.slice(0, 10)));
+    } catch (e) {}
     try { sessionStorage.setItem('fc-pay-retries', '0'); if (currentEvent && currentEvent.slug) localStorage.setItem('fc-pending-slug', currentEvent.slug); } catch (e) {}
     window.location.replace(payment_url);   // replace : la page d'achat ne reste pas dans l'historique
     return; // on quitte la page, pas la peine de continuer
@@ -1441,6 +1454,17 @@ async function fetchOrderState(orderId){
 // Retour depuis FedaPay (ou onglet ré-ouvert) : ?order=<id> dans l'URL
 async function checkForReturningPayment(){
   const params = new URLSearchParams(location.search);
+  // Lien permanent de récupération : ?tickets=<commande> affiche directement les tickets payés
+  const ticketsId = params.get('tickets');
+  if (ticketsId) {
+    lastPurchase = { order_id: ticketsId };
+    document.getElementById('success').classList.add('show');
+    document.getElementById('success-actions-pending').style.display = 'none';
+    document.getElementById('success-title').textContent = 'Chargement de tes tickets…';
+    document.getElementById('success-sub').textContent = 'Merci de patienter quelques secondes.';
+    await checkOrderStatusNow();
+    return;
+  }
   const orderId = params.get('order') || localStorage.getItem('fc-pending-order');
   if (!orderId) return;
   const urlStatus = (params.get('status') || '').toLowerCase();   // FedaPay ajoute status=canceled / declined / approved
@@ -1456,7 +1480,9 @@ async function checkForReturningPayment(){
     if (state === 'paid') await checkOrderStatusNow(); else showPaymentProblem(state === 'refunded' ? 'refunded' : 'failed');
     localStorage.removeItem('fc-pending-order');
     // Retire ?order=... de l'URL : sinon « Autre ticket » retombe sur ce même écran en boucle.
-    const url = new URL(location.href); url.searchParams.delete('order');
+    const url = new URL(location.href);
+    ['order', 'status', 'id'].forEach(k => url.searchParams.delete(k));
+    if (state === 'paid') url.searchParams.set('tickets', orderId);        // actualiser la page ne perd plus le ticket
     history.replaceState(history.state, '', url);
   };
 
@@ -1519,6 +1545,8 @@ async function checkOrderStatusNow(){
       const { data: grp } = await supa.rpc('fc_group_tickets', { p_order_id: lastPurchase.order_id });
       fcShowGroupTickets(grp || []);
     } catch (e) {}
+    const kl = document.getElementById('keep-link');
+    if (kl) { kl.style.display = 'block'; const sh = document.getElementById('keep-share'); if (sh && navigator.share) sh.style.display = ''; }
     const rb = document.getElementById('review-btn');
     if (rb) {
       const started = fcEventDayStatus(lastPurchase.event_date, lastPurchase.duration_days).phase !== 'upcoming';
@@ -1638,6 +1666,16 @@ async function downloadGroupTicket(i, kind){
   lastPurchase = Object.assign({}, saved, groupTickets[i]);
   try { if (kind === 'pdf') await downloadTicketPDF(); else await downloadTicketImage(); }
   finally { lastPurchase = saved; }
+}
+
+// Lien permanent des tickets de cet achat
+function keepLinkUrl(){ return location.origin + location.pathname + '?tickets=' + encodeURIComponent(lastPurchase.order_id); }
+async function keepLinkAct(kind){
+  const url = keepLinkUrl(), text = 'Mes tickets Fest&Chill : ' + url;
+  if (kind === 'wa') { window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener'); return; }
+  if (kind === 'share' && navigator.share) { try { await navigator.share({ title: 'Mes tickets Fest&Chill', text, url }); } catch (e) {} return; }
+  try { await navigator.clipboard.writeText(url); if (typeof showToast === 'function') showToast('Lien copié'); else alert('Lien copié'); }
+  catch (e) { prompt('Copie ce lien :', url); }
 }
 
 function goReview(){
