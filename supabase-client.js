@@ -3618,7 +3618,7 @@ function fcOpenReportEvent(ev) {
 async function fcInitAlerts() {
   if (document.getElementById('fc-bell')) return;
   const { data, error } = await supa.from('security_alerts').select('id, kind, message, link, created_at, read_at').order('created_at', { ascending: false }).limit(15);
-  if (error || !data || !data.length) return;
+  if (error || !data) return;
   const unread = data.filter(a => !a.read_at);
   const when = (d) => new Date(d).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
   const esc = (t) => fcEscapeHtml(String(t == null ? '' : t));
@@ -3633,7 +3633,7 @@ async function fcInitAlerts() {
 
   const panel = document.createElement('div');
   panel.style.cssText = 'position:fixed;top:122px;right:14px;z-index:901;width:min(92vw,360px);max-height:60vh;overflow:auto;background:var(--surface,#fff);color:var(--text,#241C14);border:1px solid var(--border,#E8D9BD);border-radius:16px;box-shadow:0 14px 40px rgba(0,0,0,.28);padding:14px;display:none';
-  panel.innerHTML = '<div style="font-weight:800;margin-bottom:8px">Alertes de sécurité</div>' + data.map(a =>
+  panel.innerHTML = '<div id="fc-push-box" style="padding:10px 0;margin-bottom:8px;border-bottom:1px solid var(--border,#E8D9BD);font-size:.84rem;line-height:1.45"></div><div style="font-weight:800;margin-bottom:8px">Alertes de sécurité</div>' + (data.length ? '' : '<div style="font-size:.84rem;opacity:.7">Aucune alerte récente.</div>') + data.map(a =>
     '<div style="padding:10px 0;border-top:1px solid var(--border,#E8D9BD);font-size:.84rem;line-height:1.45' + (a.read_at ? ';opacity:.7' : '') + '">'
     + (a.read_at ? '' : '<b style="color:#C4321F">● </b>') + esc(a.message)
     + '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:.74rem;opacity:.8"><span>' + when(a.created_at) + '</span>'
@@ -3642,6 +3642,7 @@ async function fcInitAlerts() {
     + '</div>').join('');
   document.body.appendChild(panel);
   panel.querySelectorAll('.fc-notme').forEach(b => { b.onclick = () => fcNotMe(); });
+  fcRenderPushBox(panel.querySelector('#fc-push-box'));
   bell.onclick = async () => {
     const open = panel.style.display === 'none';
     panel.style.display = open ? 'block' : 'none';
@@ -3719,3 +3720,54 @@ function fcShowMaintenance(msg) {
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
 })();
+
+// ------------------------------------------------------------
+// NOTIFICATIONS RÉELLES (comme WhatsApp / Facebook) : arrivent même quand l'application est fermée
+// ------------------------------------------------------------
+function fcB64ToUint8(b64) {
+  const raw = atob((b64 + '='.repeat((4 - b64.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+async function fcEnablePush(opts) {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window))
+    throw new Error("Ce navigateur ne gère pas les notifications. Sur iPhone, ajoute d'abord Fest&Chill à l'écran d'accueil.");
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') throw new Error('Les notifications sont bloquées. Autorise-les dans les réglages du navigateur.');
+  const reg = (await navigator.serviceWorker.getRegistration()) || (await navigator.serviceWorker.register('sw.js'));
+  await navigator.serviceWorker.ready;
+  const { data: pub, error: e1 } = await supa.rpc('fc_push_public_key');
+  if (e1 || !pub) throw new Error('Notifications indisponibles pour le moment');
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: fcB64ToUint8(pub) });
+  const j = sub.toJSON();
+  const { error } = await supa.rpc('fc_save_push_subscription', {
+    p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_order_id: (opts && opts.orderId) || null });
+  if (error) throw error;
+  try { localStorage.setItem('fc-push', '1'); } catch (e) {}
+  return true;
+}
+async function fcTestPush() {
+  const { data, error } = await supa.functions.invoke('send-push', { body: { test: true } });
+  if (error) throw error;
+  return data;
+}
+function fcRenderPushBox(box) {
+  if (!box) return;
+  const on = ('Notification' in window) && Notification.permission === 'granted' && localStorage.getItem('fc-push') === '1';
+  const bst = 'margin-top:8px;border:none;border-radius:8px;background:#C4321F;color:#fff;font-weight:800;padding:8px 12px;cursor:pointer;font-size:.8rem';
+  box.innerHTML = on
+    ? '✅ Notifications activées sur cet appareil.<br><button type="button" id="fc-push-test" style="' + bst + '">Envoyer un test</button>'
+    : '🔔 Reçois tes ventes, retraits et alertes de sécurité <b>même quand l\'application est fermée</b>.<br><button type="button" id="fc-push-on" style="' + bst + '">Activer les notifications</button>';
+  const onBtn = box.querySelector('#fc-push-on'), testBtn = box.querySelector('#fc-push-test');
+  if (onBtn) onBtn.onclick = async () => {
+    onBtn.disabled = true; onBtn.textContent = 'Activation…';
+    try { await fcEnablePush(); fcRenderPushBox(box); try { await fcTestPush(); } catch (e) {} }
+    catch (e) { alert(e.message || e); fcRenderPushBox(box); }
+  };
+  if (testBtn) testBtn.onclick = async () => {
+    testBtn.disabled = true;
+    try { const r = await fcTestPush(); if (!r || !r.sent) alert("Aucune notification envoyée : désactive puis réactive les notifications de cet appareil."); }
+    catch (e) { alert('Test impossible : ' + (e.message || e)); }
+    testBtn.disabled = false;
+  };
+}

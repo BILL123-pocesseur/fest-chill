@@ -748,6 +748,7 @@ tr{transition:background .2s}
 
         <div class="cat-tabs" id="cat-tabs"></div>
 
+        <label id="multi-toggle-wrap" style="display:none;align-items:center;gap:8px;margin:0 0 10px;font-size:.86rem;font-weight:700;cursor:pointer"><input type="checkbox" id="multi-toggle" onchange="toggleMultiPick(this.checked)"> Acheter plusieurs tickets (je choisis plusieurs numéros)</label>
         <div class="ticket-grid" id="ticket-grid"></div>
 
         <div class="ticket-legend">
@@ -792,9 +793,9 @@ tr{transition:background .2s}
           <div id="qty-block" style="display:none;margin:0 0 12px">
             <label class="form-label">Nombre de tickets</label>
             <div style="display:flex;align-items:center;gap:12px">
-              <button type="button" class="btn btn-ghost btn-sm" onclick="changeQty(-1)" aria-label="Moins de tickets">−</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="qty-minus" onclick="changeQty(-1)" aria-label="Moins de tickets">−</button>
               <b id="qty-val" style="min-width:24px;text-align:center;font-size:1.1rem">1</b>
-              <button type="button" class="btn btn-ghost btn-sm" onclick="changeQty(1)" aria-label="Plus de tickets">+</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="qty-plus" onclick="changeQty(1)" aria-label="Plus de tickets">+</button>
               <span id="qty-hint" style="font-size:.76rem;color:var(--muted)"></span>
             </div>
             <div id="names-mode" style="display:none;margin-top:10px;font-size:.84rem">
@@ -894,6 +895,7 @@ tr{transition:background .2s}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
       <button type="button" class="btn btn-ghost btn-sm" onclick="keepLinkAct('copy')">Copier le lien</button>
       <button type="button" class="btn btn-ghost btn-sm" onclick="keepLinkAct('wa')">Envoyer sur WhatsApp</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="keepLinkAct('push')">🔔 Me prévenir avant l'événement</button>
       <button type="button" class="btn btn-ghost btn-sm" id="keep-share" style="display:none" onclick="keepLinkAct('share')">Partager</button>
     </div>
   </div>
@@ -912,7 +914,7 @@ tr{transition:background .2s}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="supabase-client.js?v=20261009"></script>
+<script src="supabase-client.js?v=20261010"></script>
 <script>
 const FCI = {
   'check': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"20 6 9 17 4 12\"/></svg>",
@@ -1049,6 +1051,7 @@ async function init(){
   }
 
   currentEvent = event;
+  fcRenderCountdown(event);
   fcRenderOrganizerCard(event);
   categories = (event.ticket_categories || []).sort((a,b)=>a.position-b.position);
 
@@ -1147,6 +1150,8 @@ function showCatUrgency(cat){
 
 async function renderGrid(cat){
   const grid = document.getElementById('ticket-grid');
+  multiPick = false; pickedNums = [];
+  { const mt = document.getElementById('multi-toggle'); if (mt) mt.checked = false; const mw = document.getElementById('multi-toggle-wrap'); if (mw) mw.style.display = 'none'; }
 
   if (cat.sold >= cat.quota){
     grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:24px 16px;color:var(--muted);font-size:.85rem;border:1.5px dashed var(--red);border-radius:10px;background:rgba(196,50,31,.05)">
@@ -1180,6 +1185,7 @@ async function renderGrid(cat){
   soldSet = new Set(error ? [] : soldNums.map(r => typeof r === 'object' ? r.sold_ticket_numbers : r));
 
   grid.innerHTML = '';
+  { const mw = document.getElementById('multi-toggle-wrap'); if (mw) mw.style.display = 'flex'; }
   for (let i = 1; i <= cat.quota; i++){
     const slot = document.createElement('div');
     slot.className = 't-slot' + (soldSet.has(i) ? ' sold' : '');
@@ -1189,7 +1195,30 @@ async function renderGrid(cat){
   }
 }
 
+function toggleMultiPick(on){
+  multiPick = on; pickedNums = []; selectedTicket = null;
+  document.querySelectorAll('.t-slot').forEach(s => s.classList.remove('selected'));
+  document.getElementById('qty-block').style.display = 'none';
+  qty = 1; if (typeof resetDetail === 'function') resetDetail();
+  checkPayBtn();
+}
+function toggleMulti(num, cat, el){
+  const i = pickedNums.indexOf(num);
+  if (i >= 0) { pickedNums.splice(i, 1); el.classList.remove('selected'); }
+  else {
+    if (pickedNums.length >= 10) { fcAlert('Maximum 10 tickets par achat.'); return; }
+    pickedNums.push(num); el.classList.add('selected');
+  }
+  pickedNums.sort((a, b) => a - b);
+  selectedTicketData = cat;
+  selectedTicket = pickedNums.length ? pickedNums[0] : null;
+  if (pickedNums.length) { updateDetail(pickedNums[0], cat); updateSummary(); }
+  else { document.getElementById('qty-block').style.display = 'none'; if (typeof resetDetail === 'function') resetDetail(); }
+  checkPayBtn();
+}
+
 function selectTicket(num, cat, el){
+  if (multiPick) { toggleMulti(num, cat, el); return; }
   document.querySelectorAll('.t-slot').forEach(s=>s.classList.remove('selected'));
   el.classList.add('selected');
   selectedTicket = num;
@@ -1241,7 +1270,7 @@ function resetDetail(){
 }
 
 // ---- Plusieurs tickets en un seul paiement (uniquement quand les numéros sont attribués automatiquement) ----
-let qty = 1, namesMode = 'same', qtyCatId = null;
+let qty = 1, namesMode = 'same', qtyCatId = null, multiPick = false, pickedNums = [];
 function maxQty(){
   const rem = selectedTicketData ? (Number(selectedTicketData.quota) - Number(selectedTicketData.sold || 0)) : 1;
   return Math.max(1, Math.min(10, rem));
@@ -1250,7 +1279,7 @@ function changeQty(d){ qty = Math.max(1, Math.min(maxQty(), qty + d)); renderQty
 function setNamesMode(m){ namesMode = m; renderQty(); checkPayBtn(); }
 function renderQty(){
   document.getElementById('qty-val').textContent = qty;
-  document.getElementById('qty-hint').textContent = 'max ' + maxQty() + ' par achat';
+  document.getElementById('qty-hint').textContent = (multiPick && selectedTicket !== 'auto') ? 'Numéros : ' + pickedNums.map(n => n < 10 ? '0' + n : n).join(', ') : 'max ' + maxQty() + ' par achat';
   document.getElementById('names-mode').style.display = qty > 1 ? '' : 'none';
   const box = document.getElementById('extra-names');
   if (qty > 1 && namesMode === 'each') {
@@ -1268,13 +1297,15 @@ function buyerNames(){
 
 function updateSummary(){
   if (!selectedTicket) return;
-  const multiOk = selectedTicket === 'auto';
+  const manualMulti = multiPick && selectedTicket !== 'auto';
+  const multiOk = selectedTicket === 'auto' || manualMulti;
   document.getElementById('qty-block').style.display = multiOk ? '' : 'none';
-  if (!multiOk || qtyCatId !== selectedTicketData.id) { qty = 1; }
-  qtyCatId = selectedTicketData.id;
-  qty = Math.min(qty, maxQty()); renderQty();
+  ['qty-minus', 'qty-plus'].forEach(id => { document.getElementById(id).style.display = manualMulti ? 'none' : ''; });
+  if (manualMulti) { qty = Math.max(1, pickedNums.length); }
+  else { if (!multiOk || qtyCatId !== selectedTicketData.id) { qty = 1; } qty = Math.min(qty, maxQty()); }
+  qtyCatId = selectedTicketData.id; renderQty();
   const num = selectedTicket === 'auto' ? 'Auto' : (selectedTicket < 10 ? '0'+selectedTicket : selectedTicket);
-  document.getElementById('sum-ticket').textContent = 'N°' + num + (qty > 1 ? ' × ' + qty : '');
+  document.getElementById('sum-ticket').textContent = manualMulti ? 'N° ' + pickedNums.join(', ') : 'N°' + num + (qty > 1 ? ' × ' + qty : '');
   document.getElementById('sum-cat').textContent = selectedTicketData.name;
   const base = fcEffectivePrice(selectedTicketData);
   const promoOk = promoState && promoState.catId === selectedTicketData.id;
@@ -1341,11 +1372,13 @@ async function processPayment(){
     // manuellement avoir bien reçu l'argent sur son Mobile Money avant
     // que le ticket ne devienne valide pour l'entrée.
     const promoCode = (promoState && promoState.catId === currentCat.id) ? promoState.code : null;
-    const multi = qty > 1 && selectedTicket === 'auto';
+    const manualMulti = multiPick && selectedTicket !== 'auto' && pickedNums.length > 1;
+    const multi = (qty > 1 && selectedTicket === 'auto') || manualMulti;
     const { data, error } = multi
       ? await supa.rpc('purchase_tickets', {
           p_category_id: currentCat.id, p_buyer_names: buyerNames(), p_buyer_phone: phone,
-          p_operator: selectedOp, p_promo: promoCode, p_buyer_email: card ? email : null })
+          p_operator: selectedOp, p_promo: promoCode, p_buyer_email: card ? email : null,
+          p_ticket_numbers: manualMulti ? pickedNums : null })
       : await supa.rpc('purchase_ticket', {
           p_category_id: currentCat.id,
           p_ticket_number: selectedTicket === 'auto' ? null : selectedTicket,
@@ -1372,7 +1405,7 @@ async function processPayment(){
     const { payment_url } = await fcCreateFedaPayTransaction(order.order_id, returnUrl);
     try {
       const L = JSON.parse(localStorage.getItem('fc-my-orders') || '[]');
-      L.unshift({ id: order.order_id, title: order.event_title, date: order.event_date, n: (qty > 1 && selectedTicket === 'auto') ? qty : 1, t: Date.now() });
+      L.unshift({ id: order.order_id, title: order.event_title, date: order.event_date, n: qty, t: Date.now() });
       localStorage.setItem('fc-my-orders', JSON.stringify(L.slice(0, 10)));
     } catch (e) {}
     try { sessionStorage.setItem('fc-pay-retries', '0'); if (currentEvent && currentEvent.slug) localStorage.setItem('fc-pending-slug', currentEvent.slug); } catch (e) {}
@@ -1591,6 +1624,37 @@ async function checkOrderStatusNow(){
   }
 }
 
+// Compte à rebours jusqu'au début, puis « Événement commencé » jusqu'à la fin de la vente (6 h, heure du Bénin)
+function fcRenderCountdown(ev){
+  if (!ev.event_date || !ev.event_time || document.getElementById('countdown-card')) return;
+  const [y, m, d] = String(ev.event_date).slice(0, 10).split('-').map(Number);
+  const [hh, mm] = String(ev.event_time).split(':').map(Number);
+  const start = Date.UTC(y, m - 1, d, hh - 1, mm);                                   // heure du Bénin = UTC+1
+  const end = Date.UTC(y, m - 1, d + (Number(ev.duration_days) || 1), 5, 0);          // fin de la vente : 6 h le lendemain du dernier jour
+  const first = document.querySelector('.pf-step'); if (!first) return;
+  const card = document.createElement('div');
+  card.id = 'countdown-card';
+  card.setAttribute('aria-live', 'polite');
+  card.style.cssText = 'margin:0 0 14px;padding:14px 16px;border-radius:16px;text-align:center;font-weight:800;border:1.5px solid var(--border);background:var(--surface,#fff)';
+  first.parentNode.insertBefore(card, first);
+  const pad = (n) => String(n).padStart(2, '0');
+  const tick = () => {
+    const now = Date.now();
+    if (now >= end) { card.style.display = 'none'; return; }
+    if (now >= start) {
+      card.style.background = 'rgba(196,50,31,.1)'; card.style.borderColor = '#C4321F'; card.style.color = '#C4321F';
+      card.innerHTML = '🔴 Événement commencé<div style="font-weight:600;font-size:.8rem;margin-top:4px;opacity:.85">Tu peux encore acheter ton ticket et entrer.</div>';
+      return;
+    }
+    let s = Math.floor((start - now) / 1000);
+    const dd = Math.floor(s / 86400); s %= 86400;
+    const h = Math.floor(s / 3600); s %= 3600; const mi = Math.floor(s / 60); const se = s % 60;
+    card.innerHTML = '<div style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;opacity:.65;margin-bottom:4px">⏳ L\'événement commence dans</div>'
+      + '<div style="font-size:1.5rem;font-variant-numeric:tabular-nums">' + (dd > 0 ? dd + ' j ' : '') + pad(h) + ':' + pad(mi) + ':' + pad(se) + '</div>';
+  };
+  tick(); setInterval(tick, 1000);
+}
+
 // Fiche de l'organisateur, affichée avant le paiement : pour vérifier que c'est le bon événement
 async function fcRenderOrganizerCard(ev) {
   try {
@@ -1672,6 +1736,11 @@ async function downloadGroupTicket(i, kind){
 function keepLinkUrl(){ return location.origin + location.pathname + '?tickets=' + encodeURIComponent(lastPurchase.order_id); }
 async function keepLinkAct(kind){
   const url = keepLinkUrl(), text = 'Mes tickets Fest&Chill : ' + url;
+  if (kind === 'push') {
+    try { await fcEnablePush({ orderId: lastPurchase.order_id }); const m = 'Notification activée : tu seras prévenu(e) avant et au début de l\'événement.'; if (typeof showToast === 'function') showToast(m); else alert(m); }
+    catch (e) { alert(e.message || e); }
+    return;
+  }
   if (kind === 'wa') { window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener'); return; }
   if (kind === 'share' && navigator.share) { try { await navigator.share({ title: 'Mes tickets Fest&Chill', text, url }); } catch (e) {} return; }
   try { await navigator.clipboard.writeText(url); if (typeof showToast === 'function') showToast('Lien copié'); else alert('Lien copié'); }
