@@ -41,9 +41,9 @@ function toggleMobileSidebar(){
 :root{
   --ink:#071619;--deep:#0D2126;--surface:#123037;
   --purple:#0EA5A0;--violet:#0B7A76;--glow:#5EEAD4;
-  --gold:#FF8A3D;--gold-text:#FF8A3D;--green:#34D399;--red:#FF5A5F;
+  --gold:#2DD4BF;--gold-text:#5EEAD4;--green:#34D399;--red:#FF5A5F;
   --white:#F7FBFA;--muted:#7C9A9A;--text:#DCEEEC;
-  --sand:#FFD9A8;--card:rgba(14,165,160,.08);--border:rgba(94,234,212,.14);
+  --sand:#99F6E4;--card:rgba(14,165,160,.08);--border:rgba(94,234,212,.14);
   --topbar-bg:rgba(13,10,30,.9);--accent-rgb:14,165,160;
   --fd:'Instrument Serif',serif;--fb:'Plus Jakarta Sans',sans-serif;--fm:'IBM Plex Mono',monospace;
   --r:12px;--sidebar:240px;
@@ -55,9 +55,9 @@ function toggleMobileSidebar(){
 :root[data-theme="light"]{
   --ink:#FFFBF3;--deep:#FFFFFF;--surface:#FFFFFF;
   --purple:#C4321F;--violet:#E8432E;--glow:#1E8A5F;
-  --gold:#E8A012;--gold-text:#7A4A00;--green:#1E8A5F;--red:#C4321F;
+  --gold:#0E8F9A;--gold-text:#0B5560;--green:#1E8A5F;--red:#C4321F;
   --white:#FFFFFF;--muted:#8A7A68;--text:#241C14;
-  --sand:#FFE3BE;--card:rgba(232,67,46,.05);--border:#EBDFC9;
+  --sand:#D6F2F5;--card:rgba(232,67,46,.05);--border:#EBDFC9;
   --topbar-bg:rgba(255,251,243,.85);--accent-rgb:196,50,31;
 }
 body{font-family:var(--fb);background:var(--ink);color:var(--text);display:flex;min-height:100vh}
@@ -88,7 +88,7 @@ html[dir="rtl"] body{direction:rtl}
 
 /* WALLET HERO */
 @keyframes walletShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
-.wallet-hero{background:linear-gradient(120deg,#FFE9C7,#FFD9A0,#FFC177,#FFE9C7);background-size:300% 300%;animation:walletShift 12s ease infinite;border:1.5px solid var(--border);border-radius:16px;padding:32px;margin-bottom:24px;position:relative;overflow:hidden;display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;align-items:center;box-shadow:0 14px 30px rgba(196,50,31,.1)}
+.wallet-hero{background:linear-gradient(120deg,#E3F6F8,#CDEEF2,#B6E4EA,#E3F6F8);background-size:300% 300%;animation:walletShift 12s ease infinite;border:1.5px solid var(--border);border-radius:16px;padding:32px;margin-bottom:24px;position:relative;overflow:hidden;display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;align-items:center;box-shadow:0 14px 30px rgba(196,50,31,.1)}
 .wallet-hero::before{content:'';position:absolute;top:-60px;left:-60px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(14,165,160,.3),transparent 70%);pointer-events:none}
 .wallet-hero::after{content:'';position:absolute;bottom:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(255,138,61,.18),transparent 70%);pointer-events:none}
 .wh-block{position:relative;z-index:1}
@@ -136,7 +136,7 @@ html[dir="rtl"] body{direction:rtl}
 .tx-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
 .tx-icon.green{background:rgba(16,185,129,.12);color:var(--green)}
 .tx-icon.red{background:rgba(239,68,68,.12);color:var(--red)}
-.tx-icon.gold{background:rgba(245,158,11,.12);color:var(--gold-text)}
+.tx-icon.gold{background:rgba(14,143,154,.12);color:var(--gold-text)}
 .tx-info{flex:1;min-width:0}
 .tx-title{font-size:.86rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tx-sub{font-size:.75rem;color:var(--muted);margin-top:1px}
@@ -163,7 +163,7 @@ html[dir="rtl"] body{direction:rtl}
 /* BADGES */
 .badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:100px;font-size:.7rem;font-weight:700}
 .b-green{background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.25)}
-.b-gold{background:rgba(245,158,11,.12);color:var(--gold-text);border:1px solid rgba(245,158,11,.25)}
+.b-gold{background:rgba(14,143,154,.12);color:var(--gold-text);border:1px solid rgba(14,143,154,.28)}
 .b-red{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25)}
 
 /* BUTTONS */
@@ -317,6 +317,10 @@ tr{transition:background .2s}
   select,input[type="text"]{width:100%!important;min-width:0!important}
   .op-grid{grid-template-columns:1fr!important}
 }
+
+/* Plus de jaune : boutons et accents en turquoise */
+.btn-gold{background:linear-gradient(135deg,#0E8F9A,#0B6B7A) !important;color:#fff !important;border-color:transparent !important}
+.btn-gold:hover{filter:brightness(1.1)}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#C4321F">
@@ -424,15 +428,15 @@ tr{transition:background .2s}
           <div style="display:flex;gap:16px;align-items:center;padding:0 20px 4px">
             <div style="width:60px;flex-shrink:0"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
   <line x1="40" y1="140" x2="210" y2="140" stroke="#1E4750" stroke-width="2"/>
-  <rect x="55" y="104" width="20" height="36" rx="3" fill="#FFF4E1" stroke="#C4321F" stroke-width="2"/>
-  <rect x="88" y="80" width="20" height="60" rx="3" fill="#FFF4E1" stroke="#C4321F" stroke-width="2"/>
+  <rect x="55" y="104" width="20" height="36" rx="3" fill="#E3F6F8" stroke="#C4321F" stroke-width="2"/>
+  <rect x="88" y="80" width="20" height="60" rx="3" fill="#E3F6F8" stroke="#C4321F" stroke-width="2"/>
   <rect x="121" y="58" width="20" height="82" rx="3" fill="#0EA5A0" opacity=".25" stroke="#C4321F" stroke-width="2"/>
-  <rect x="154" y="94" width="20" height="46" rx="3" fill="#FFF4E1" stroke="#C4321F" stroke-width="2"/>
-  <polyline points="60 100 98 74 131 50 164 84" fill="none" stroke="#FF8A3D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="131" cy="50" r="4" fill="#FF8A3D"/>
-  <circle cx="164" cy="84" r="3" fill="#FF8A3D"/>
-  <circle cx="98" cy="74" r="3" fill="#FF8A3D"/>
-  <circle cx="60" cy="100" r="3" fill="#FF8A3D"/>
+  <rect x="154" y="94" width="20" height="46" rx="3" fill="#E3F6F8" stroke="#C4321F" stroke-width="2"/>
+  <polyline points="60 100 98 74 131 50 164 84" fill="none" stroke="#0E8F9A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="131" cy="50" r="4" fill="#0E8F9A"/>
+  <circle cx="164" cy="84" r="3" fill="#0E8F9A"/>
+  <circle cx="98" cy="74" r="3" fill="#0E8F9A"/>
+  <circle cx="60" cy="100" r="3" fill="#0E8F9A"/>
 </svg></div>
             <div style="font-size:.78rem;color:var(--muted)">Tes revenus progressent régulièrement. Les pics correspondent aux soirs de forte affluence.</div>
           </div>
@@ -464,15 +468,15 @@ tr{transition:background .2s}
           </div>
           <div style="padding:0 18px;display:flex;gap:14px;align-items:center">
             <div style="width:52px;flex-shrink:0"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
-  <rect x="88" y="26" width="64" height="120" rx="12" fill="#FFE3BE" stroke="#C4321F" stroke-width="2.5"/>
-  <rect x="96" y="42" width="48" height="80" rx="4" fill="#FFF4E1"/>
+  <rect x="88" y="26" width="64" height="120" rx="12" fill="#D6F2F5" stroke="#C4321F" stroke-width="2.5"/>
+  <rect x="96" y="42" width="48" height="80" rx="4" fill="#E3F6F8"/>
   <circle cx="120" cy="132" r="6" fill="none" stroke="#C4321F" stroke-width="2"/>
-  <text x="120" y="90" text-anchor="middle" font-family="monospace" font-size="15" fill="#FFD9A8" font-weight="700">FCFA</text>
+  <text x="120" y="90" text-anchor="middle" font-family="monospace" font-size="15" fill="#9BE3EA" font-weight="700">FCFA</text>
   <path d="M56 58a20 20 0 0 1 0 28" fill="none" stroke="#1E8A5F" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
   <path d="M46 50a30 30 0 0 1 0 44" fill="none" stroke="#1E8A5F" stroke-width="2.5" stroke-linecap="round" opacity=".4"/>
-  <circle cx="184" cy="72" r="14" fill="none" stroke="#FF8A3D" stroke-width="2.5"/>
-  <text x="184" y="77" text-anchor="middle" font-family="monospace" font-size="14" fill="#FF8A3D" font-weight="700">₣</text>
-  <circle cx="60" cy="130" r="3" fill="#FF8A3D"/>
+  <circle cx="184" cy="72" r="14" fill="none" stroke="#0E8F9A" stroke-width="2.5"/>
+  <text x="184" y="77" text-anchor="middle" font-family="monospace" font-size="14" fill="#0E8F9A" font-weight="700">₣</text>
+  <circle cx="60" cy="130" r="3" fill="#0E8F9A"/>
   <circle cx="196" cy="130" r="3" fill="#34D399"/>
 </svg></div>
             <div style="font-size:.76rem;color:var(--muted);padding-bottom:8px" data-i18n="wallet.numbers_hint">Tes numéros liés reçoivent tes paiements automatiquement, sans délai.</div>
@@ -498,23 +502,23 @@ tr{transition:background .2s}
 <div class="modal-overlay" id="modal">
   <div class="modal">
     <div style="width:64px;margin:0 auto 4px"><svg viewBox="0 0 240 180" class="illus" xmlns="http://www.w3.org/2000/svg">
-  <path d="M78 150 60 96a10 10 0 0 1 12.6-12.6L150 108a10 10 0 0 1 3 17.6l-52 30a10 10 0 0 1-23-5.6Z" fill="#FFF4E1" stroke="#FF8A3D" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M78 150 60 96a10 10 0 0 1 12.6-12.6L150 108a10 10 0 0 1 3 17.6l-52 30a10 10 0 0 1-23-5.6Z" fill="#E3F6F8" stroke="#0E8F9A" stroke-width="2.2" stroke-linejoin="round"/>
   <line x1="96" y1="94" x2="150" y2="60" stroke="#C4321F" stroke-width="2" stroke-linecap="round" opacity=".6"/>
   <line x1="110" y1="108" x2="176" y2="88" stroke="#1E8A5F" stroke-width="2" stroke-linecap="round" opacity=".5"/>
   <circle cx="150" cy="60" r="3.5" fill="#1E8A5F"/>
   <circle cx="176" cy="88" r="3" fill="#1E8A5F"/>
   <circle cx="188" cy="56" r="3" fill="#34D399"/>
-  <circle cx="60" cy="60" r="3" fill="#FFD9A8"/>
+  <circle cx="60" cy="60" r="3" fill="#9BE3EA"/>
   <rect x="160" y="34" width="7" height="7" rx="1.5" fill="#34D399" transform="rotate(20 163 37)"/>
-  <rect x="70" y="44" width="7" height="7" rx="1.5" fill="#FF8A3D" transform="rotate(-15 73 47)"/>
+  <rect x="70" y="44" width="7" height="7" rx="1.5" fill="#0E8F9A" transform="rotate(-15 73 47)"/>
   <rect x="196" y="100" width="7" height="7" rx="1.5" fill="#1E8A5F" transform="rotate(30 199 103)"/>
   <ellipse cx="105" cy="160" rx="46" ry="7" fill="#EBDFC9"/>
 </svg></div>
     <div class="modal-title" style="justify-content:center"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="19" height="11" rx="2"/><circle cx="12" cy="12" r="3"/><line x1="6" y1="9.3" x2="6" y2="9.3"/><line x1="18" y1="14.7" x2="18" y2="14.7"/></svg> Retirer de l'argent</div>
     <div class="modal-sub" data-i18n="wallet.arrival_hint">L'argent arrive sur ton Mobile Money en 5 à 10 minutes.</div>
 
-    <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:14px;text-align:center;margin-bottom:20px">
-      <div style="font-size:.72rem;color:rgba(245,158,11,.7);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px">Solde disponible</div>
+    <div style="background:rgba(14,143,154,.08);border:1px solid rgba(14,143,154,.28);border-radius:10px;padding:14px;text-align:center;margin-bottom:20px">
+      <div style="font-size:.72rem;color:rgba(14,143,154,.9);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px">Solde disponible</div>
       <div style="font-family:var(--fd);font-size:1.8rem;font-weight:800;color:var(--gold-text)" id="modal-balance">0 FCFA</div>
     </div>
 
@@ -758,7 +762,7 @@ async function loadAll(){
     const h = Math.max(3, v/maxRev*100);
     b.style.cssText = `height:${h}px;background:linear-gradient(180deg,#C4321F,#E8432E);border-radius:4px 4px 0 0`;
     b.title = v.toLocaleString('fr-FR')+' FCFA';
-    b.addEventListener('mouseenter',()=>b.style.background='linear-gradient(180deg,#FFC53D,#C4321F)');
+    b.addEventListener('mouseenter',()=>b.style.background='linear-gradient(180deg,#E8432E,#C4321F)');
     b.addEventListener('mouseleave',()=>b.style.background='linear-gradient(180deg,#C4321F,#E8432E)');
     const l = document.createElement('div');
     l.className = 'bar-lbl';

@@ -3620,6 +3620,7 @@ async function fcInitAlerts() {
   const { data, error } = await supa.from('security_alerts').select('id, kind, message, link, created_at, read_at').order('created_at', { ascending: false }).limit(15);
   if (error || !data) return;
   const unread = data.filter(a => !a.read_at);
+  const SEC_KINDS = ['new_device', 'withdrawal', 'pin_change'];   // alertes de sécurité ; le reste = bonnes nouvelles
   const when = (d) => new Date(d).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
   const esc = (t) => fcEscapeHtml(String(t == null ? '' : t));
   const safeLink = (l) => (/^festchill-[a-z-]+\.html$/.test(l || '') ? l : 'festchill-settings.html');
@@ -3633,12 +3634,12 @@ async function fcInitAlerts() {
 
   const panel = document.createElement('div');
   panel.style.cssText = 'position:fixed;top:122px;right:14px;z-index:901;width:min(92vw,360px);max-height:60vh;overflow:auto;background:var(--surface,#fff);color:var(--text,#241C14);border:1px solid var(--border,#E8D9BD);border-radius:16px;box-shadow:0 14px 40px rgba(0,0,0,.28);padding:14px;display:none';
-  panel.innerHTML = '<div id="fc-push-box" style="padding:10px 0;margin-bottom:8px;border-bottom:1px solid var(--border,#E8D9BD);font-size:.84rem;line-height:1.45"></div><div style="font-weight:800;margin-bottom:8px">Alertes de sécurité</div>' + (data.length ? '' : '<div style="font-size:.84rem;opacity:.7">Aucune alerte récente.</div>') + data.map(a =>
+  panel.innerHTML = '<div id="fc-push-box" style="padding:10px 0;margin-bottom:8px;border-bottom:1px solid var(--border,#E8D9BD);font-size:.84rem;line-height:1.45"></div><div style="font-weight:800;margin-bottom:8px">Notifications</div>' + (data.length ? '' : '<div style="font-size:.84rem;opacity:.7">Rien de nouveau pour le moment.</div>') + data.map(a =>
     '<div style="padding:10px 0;border-top:1px solid var(--border,#E8D9BD);font-size:.84rem;line-height:1.45' + (a.read_at ? ';opacity:.7' : '') + '">'
     + (a.read_at ? '' : '<b style="color:#C4321F">● </b>') + esc(a.message)
     + '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:.74rem;opacity:.8"><span>' + when(a.created_at) + '</span>'
     + '<a href="' + safeLink(a.link) + '" style="font-weight:800;color:#C4321F;text-decoration:none">Voir →</a></div>'
-    + (a.read_at ? '' : '<button type="button" class="fc-notme" style="margin-top:8px;background:none;border:1px solid #C4321F;color:#C4321F;border-radius:8px;padding:5px 10px;font-weight:700;font-size:.74rem;cursor:pointer">Ce n\'était pas moi</button>')
+    + ((a.read_at || !SEC_KINDS.includes(a.kind)) ? '' : '<button type="button" class="fc-notme" style="margin-top:8px;background:none;border:1px solid #C4321F;color:#C4321F;border-radius:8px;padding:5px 10px;font-weight:700;font-size:.74rem;cursor:pointer">Ce n\'était pas moi</button>')
     + '</div>').join('');
   document.body.appendChild(panel);
   panel.querySelectorAll('.fc-notme').forEach(b => { b.onclick = () => fcNotMe(); });
@@ -3655,12 +3656,12 @@ async function fcInitAlerts() {
     const bn = document.createElement('div');
     bn.setAttribute('role', 'alert');
     bn.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:29500;width:min(94vw,520px);background:#241C14;color:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 12px 34px rgba(0,0,0,.4);font-size:.88rem;line-height:1.45';
-    bn.innerHTML = '<div style="font-weight:800;margin-bottom:4px">🔔 Alerte de sécurité</div>' + esc(fresh.message)
+    bn.innerHTML = '<div style="font-weight:800;margin-bottom:4px">' + (SEC_KINDS.includes(fresh.kind) ? '🔔 Alerte de sécurité' : '🎉 Bonne nouvelle') + '</div>' + esc(fresh.message)
       + '<div style="display:flex;gap:8px;margin-top:10px"><a href="' + safeLink(fresh.link) + '" style="background:#E8A33D;color:#241C14;font-weight:800;border-radius:10px;padding:8px 14px;text-decoration:none">Voir</a>'
       + '<button type="button" id="fc-alert-ok" style="background:none;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:10px;padding:8px 14px;cursor:pointer;font-weight:700">C\'est moi, OK</button>'
       + '<button type="button" id="fc-alert-notme" style="background:#C4321F;border:none;color:#fff;border-radius:10px;padding:8px 14px;cursor:pointer;font-weight:800">Ce n\'était pas moi</button></div>';
     document.body.appendChild(bn);
-    bn.querySelector('#fc-alert-notme').onclick = () => fcNotMe();
+    { const nm = bn.querySelector('#fc-alert-notme'); if (nm) { if (SEC_KINDS.includes(fresh.kind)) nm.onclick = () => fcNotMe(); else nm.remove(); } }
     bn.querySelector('#fc-alert-ok').onclick = async () => { bn.remove(); try { await supa.rpc('fc_mark_alerts_read'); const b = bell.querySelector('span'); if (b) b.remove(); } catch (e) {} };
   }
 }
