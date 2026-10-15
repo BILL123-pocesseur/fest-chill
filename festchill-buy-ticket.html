@@ -93,7 +93,9 @@ nav{padding:16px 5%;display:flex;align-items:center;justify-content:space-betwee
 .ps-total{display:flex;justify-content:space-between;font-weight:800;padding-top:10px;margin-top:6px;border-top:1px solid var(--border);font-size:1rem}
 .ps-total span:last-child{color:var(--gold)}
 
-.success-overlay{position:fixed;inset:0;background:var(--ink);z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;overflow-y:auto}
+.success-overlay{position:fixed;inset:0;background:var(--ink);z-index:200;display:none;flex-direction:column;align-items:center;justify-content:flex-start;padding:max(32px,env(safe-area-inset-top)) 20px 40px;text-align:center;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.success-overlay>:first-child{margin-top:auto}
+.success-overlay>:last-child{margin-bottom:auto}
 .success-overlay.show{display:flex}
 .success-icon{font-size:5rem;margin-bottom:20px;animation:pop .4s cubic-bezier(.34,1.56,.64,1)}
 @keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
@@ -252,8 +254,8 @@ tr{transition:background .2s}
 
 
 /* Logo mis en valeur : pastille + texte gras bien lisible */
-.logo{font-family:'Plus Jakarta Sans',system-ui,sans-serif !important;font-style:normal !important;font-weight:800 !important;font-size:1.35rem !important;letter-spacing:-.02em;color:#241C14 !important;display:inline-flex;align-items:center;gap:10px;text-decoration:none}
-.logo::before{content:"F";display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#E8432E,#C4321F);color:#fff;font-weight:800;font-size:1.1rem;box-shadow:0 4px 12px rgba(196,50,31,.35)}
+.logo{font-family:'Plus Jakarta Sans',system-ui,sans-serif !important;font-style:normal !important;font-weight:800 !important;font-size:1.35rem !important;letter-spacing:-.02em;color:#241C14 !important;display:inline-flex;align-items:center;gap:0;text-decoration:none}
+.logo::before{content:"F";margin-right:10px;display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#E8432E,#C4321F);color:#fff;font-weight:800;font-size:1.1rem;box-shadow:0 4px 12px rgba(196,50,31,.35)}
 .logo em{color:#C4321F !important;font-style:normal !important}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
@@ -1578,6 +1580,7 @@ async function checkOrderStatusNow(){
       const { data: grp } = await supa.rpc('fc_group_tickets', { p_order_id: lastPurchase.order_id });
       fcShowGroupTickets(grp || []);
     } catch (e) {}
+    document.getElementById('success').scrollTop = 0;
     const kl = document.getElementById('keep-link');
     if (kl) { kl.style.display = 'block'; const sh = document.getElementById('keep-share'); if (sh && navigator.share) sh.style.display = ''; }
     const rb = document.getElementById('review-btn');
