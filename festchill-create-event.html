@@ -347,6 +347,16 @@ tr{transition:background .2s}
   .section-head > div{flex-wrap:wrap;width:100%}
   select,input[type="text"]{width:100%!important;min-width:0!important}
 }
+
+/* Champs alignés sur la même ligne ; une seule colonne et rien qui dépasse sur téléphone */
+.form-grid{align-items:end}
+.form-grid>*{min-width:0}
+.form-grid input,.form-grid select,.form-grid textarea{max-width:100%}
+@media(max-width:640px){
+  .form-grid,.form-grid[style]{grid-template-columns:1fr !important}
+  .form-grid>*{grid-column:1/-1 !important}
+  input[type=date],input[type=time]{width:100%;min-width:0;-webkit-appearance:none;appearance:none}
+}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#C4321F">

@@ -290,7 +290,7 @@ async function loadOrders(){
 
 async function loadCertificationCandidates(){
   try {
-    await supa.rpc('fc_check_certification_candidates');
+    { const { error: __e } = await supa.rpc('fc_check_certification_candidates'); if (__e) throw __e; }
   } catch(e) {}
   const { data } = await supa.rpc('fc_list_certification_candidates');
   const card = document.getElementById('sec-certification');
@@ -313,7 +313,7 @@ async function loadCertificationCandidates(){
 
 async function certifyOrganizer(id, certify){
   try {
-    await supa.rpc('fc_certify_organizer', { p_organizer_id: id, p_certify: certify });
+    { const { error: __e } = await supa.rpc('fc_certify_organizer', { p_organizer_id: id, p_certify: certify }); if (__e) throw __e; }
     showToast(certify ? 'Organisateur certifié !' : 'Candidat ignoré', FCI['check-circle']);
     loadCertificationCandidates();
   } catch(e) { showToast('Erreur : ' + e.message, FCI['x-circle']); }

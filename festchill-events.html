@@ -494,7 +494,7 @@ async function loadPendingInvites(){
 
 async function respondInvite(id, accept){
   try {
-    await supa.rpc('fc_respond_collaborator_invite', { p_collab_id: id, p_accept: accept });
+    { const { error: __e } = await supa.rpc('fc_respond_collaborator_invite', { p_collab_id: id, p_accept: accept }); if (__e) throw __e; }
     showToast(accept ? 'Invitation acceptée !' : 'Invitation refusée', FCI['check-circle']);
     boot();
   } catch(e) { showToast('Erreur : ' + e.message, FCI['x-circle']); }
@@ -509,14 +509,16 @@ function openInviteModal(eventId){
 function closeInviteModal(){ document.getElementById('invite-modal').classList.remove('open'); }
 
 async function sendInvite(){
-  const email = document.getElementById('invite-email').value.trim();
+  const email = document.getElementById('invite-email').value.trim().toLowerCase();
   const role = document.querySelector('input[name="invite-role"]:checked').value;
-  if (!email){ showToast('Entre un email', FCI['alert-triangle']); return; }
+  if (!email){ showToast('Entre un e-mail', FCI['alert-triangle']); return; }
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ showToast("Cet e-mail n'est pas valide. Exemple : nom@gmail.com", FCI['alert-triangle']); return; }
   try {
-    await supa.rpc('fc_invite_collaborator', { p_event_id: inviteEventId, p_email: email, p_role: role });
+    const { error } = await supa.rpc('fc_invite_collaborator', { p_event_id: inviteEventId, p_email: email, p_role: role });
+    if (error) throw error;                       // e-mail inconnu, invitation à soi-même, droits insuffisants…
     showToast('Invitation envoyée !', FCI['check-circle']);
     closeInviteModal();
-  } catch(e) { showToast('Erreur : ' + e.message, FCI['x-circle']); }
+  } catch(e) { showToast(e.message || "Invitation impossible", FCI['x-circle']); }
 }
 
 function setFilter(f){

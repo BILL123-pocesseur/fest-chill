@@ -102,13 +102,18 @@ nav{padding:16px 5%;display:flex;align-items:center;justify-content:space-betwee
 .success-title{font-family:var(--fd);font-size:2rem;font-weight:800;margin-bottom:8px}
 .success-sub{color:var(--muted);margin-bottom:32px}
 
-.ticket-visual{background:#FFFFFF;border:1.5px solid #241C14;border-top:8px solid #C4321F;border-radius:14px;padding:22px 24px;width:320px;max-width:100%;text-align:left;margin:0 auto 20px;position:relative;overflow:hidden;box-shadow:0 18px 40px rgba(36,28,20,.18);color:#241C14;box-sizing:border-box}
+.ticket-visual{background:#FFFFFF;border:1.5px solid #241C14;border-top:8px solid #C4321F;border-radius:14px;padding:22px 24px;width:360px;max-width:100%;text-align:left;margin:0 auto 20px;position:relative;overflow:hidden;box-shadow:0 18px 40px rgba(36,28,20,.18);color:#241C14;box-sizing:border-box}
 .ticket-visual::before{display:none}
 .tv-event{font-family:var(--fd);font-weight:800;font-size:1.15rem;margin-bottom:4px;color:#241C14}
 .tv-date{font-size:.8rem;color:#6B5D4D;margin-bottom:16px}
 .tv-row{display:flex;justify-content:space-between;margin-bottom:8px}
 .tv-label{font-size:.68rem;color:#8A7A68;text-transform:uppercase;letter-spacing:.6px}
 .tv-val{font-size:.9rem;font-weight:700;color:#241C14}
+.tv-hero{position:relative;margin:-22px -24px 16px;min-height:180px;border-radius:12px 12px 0 0;background:linear-gradient(135deg,#241C14,#4A3524) center/cover no-repeat;display:flex;flex-direction:column;justify-content:flex-end;padding:18px 24px;overflow:hidden}
+.tv-hero::before{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(20,14,8,.88),rgba(20,14,8,.1) 75%)}
+.tv-hero>*{position:relative}
+.tv-hero .tv-event{color:#fff;font-size:1.35rem;margin-bottom:3px;text-shadow:0 2px 8px rgba(0,0,0,.35)}
+.tv-hero .tv-date{color:rgba(255,255,255,.88);margin-bottom:0}
 .tv-divider{border:none;border-top:2px dashed #E8D9BD;margin:14px 0}
 .tv-qr{width:84px;height:84px;background:#FFFFFF;border:1px solid #E8D9BD;border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .tv-qr canvas,.tv-qr img{width:100%;height:100%}
@@ -867,8 +872,7 @@ tr{transition:background .2s}
   <div class="success-sub" id="success-sub">Ton ticket apparaîtra ici dès que ton paiement sera confirmé.</div>
 
   <div class="ticket-visual">
-    <div class="tv-event" id="s-event">—</div>
-    <div class="tv-date" id="s-date">—</div>
+    <div class="tv-hero" id="tv-hero"><div class="tv-event" id="s-event">—</div><div class="tv-date" id="s-date">—</div></div>
     <div class="tv-row">
       <div><div class="tv-label">Catégorie</div><div class="tv-val" id="s-cat">—</div></div>
       <div><div class="tv-label">N° Ticket</div><div class="tv-num" id="s-num">—</div></div>
@@ -902,6 +906,7 @@ tr{transition:background .2s}
     </div>
   </div>
   <div id="group-tickets" style="display:none;width:320px;max-width:100%;margin:0 auto 14px;text-align:left"></div>
+  <div style="margin:0 auto 14px;font-size:.82rem;opacity:.85">❓ Besoin d'aide ? <a href="festchill-help.html" style="color:inherit;font-weight:800">Questions fréquentes</a></div>
   <div class="success-actions" id="success-actions-valid" style="display:none">
     <button class="btn btn-gold" onclick="downloadTicketPDF()"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11.5"/><polyline points="7.5 11 12 15.5 16.5 11"/><path d="M4.5 17.5v1.7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1.7"/></svg> Reçu complet (PDF)</button>
     <button class="btn btn-ghost" onclick="downloadQrOnly()" style="margin-top:8px"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z"/></svg> QR code seul (image)</button>
@@ -916,7 +921,7 @@ tr{transition:background .2s}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="supabase-client.js?v=20261010"></script>
+<script src="supabase-client.js?v=20261011"></script>
 <script>
 const FCI = {
   'check': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"20 6 9 17 4 12\"/></svg>",
@@ -1580,6 +1585,10 @@ async function checkOrderStatusNow(){
       const { data: grp } = await supa.rpc('fc_group_tickets', { p_order_id: lastPurchase.order_id });
       fcShowGroupTickets(grp || []);
     } catch (e) {}
+    if (lastPurchase.banner_url) {
+      const hero = document.getElementById('tv-hero');
+      if (hero) hero.style.backgroundImage = "url('" + String(fcHdPhoto(lastPurchase.banner_url, 900)).replace(/'/g, '%27') + "')";
+    }
     document.getElementById('success').scrollTop = 0;
     const kl = document.getElementById('keep-link');
     if (kl) { kl.style.display = 'block'; const sh = document.getElementById('keep-share'); if (sh && navigator.share) sh.style.display = ''; }

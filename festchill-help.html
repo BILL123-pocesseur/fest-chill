@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aide et questions fréquentes — Fest&Chill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#FFFBF3;color:#241C14;line-height:1.55;min-height:100vh}
+.logo{display:inline-flex;align-items:center;gap:0;font-weight:800;font-size:1.35rem;letter-spacing:-.02em;color:#241C14;text-decoration:none}
+.logo::before{content:"F";margin-right:10px;display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#E8432E,#C4321F);color:#fff;font-size:1.1rem;box-shadow:0 4px 12px rgba(196,50,31,.35)}
+.logo em{color:#C4321F;font-style:normal}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px clamp(16px,5vw,48px);border-bottom:1px solid #E8D9BD;background:rgba(255,251,243,.95);position:sticky;top:0;z-index:5}
+header a.back{color:#6B5D4D;text-decoration:none;font-weight:700;font-size:.9rem}
+main{max-width:760px;margin:0 auto;padding:28px 18px 60px}
+h1{font-size:clamp(1.7rem,5vw,2.3rem);letter-spacing:-.02em;margin-bottom:8px}
+.sub{color:#6B5D4D;margin-bottom:20px}
+#q{width:100%;padding:14px 16px;border-radius:14px;border:1.5px solid #E8D9BD;background:#fff;font:inherit;margin-bottom:8px}
+#q:focus{outline:3px solid rgba(196,50,31,.25);border-color:#C4321F}
+h2{font-size:1.05rem;margin:28px 0 10px;color:#C4321F;text-transform:uppercase;letter-spacing:.08em}
+details{background:#fff;border:1.5px solid #E8D9BD;border-radius:14px;margin-bottom:10px;overflow:hidden}
+summary{cursor:pointer;padding:15px 18px;font-weight:700;list-style:none;display:flex;justify-content:space-between;gap:12px;align-items:center;min-height:48px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-size:1.4rem;color:#C4321F;font-weight:800;flex-shrink:0}
+details[open] summary::after{content:"–"}
+details[open]{border-color:#C4321F}
+details p{padding:0 18px 16px;color:#4A3F33}
+.none{display:none;text-align:center;color:#6B5D4D;padding:24px}
+footer{text-align:center;color:#6B5D4D;font-size:.82rem;padding:24px 16px 40px}
+footer a{color:inherit;margin:0 6px}
+</style>
+</head>
+<body>
+<header><a class="logo" href="festchill-welcome.html">Fest<em>&amp;</em>Chill</a><a class="back" href="festchill-explore.html">← Les événements</a></header>
+<main>
+  <h1>Aide et questions fréquentes</h1>
+  <p class="sub">Trouve vite une réponse. Tu peux aussi écrire un mot-clé : « ticket », « paiement », « retrait »…</p>
+  <input id="q" type="search" placeholder="Rechercher dans l'aide…" aria-label="Rechercher dans l'aide">
+<h2>Pour acheter un ticket</h2>
+<details><summary>Comment acheter un ticket ?</summary><p>Ouvre l'événement, choisis ta catégorie et ton ticket, remplis tes informations puis paye en Mobile Money (MTN ou Moov) ou par carte bancaire. Pour le Mobile Money, ton numéro doit avoir 10 chiffres et commencer par 01. Ton ticket s'affiche dès que le paiement est confirmé.</p></details>
+<details><summary>Puis-je acheter plusieurs tickets d'un coup ?</summary><p>Oui, jusqu'à 10 tickets en un seul paiement. Tu peux mettre le même nom sur tous les tickets ou un nom par ticket. Quand les numéros sont choisis un par un, coche « Acheter plusieurs tickets » puis clique sur les numéros voulus.</p></details>
+<details><summary>J'ai payé mais je ne vois pas mon ticket</summary><p>Patiente quelques secondes : la page vérifie le paiement toute seule. Tu peux aussi toucher « Vérifier mon paiement ». Si ton argent est parti sans ticket, ne repaye pas : retrouve ta commande dans « Mes tickets sur cet appareil » (page des événements) ou contacte l'organisateur, dont le numéro est sur la page de l'événement.</p></details>
+<details><summary>J'ai perdu mon ticket ou mon téléphone s'est éteint</summary><p>Après ton achat, copie ou envoie-toi le lien « Garde ce lien » : il te permet de retrouver tes tickets à tout moment, sans limite de téléchargements. Sur l'appareil que tu as utilisé, la liste « Mes tickets » de la page des événements les garde aussi. Sinon, contacte l'organisateur.</p></details>
+<details><summary>Comment utiliser mon ticket à l'entrée ?</summary><p>Présente le QR code du PDF ou de l'image. Si le QR ne se scanne pas, l'organisateur peut taper le code manuel de 16 caractères écrit sous le QR. Ne partage jamais ce code : il est secret.</p></details>
+<details><summary>Mon événement dure plusieurs jours : comment ça marche ?</summary><p>Ton QR est valable pour chaque jour de l'événement, avec un seul scan par jour. Si tu achètes en cours d'événement, ton ticket est valable pour les jours restants.</p></details>
+<details><summary>Puis-je acheter après le début de l'événement ?</summary><p>Oui, tant que la vente n'est pas fermée. Un compte à rebours puis « Événement commencé » s'affichent sur la page. La vente se ferme à 6 h du matin, le lendemain du dernier jour.</p></details>
+<details><summary>Comment être remboursé ?</summary><p>Si ton paiement arrive après la fin de l'événement, tu es remboursé. Pour tout autre cas (événement annulé, erreur), contacte l'organisateur : il peut demander un remboursement à l'équipe.</p></details>
+<details><summary>Comment reconnaître un vrai événement ?</summary><p>Avant de payer, regarde la fiche de l'organisateur : nom, photo, badge « Identité vérifiée » ou « Organisateur certifié », numéro de contact et lien officiel. En cas de doute, appelle-le. Tu peux aussi toucher « Signaler cet événement ».</p></details>
+<h2>Pour les organisateurs</h2>
+<details><summary>Comment créer un événement ?</summary><p>Depuis ton tableau de bord, choisis « Créer un événement » et remplis les informations : nom, catégorie, date (aujourd'hui ou plus tard), heure, lieu, ville, contact, lien officiel, obligations pour entrer, description et catégories de tickets. Deux événements ne peuvent pas avoir le même nom, le même jour et la même heure.</p></details>
+<details><summary>Comment changer l'image de mon événement ?</summary><p>Ouvre la gestion de ton événement et touche « Changer l'image ». Tu peux chercher avec un mot-clé. Une photo déjà utilisée récemment par un autre événement n'est pas proposée.</p></details>
+<details><summary>Comment retirer mon argent ?</summary><p>Dans ton portefeuille, crée d'abord ton code PIN de retrait, puis demande un retrait vers MTN ou Moov. Il y a 2 retraits au maximum par jour. Les retraits de comptes récents ou de premiers retraits peuvent être vérifiés par l'équipe avant l'envoi.</p></details>
+<details><summary>Comment scanner les tickets à l'entrée ?</summary><p>Ouvre la page Scanner, choisis ton événement et scanne les QR codes. Si un QR ne marche pas, tape le code manuel de 16 caractères dans le champ prévu. Après trop de codes inconnus, le scanner se bloque quelques minutes.</p></details>
+<details><summary>Comment exporter mes ventes ?</summary><p>Dans ton portefeuille, le bouton d'export crée un fichier CSV de tes ventes et retraits. Dans la gestion d'un événement, l'export contient la liste de ses tickets. Les fichiers s'ouvrent dans Excel.</p></details>
+<details><summary>Comment sécuriser mon compte ?</summary><p>Active la double authentification dans tes paramètres, crée ton code PIN de retrait et active les notifications : tu seras prévenu à chaque connexion depuis un nouvel appareil, chaque retrait et chaque changement de PIN. Si une alerte n'est pas de toi, touche « Ce n'était pas moi » : tous tes appareils sont déconnectés et les retraits sont bloqués 24 h.</p></details>
+  <div class="none" id="none">Aucune réponse trouvée. Contacte l'organisateur de ton événement : son numéro est sur la page de l'événement.</div>
+</main>
+<footer>© 2026 Fest&amp;Chill · <a href="festchill-privacy.html">Confidentialité</a> · <a href="festchill-terms.html">CGU</a></footer>
+<script>
+(function () {
+  const q = document.getElementById('q'), items = [...document.querySelectorAll('details')], none = document.getElementById('none');
+  const norm = (t) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  q.addEventListener('input', () => {
+    const v = norm(q.value.trim()); let shown = 0;
+    items.forEach(d => { const ok = !v || norm(d.textContent).includes(v); d.style.display = ok ? '' : 'none'; if (ok) shown++; if (v && ok) d.open = true; else if (!v) d.open = false; });
+    document.querySelectorAll('h2').forEach(h => { let n = h.nextElementSibling, any = false; while (n && n.tagName === 'DETAILS') { if (n.style.display !== 'none') any = true; n = n.nextElementSibling; } h.style.display = any ? '' : 'none'; });
+    none.style.display = shown ? 'none' : 'block';
+  });
+})();
+</script>
+</body>
+</html>

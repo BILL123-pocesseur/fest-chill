@@ -572,16 +572,36 @@
     event_unfeature: 'Mise à la une retirée', event_flag: 'Événement signalé', event_unflag: 'Signalement retiré', event_delete: 'Événement supprimé',
     announcement_create: 'Annonce publiée', referral_settings: 'Réglages du parrainage changés', referral_revoked: 'Parrainage annulé', referral_restored: 'Parrainage rétabli', feature_approved: 'Mise à la une validée', feature_refused: 'Mise à la une refusée', feature_waiting: 'Mise à la une payée (attend ta validation)', auto_hold_withdrawal: 'Retrait retenu', auto_block_account: 'Compte bloqué (PIN)', release_withdrawal: 'Retrait retenu autorisé', automation_feature_auto: 'Réglage mise à la une changé', automation_hold_suspect_withdrawals: 'Réglage retraits suspects changé', automation_block_on_pin_lock: 'Réglage blocage PIN changé', announcement_delete: 'Annonce supprimée', refund_ticket: 'Ticket remboursé', refund_paid: 'Remboursement payé'
   };
+  let auditRows = [];
   FCAdmin.audit = async function () {
     const el = document.getElementById('audit-body');
     try {
-      const rows = await rpc('fc_admin_list_audit', { p_limit: 200 });
-      el.innerHTML = table(['Date', 'Admin', 'Action', 'Utilisateur concerné'], rows.map(a =>
-        '<tr><td style="' + TD + ';white-space:nowrap">' + esc(when(a.a_created_at)) + '</td><td style="' + TD + '">' + esc(a.a_admin || '—') + '</td>'
-        + '<td style="' + TD + '">' + esc(ACTION_LABELS[a.a_action] || a.a_action) + '</td><td style="' + TD + '">' + esc(a.a_target || (a.a_details && a.a_details.name) || '—') + '</td></tr>').join(''), 'Aucune action enregistrée');
+      auditRows = await rpc('fc_admin_list_audit', { p_limit: 500 });
+      const acts = [...new Set(auditRows.map(r => r.a_action))].sort((x, y) => (ACTION_LABELS[x] || x).localeCompare(ACTION_LABELS[y] || y));
+      const f = 'padding:7px 9px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:.8rem';
+      el.innerHTML = '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;padding:12px 18px;border-bottom:1px solid var(--border)">'
+        + '<label style="font-size:.72rem;color:var(--muted)">Type d\'action<br><select id="au-act" onchange="FCAdmin.auditRender()" style="' + f + '"><option value="">Toutes</option>'
+        + acts.map(x => '<option value="' + esc(x) + '">' + esc(ACTION_LABELS[x] || x) + '</option>').join('') + '</select></label>'
+        + '<label style="font-size:.72rem;color:var(--muted)">Du<br><input id="au-from" type="date" onchange="FCAdmin.auditRender()" style="' + f + '"></label>'
+        + '<label style="font-size:.72rem;color:var(--muted)">Au<br><input id="au-to" type="date" onchange="FCAdmin.auditRender()" style="' + f + '"></label>'
+        + '<label style="font-size:.72rem;color:var(--muted);flex:1 1 180px">Admin ou utilisateur<br><input id="au-q" placeholder="Rechercher un nom…" oninput="FCAdmin.auditRender()" style="' + f + ';width:100%;box-sizing:border-box"></label>'
+        + '<span id="au-count" style="font-size:.74rem;color:var(--muted)"></span></div><div id="au-table"></div>';
+      FCAdmin.auditRender();
     } catch (e) { fail(el, e); }
   };
-
+  FCAdmin.auditRender = function () {
+    const box = document.getElementById('au-table'); if (!box) return;
+    const q = ((document.getElementById('au-q') || {}).value || '').toLowerCase();
+    const act = (document.getElementById('au-act') || {}).value || '';
+    const from = (document.getElementById('au-from') || {}).value || '', to = (document.getElementById('au-to') || {}).value || '';
+    const rows = auditRows.filter(a => (!act || a.a_action === act)
+      && (!from || String(a.a_created_at).slice(0, 10) >= from) && (!to || String(a.a_created_at).slice(0, 10) <= to)
+      && (!q || ((a.a_admin || '') + ' ' + (a.a_target || '') + ' ' + (ACTION_LABELS[a.a_action] || a.a_action)).toLowerCase().includes(q)));
+    const cnt = document.getElementById('au-count'); if (cnt) cnt.textContent = rows.length + ' action(s) sur ' + auditRows.length;
+    box.innerHTML = table(['Date', 'Admin', 'Action', 'Utilisateur concerné'], rows.map(a =>
+      '<tr><td style="' + TD + ';white-space:nowrap">' + esc(when(a.a_created_at)) + '</td><td style="' + TD + '">' + esc(a.a_admin || '—') + '</td>'
+      + '<td style="' + TD + '">' + esc(ACTION_LABELS[a.a_action] || a.a_action) + '</td><td style="' + TD + '">' + esc(a.a_target || (a.a_details && a.a_details.name) || '—') + '</td></tr>').join(''), 'Aucune action ne correspond à ces filtres');
+  };
 
   /* ---------- Parrainage ---------- */
   FCAdmin.referrals = async function () {

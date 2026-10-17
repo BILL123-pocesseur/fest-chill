@@ -3772,3 +3772,19 @@ function fcRenderPushBox(box) {
     testBtn.disabled = false;
   };
 }
+
+// ------------------------------------------------------------
+// BOUTONS LISIBLES SUR TÉLÉPHONE : taille de toucher correcte, texte jamais coupé, rien qui déborde
+// ------------------------------------------------------------
+(function fcMobileButtons() {
+  if (document.getElementById('fc-mobile-btn')) return;
+  const st = document.createElement('style'); st.id = 'fc-mobile-btn';
+  st.textContent = '@media (max-width:640px){'
+    + '.btn,button.btn,a.btn{min-height:44px;padding:11px 16px !important;font-size:.92rem !important;line-height:1.25 !important;white-space:normal;text-align:center;justify-content:center;box-sizing:border-box}'
+    + '.btn-sm{min-height:40px;padding:9px 14px !important;font-size:.84rem !important}'
+    + '.btn svg,.btn .icn{flex-shrink:0}'
+    + 'html,body{overflow-x:hidden}'
+    + 'input[type=date],input[type=time]{min-width:0;max-width:100%;-webkit-appearance:none;appearance:none}'
+    + '}';
+  document.head.appendChild(st);
+})();
