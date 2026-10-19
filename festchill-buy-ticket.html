@@ -892,7 +892,7 @@ tr{transition:background .2s}
   </div>
 
   <div class="success-actions" id="success-actions-pending">
-    <button class="btn btn-gold" id="check-status-btn" onclick="checkOrderStatusNow()" style="display:none">Vérifier mon paiement</button>
+    <button class="btn btn-gold" id="check-status-btn" onclick="checkOrderStatusNow(true)" style="display:none">Vérifier mon paiement</button>
     <button class="btn btn-gold" id="retry-pay-btn" onclick="retryPayment()" style="display:none">Réessayer le paiement</button>
     <button class="btn btn-primary" id="other-ticket-btn" onclick="buyAnother()" style="display:none">Choisir un autre ticket</button>
   </div>
@@ -921,7 +921,7 @@ tr{transition:background .2s}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="supabase-client.js?v=20261011"></script>
+<script src="supabase-client.js?v=20261012"></script>
 <script>
 const FCI = {
   'check': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"20 6 9 17 4 12\"/></svg>",
@@ -1277,7 +1277,7 @@ function resetDetail(){
 }
 
 // ---- Plusieurs tickets en un seul paiement (uniquement quand les numéros sont attribués automatiquement) ----
-let qty = 1, namesMode = 'same', qtyCatId = null, multiPick = false, pickedNums = [];
+let qty = 1, namesMode = 'same', qtyCatId = null, multiPick = false, pickedNums = [], payKey = null;
 function maxQty(){
   const rem = selectedTicketData ? (Number(selectedTicketData.quota) - Number(selectedTicketData.sold || 0)) : 1;
   return Math.max(1, Math.min(10, rem));
@@ -1379,22 +1379,13 @@ async function processPayment(){
     // manuellement avoir bien reçu l'argent sur son Mobile Money avant
     // que le ticket ne devienne valide pour l'entrée.
     const promoCode = (promoState && promoState.catId === currentCat.id) ? promoState.code : null;
-    const manualMulti = multiPick && selectedTicket !== 'auto' && pickedNums.length > 1;
-    const multi = (qty > 1 && selectedTicket === 'auto') || manualMulti;
-    const { data, error } = multi
-      ? await supa.rpc('purchase_tickets', {
-          p_category_id: currentCat.id, p_buyer_names: buyerNames(), p_buyer_phone: phone,
-          p_operator: selectedOp, p_promo: promoCode, p_buyer_email: card ? email : null,
-          p_ticket_numbers: manualMulti ? pickedNums : null })
-      : await supa.rpc('purchase_ticket', {
-          p_category_id: currentCat.id,
-          p_ticket_number: selectedTicket === 'auto' ? null : selectedTicket,
-          p_buyer_name: name,
-          p_buyer_phone: phone,
-          p_buyer_email: card ? email : null,
-          p_operator: selectedOp,
-          p_promo: promoCode
-        });
+    const nums = selectedTicket === 'auto' ? null : ((multiPick && pickedNums.length) ? pickedNums : [selectedTicket]);
+    if (!payKey) payKey = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (String(Math.random()).slice(2) + String(Date.now()));
+    const { data, error } = await supa.rpc('purchase_tickets', {
+      p_category_id: currentCat.id, p_buyer_names: buyerNames(), p_buyer_phone: phone, p_operator: selectedOp,
+      p_promo: promoCode, p_buyer_email: card ? email : null, p_ticket_numbers: nums, p_idem: payKey });
+    // Erreur du serveur : nouvelle tentative = nouvel achat ; coupure réseau : on garde la même clé (pas de doublon)
+    if (error && (error.code || !/fetch|network|load failed/i.test(error.message || ''))) payKey = null;
 
     if (error) throw error;
 
@@ -1540,6 +1531,8 @@ async function checkForReturningPayment(){
     if (st === 'paid' || st === 'failed' || st === 'refunded') { await finishPaidOrFailed(st); return; }
     await new Promise(r => setTimeout(r, 2500));
   }
+  await fcReconcileOrder(orderId);
+  { const st2 = await fetchOrderState(orderId); if (st2 === 'paid' || st2 === 'failed' || st2 === 'refunded') { await finishPaidOrFailed(st2); return; } }
   showPaymentProblem('slow');
   // On continue de surveiller en arrière-plan : le ticket s'affichera tout seul dès que le paiement est confirmé.
   for (let i = 0; i < 20; i++) {
@@ -1549,7 +1542,10 @@ async function checkForReturningPayment(){
   }
 }
 
-async function checkOrderStatusNow(){
+async function fcReconcileOrder(id){ if (!id) return; try { await supa.functions.invoke('fedapay-reconcile', { body: { order_id: id } }); } catch (e) {} }
+
+async function checkOrderStatusNow(forceRecon){
+  if (forceRecon === true && lastPurchase) await fcReconcileOrder(lastPurchase.order_id);
   const btn = document.getElementById('check-status-btn');
   btn.disabled = true;
   btn.textContent = 'Vérification...';
@@ -1667,6 +1663,7 @@ function fcRenderCountdown(ev){
   const pad = (n) => String(n).padStart(2, '0');
   const when = fcFormatDate(ev.event_date, { weekday: 'long', day: 'numeric', month: 'long' }) + ' · ' + String(ev.event_time).slice(0, 5);
   let live = false;
+  const postponed = ev.postponed_from ? '<div class="fc-cd-when" style="margin-top:6px">🔁 Événement reporté (initialement le ' + fcEscapeHtml(fcFormatDate(ev.postponed_from, { day: 'numeric', month: 'long' })) + ')</div>' : '';
   const tick = () => {
     const now = Date.now();
     if (now >= end) { card.style.display = 'none'; return; }
@@ -1683,7 +1680,7 @@ function fcRenderCountdown(ev){
     const box = (n, l) => '<div class="fc-cd-box"><div class="fc-cd-num">' + n + '</div><div class="fc-cd-lab">' + l + '</div></div>';
     card.innerHTML = '<div class="fc-cd-title">⏳ L\'événement commence dans</div>'
       + '<div class="fc-cd-grid" style="--n:' + (dd > 0 ? 4 : 3) + '">' + (dd > 0 ? box(dd, dd > 1 ? 'jours' : 'jour') : '') + box(pad(h), 'heures') + box(pad(mi), 'min') + box(pad(se), 'sec') + '</div>'
-      + '<div class="fc-cd-when">' + fcEscapeHtml(when) + '</div>';
+      + '<div class="fc-cd-when">' + fcEscapeHtml(when) + '</div>' + postponed;
   };
   tick(); setInterval(tick, 1000);
 }

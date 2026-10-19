@@ -129,13 +129,9 @@ async function fcGetSession() {
 async function fcGetProfile() {
   const session = await fcGetSession();
   if (!session) return null;
-  const { data, error } = await supa
-    .from("profiles")
-    .select("*")
-    .eq("id", session.user.id)
-    .single();
+  const { data, error } = await supa.rpc('fc_my_profile');
   if (error) { console.error(error); return null; }
-  return data;
+  return (Array.isArray(data) ? data[0] : data) || null;
 }
 
 // À appeler en haut des pages privées (dashboard, scanner, admin, wallet...)
@@ -3551,16 +3547,16 @@ async function fcExportWalletCsv() {
 async function fcExportEventCsv(ev) {
   if (!ev || !ev.id) throw new Error('Événement introuvable');
   const { data, error } = await supa.from('tickets')
-    .select('ticket_number, status, scan_count, scanned_at, ticket_categories(name), orders(buyer_name, buyer_phone, buyer_email, amount, created_at, payment_status)')
+    .select('ticket_number, qr_code, status, scan_count, scanned_at, ticket_categories(name), orders(buyer_name, buyer_phone, buyer_email, amount, created_at, payment_status)')
     .eq('event_id', ev.id).order('ticket_number', { ascending: true }).limit(20000);
   if (error) throw error;
   const st = { valid: 'Valide', used: 'Utilisé', pending: 'En attente', cancelled: 'Annulé' };
   const rows = (data || []).map(t => [t.ticket_number, t.ticket_categories && t.ticket_categories.name, st[t.status] || t.status,
     t.orders && t.orders.payment_status, t.orders && t.orders.buyer_name, t.orders && t.orders.buyer_phone, t.orders && t.orders.buyer_email,
-    t.orders && t.orders.amount, fcCsvDate(t.orders && t.orders.created_at), t.scan_count || 0, fcCsvDate(t.scanned_at)]);
+    t.orders && t.orders.amount, fcCsvDate(t.orders && t.orders.created_at), t.scan_count || 0, fcCsvDate(t.scanned_at), String(t.qr_code || '').slice(0, 16)]);
   const slug = String(ev.title || 'evenement').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   await fcDownloadCsv('festchill-' + slug + '-tickets-' + new Date().toISOString().slice(0, 10) + '.csv',
-    ['N° ticket', 'Catégorie', 'Statut du ticket', 'Paiement', 'Acheteur', 'Téléphone', 'E-mail', 'Prix payé (FCFA)', "Date d'achat", 'Nombre de scans', 'Dernier scan'], rows);
+    ['N° ticket', 'Catégorie', 'Statut du ticket', 'Paiement', 'Acheteur', 'Téléphone', 'E-mail', 'Prix payé (FCFA)', "Date d'achat", 'Nombre de scans', 'Dernier scan', 'Code manuel (16 caractères)'], rows);
   return rows.length;
 }
 
@@ -3656,7 +3652,7 @@ async function fcInitAlerts() {
     const bn = document.createElement('div');
     bn.setAttribute('role', 'alert');
     bn.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:29500;width:min(94vw,520px);background:#241C14;color:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 12px 34px rgba(0,0,0,.4);font-size:.88rem;line-height:1.45';
-    bn.innerHTML = '<div style="font-weight:800;margin-bottom:4px">' + (SEC_KINDS.includes(fresh.kind) ? '🔔 Alerte de sécurité' : '🎉 Bonne nouvelle') + '</div>' + esc(fresh.message)
+    bn.innerHTML = '<div style="font-weight:800;margin-bottom:4px">' + (SEC_KINDS.includes(fresh.kind) ? '🔔 Alerte de sécurité' : (fresh.kind === 'health' ? '⚠️ À vérifier' : '🎉 Bonne nouvelle')) + '</div>' + esc(fresh.message)
       + '<div style="display:flex;gap:8px;margin-top:10px"><a href="' + safeLink(fresh.link) + '" style="background:#E8A33D;color:#241C14;font-weight:800;border-radius:10px;padding:8px 14px;text-decoration:none">Voir</a>'
       + '<button type="button" id="fc-alert-ok" style="background:none;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:10px;padding:8px 14px;cursor:pointer;font-weight:700">C\'est moi, OK</button>'
       + '<button type="button" id="fc-alert-notme" style="background:#C4321F;border:none;color:#fff;border-radius:10px;padding:8px 14px;cursor:pointer;font-weight:800">Ce n\'était pas moi</button></div>';
@@ -3788,3 +3784,50 @@ function fcRenderPushBox(box) {
     + '}';
   document.head.appendChild(st);
 })();
+
+// ------------------------------------------------------------
+// ANNULER (remboursements en masse) OU REPORTER UN ÉVÉNEMENT
+// ------------------------------------------------------------
+function fcOpenEventStatusModal(ev, mode) {
+  if (!ev) return;
+  const cancel = mode === 'cancel';
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:27000;background:rgba(20,14,8,.85);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto';
+  const fld = 'width:100%;box-sizing:border-box;margin-top:6px;padding:11px;border-radius:10px;border:1px solid var(--border,#ccc);background:var(--bg,#fff);color:inherit;font-family:inherit;font-size:.9rem';
+  ov.innerHTML = '<div style="width:min(94vw,440px);background:var(--surface,#fff);color:var(--text,#241C14);border-radius:18px;padding:22px">'
+    + '<div style="font-weight:800;font-size:1.1rem">' + (cancel ? 'Annuler cet événement' : 'Reporter cet événement') + '</div>'
+    + '<div style="font-size:.84rem;opacity:.85;margin:8px 0 12px;line-height:1.45">' + (cancel
+        ? 'La vente est fermée et une demande de remboursement est créée pour chaque ticket payé et non utilisé. Cette action est définitive.'
+        : 'Les tickets déjà achetés restent valables pour la nouvelle date. Les acheteurs sont prévenus par notification.') + '</div>'
+    + (cancel
+        ? '<label style="font-size:.8rem;font-weight:700">Raison (facultative)<textarea id="es-reason" maxlength="200" rows="2" style="' + fld + '"></textarea></label>'
+          + '<label style="display:flex;gap:8px;align-items:flex-start;margin-top:12px;font-size:.82rem"><input id="es-ok" type="checkbox" style="margin-top:3px"> Je comprends que tous les acheteurs seront remboursés.</label>'
+        : '<label style="font-size:.8rem;font-weight:700">Nouvelle date<input id="es-date" type="date" style="' + fld + '"></label>'
+          + '<label style="font-size:.8rem;font-weight:700;display:block;margin-top:10px">Nouvelle heure (facultatif)<input id="es-time" type="time" style="' + fld + '"></label>'
+          + '<label style="font-size:.8rem;font-weight:700;display:block;margin-top:10px">Message aux acheteurs (facultatif)<textarea id="es-note" maxlength="200" rows="2" style="' + fld + '"></textarea></label>')
+    + '<div id="es-err" style="color:#C4321F;font-size:.82rem;min-height:18px;margin-top:8px"></div>'
+    + '<button id="es-go" type="button" style="' + FC_MFA_BTN + '">' + (cancel ? "Annuler l'événement" : 'Reporter') + '</button>'
+    + '<button id="es-x" type="button" style="' + FC_MFA_LINK + ';width:100%;margin-top:4px">Fermer</button></div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#es-x').onclick = () => ov.remove();
+  ov.querySelector('#es-go').onclick = async () => {
+    const err = ov.querySelector('#es-err'), btn = ov.querySelector('#es-go'); err.textContent = '';
+    try {
+      let r;
+      if (cancel) {
+        if (!ov.querySelector('#es-ok').checked) { err.textContent = 'Coche la case pour confirmer.'; return; }
+        btn.disabled = true; btn.textContent = 'Annulation…';
+        r = await supa.rpc('fc_cancel_event', { p_event_id: ev.id, p_reason: ov.querySelector('#es-reason').value });
+      } else {
+        const d = ov.querySelector('#es-date').value; if (!d) { err.textContent = 'Choisis la nouvelle date.'; return; }
+        btn.disabled = true; btn.textContent = 'Report…';
+        r = await supa.rpc('fc_postpone_event', { p_event_id: ev.id, p_new_date: d, p_new_time: ov.querySelector('#es-time').value || null, p_note: ov.querySelector('#es-note').value });
+      }
+      if (r.error) throw r.error;
+      const info = r.data || {};
+      alert(cancel ? (info.refunds || 0) + ' remboursement(s) à effectuer (' + (info.total || 0) + ' FCFA).' + (info.warning ? '\n\n' + info.warning : '')
+                   : 'Événement reporté. ' + (info.buyers || 0) + ' acheteur(s) prévenu(s).');
+      location.reload();
+    } catch (e) { err.textContent = e.message || String(e); btn.disabled = false; btn.textContent = cancel ? "Annuler l'événement" : 'Reporter'; }
+  };
+}

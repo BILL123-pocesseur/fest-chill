@@ -59,6 +59,7 @@
     'sec-event-tools': ['🖼️ Images et doublons', '<input id="evtools-search" placeholder="Rechercher…" oninput="FCAdmin.eventToolsRender()" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text)">', 'evtools-body', () => FCAdmin.eventTools()],
     'sec-stats': ['📊 Statistiques détaillées (30 jours)', btn('Actualiser', 'btn-ghost', 'onclick="FCAdmin.statsPlus()"'), 'statsplus-body', () => FCAdmin.statsPlus()],
     'sec-settings': ['⚙️ Réglages de la plateforme', '', 'settings-body', () => FCAdmin.settingsForm()],
+    'sec-health': ['🩺 Santé du paiement', btn('Actualiser', 'btn-ghost', 'onclick="FCAdmin.health()"'), 'health-body', () => FCAdmin.health()],
     'sec-search': ['🔎 Recherche d\'un ticket ou d\'un acheteur', '', 'search-body', () => FCAdmin.searchInit()]
   };
   // On n'appelle jamais le serveur avant que l'accès administrateur soit confirmé (page cachée tant que ce n'est pas le cas)
@@ -425,6 +426,41 @@
         + '<td style="' + TD + ';white-space:nowrap">' + esc(when(r.s_created_at)) + '</td><td style="' + TD + ';white-space:nowrap">' + esc(when(r.s_last_seen)) + '</td>'
         + '<td style="' + TD + '">' + (r.s_revoked ? '<span class="badge b-gray">Révoquée</span>' : '<span class="badge b-green">Active</span>') + '</td></tr>').join(''), 'Aucune connexion');
     } catch (e) { fail(el, e); }
+  };
+
+  /* ---------- Santé du paiement ---------- */
+  FCAdmin.health = async function () {
+    const el = document.getElementById('health-body');
+    try {
+      const h = await rpc('fc_admin_health');
+      const ago = (d) => d ? esc(when(d)) : '<span style="color:var(--red)">jamais</span>';
+      const kpi = (l, v, bad) => '<div style="padding:12px;border:1px solid ' + (bad ? 'var(--red)' : 'var(--border)') + ';border-radius:12px"><div style="font-size:.7rem;color:var(--muted);text-transform:uppercase">' + l + '</div><div style="font-weight:800;font-size:1.15rem;margin-top:2px;color:' + (bad ? 'var(--red)' : 'inherit') + '">' + v + '</div></div>';
+      const sub = (t) => '<div style="padding:12px 18px 4px;font-weight:800;font-size:.85rem">' + t + '</div>';
+      el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;padding:14px 18px">'
+        + kpi('Commandes bloquées (+30 min)', h.stuck, h.stuck > 0) + kpi('Remboursements à faire', h.refunds_todo, h.refunds_todo > 0)
+        + kpi('Paiements tardifs (30 j)', h.late, false) + kpi('Retraits retenus', h.held, false) + kpi('Ventes (24 h)', h.paid_24h, false)
+        + kpi('Scans ratés (24 h)', h.scan_fail_24h, h.scan_fail_24h >= 20) + kpi('Appareils notifiés', h.push_subs, false)
+        + kpi('Profils protégés', h.profiles_locked ? 'Oui ✅' : 'Non ⚠️', !h.profiles_locked) + '</div>'
+        + '<div style="padding:0 18px 10px;font-size:.8rem">Dernier message FedaPay reçu : <b>' + ago(h.last_webhook) + '</b> · Dernier rattrapage : <b>' + ago(h.last_recon) + '</b></div>'
+        + '<div style="display:flex;gap:8px;flex-wrap:wrap;padding:0 18px 12px">' + btn('Lancer le rattrapage maintenant', 'btn-gold', 'onclick="FCAdmin.runRecon()"')
+        + (h.profiles_locked ? btn('Déverrouiller les profils (secours)', 'btn-ghost', 'onclick="FCAdmin.profilesLock(false)"') : btn('Protéger les données des profils', 'btn-danger', 'onclick="FCAdmin.profilesLock(true)"')) + '</div>'
+        + (h.profiles_locked ? '' : '<div style="padding:0 18px 12px;font-size:.78rem;color:var(--muted)">À faire seulement APRÈS avoir mis en ligne la dernière version de supabase-client.js : cela cache le téléphone, la commission et le code PIN des organisateurs aux autres comptes. Si une page ne s\'affiche plus, clique sur « Déverrouiller ».</div>')
+        + sub('Tâches automatiques')
+        + table(['Tâche', 'Fréquence', 'Dernier passage', 'Résultat'], (h.cron || []).map(j => '<tr><td style="' + TD + '">' + esc(j.job) + '</td><td style="' + TD + '">' + esc(j.schedule) + '</td><td style="' + TD + '">' + ago(j.last_run) + '</td><td style="' + TD + ';color:' + (j.last_status === 'succeeded' ? 'var(--green)' : 'var(--red)') + '">' + esc(j.last_status || '—') + '</td></tr>').join(''), 'Aucune tâche')
+        + sub('Derniers messages de paiement')
+        + table(['Date', 'Source', 'Événement', 'Détail'], (h.events || []).map(e => '<tr><td style="' + TD + ';white-space:nowrap">' + esc(when(e.created_at)) + '</td><td style="' + TD + '">' + esc(e.source) + '</td><td style="' + TD + '">' + esc(e.event_name || '') + '</td><td style="' + TD + ';font-size:.76rem">' + esc(e.note || '') + '</td></tr>').join(''), 'Aucun message reçu pour l\'instant')
+        + (h.stuck_list && h.stuck_list.length ? sub('Commandes bloquées') + table(['Acheteur', 'Montant', 'Depuis'], h.stuck_list.map(o => '<tr><td style="' + TD + '">' + esc(o.buyer_name || '—') + '</td><td style="' + TD + '">' + money(o.amount) + '</td><td style="' + TD + '">' + esc(when(o.created_at)) + '</td></tr>').join(''), '') : '')
+        + '<div style="padding:10px 18px 16px;font-size:.78rem;color:var(--muted)">Sauvegardes : ouvre Supabase → Database → Backups pour vérifier qu\'elles sont actives (à ma connaissance, l\'offre gratuite n\'en garde pas).</div>';
+    } catch (e) { fail(el, e); }
+  };
+  FCAdmin.runRecon = async function () {
+    try { const { data, error } = await supa.functions.invoke('fedapay-reconcile', { body: {} }); if (error) throw error; toast('Rattrapage terminé : ' + (data && data.checked != null ? data.checked + ' transaction(s) vérifiée(s)' : 'ok')); FCAdmin.health(); }
+    catch (e) { toast(e.message || e, false); }
+  };
+  FCAdmin.profilesLock = async function (lock) {
+    if (!await fcConfirm(lock ? 'Cacher le téléphone, la commission et le code PIN des organisateurs aux autres comptes ? (À faire après avoir mis en ligne la dernière version du site.)' : 'Déverrouiller la lecture des profils (mode secours) ?', { title: 'Données des profils', ok: lock ? 'Protéger' : 'Déverrouiller', danger: !lock })) return;
+    try { await rpc(lock ? 'fc_admin_lockdown_profiles' : 'fc_admin_unlock_profiles'); toast(lock ? 'Profils protégés' : 'Profils déverrouillés'); FCAdmin.health(); }
+    catch (e) { toast(e.message || e, false); }
   };
 
   /* ---------- Renvoyer le lien permanent d'un ticket à l'acheteur ---------- */

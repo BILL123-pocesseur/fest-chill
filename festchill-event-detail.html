@@ -766,6 +766,8 @@ tr{transition:background .2s}
         </div>
         <div class="ev-actions">
           <button class="btn btn-ghost btn-sm" type="button" onclick="fcOpenPhotoChooser(currentEvent)">🖼️ Changer l'image</button>
+          <button class="btn btn-ghost btn-sm" type="button" onclick="fcOpenEventStatusModal(currentEvent,'postpone')">🔁 Reporter</button>
+          <button class="btn btn-ghost btn-sm" type="button" style="color:var(--red)" onclick="fcOpenEventStatusModal(currentEvent,'cancel')">❌ Annuler l'événement</button>
           <button class="btn btn-ghost btn-sm" onclick="copyLink()"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5.5 18.5 10 8 20.5H3.5V16Z"/><line x1="12" y1="7.5" x2="16.5" y2="12"/></svg> Copier le lien</button>
           <button class="btn btn-danger btn-sm" id="ev-suspend-btn" onclick="toggleSuspend()"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4.5" width="4" height="15" rx="1"/><rect x="14" y="4.5" width="4" height="15" rx="1"/></svg> Suspendre</button>
         </div>
@@ -1016,7 +1018,7 @@ tr{transition:background .2s}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="qrcode.min.js"></script>
-<script src="supabase-client.js?v=20261011"></script>
+<script src="supabase-client.js?v=20261012"></script>
 <script>
 const FCI = {
   'check': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"20 6 9 17 4 12\"/></svg>",
@@ -1175,7 +1177,7 @@ async function render(){
   if (e.status === 'ended' || fcEventDayStatus(e.event_date, e.duration_days).phase === 'ended') {
     document.querySelectorAll('.share-card, [onclick="copyLink()"]').forEach(el => { el.style.display = 'none'; });
   }
-  const statusMap = { published:['En vente','var(--green)'], draft:['Brouillon','var(--glow)'], suspended:['Suspendu','var(--red)'], ended:['Terminé','var(--muted)'] };
+  const statusMap = { cancelled:['Annulé','var(--red)'], published:['En vente','var(--green)'], draft:['Brouillon','var(--glow)'], suspended:['Suspendu','var(--red)'], ended:['Terminé','var(--muted)'] };
   const [label, color] = statusMap[e.status] || ['—','var(--muted)'];
   document.getElementById('ev-status-text').textContent = label;
   document.getElementById('ev-status-badge').style.color = color;

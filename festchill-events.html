@@ -422,6 +422,7 @@ tr{transition:background .2s}
         <input type="radio" name="invite-role" value="view" style="margin-top:3px">
         <span><strong style="font-size:.85rem">Lecture seule</strong><br><span style="font-size:.76rem;color:var(--muted)">Peut seulement consulter, ne peut rien modifier.</span></span>
       </label>
+        <label style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--border);border-radius:12px;margin-top:8px;cursor:pointer"><input type="radio" name="invite-role" value="controller" style="margin-top:3px"><span><b>Contrôleur</b><br><span style="font-size:.78rem;color:var(--muted)">Scanne les tickets à l'entrée, sans voir les ventes ni l'argent.</span></span></label>
     </div>
     <div style="font-size:.74rem;color:var(--muted);margin-bottom:16px">💰 L'argent des ventes reste toujours sur ton compte, quel que soit l'accès donné.</div>
     <div class="modal-actions">
@@ -483,7 +484,7 @@ async function loadPendingInvites(){
   box.style.display = 'block';
   box.innerHTML = data.map(inv => `
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:8px">
-      <div style="font-size:.85rem"><strong>${inv.profiles?.full_name || 'Un organisateur'}</strong> t'invite à co-gérer <strong>${inv.events?.title || 'un événement'}</strong> (${inv.role === 'full' ? 'accès complet' : 'lecture seule'})</div>
+      <div style="font-size:.85rem"><strong>${inv.profiles?.full_name || 'Un organisateur'}</strong> t'invite à co-gérer <strong>${inv.events?.title || 'un événement'}</strong> (${inv.role === 'full' ? 'accès complet' : (inv.role === 'controller' ? 'contrôleur (scan seulement)' : 'lecture seule')})</div>
       <div style="display:flex;gap:6px;flex-shrink:0">
         <button class="btn btn-primary btn-sm" onclick="respondInvite('${inv.id}', true)">Accepter</button>
         <button class="btn btn-ghost btn-sm" onclick="respondInvite('${inv.id}', false)">Refuser</button>

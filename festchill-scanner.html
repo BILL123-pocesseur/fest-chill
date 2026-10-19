@@ -615,7 +615,7 @@ async function boot(){
     .select('event_id')
     .eq('organizer_id', profile.id)
     .eq('status', 'accepted')
-    .eq('role', 'full');
+    .in('role', ['full', 'controller']);
   const collabIds = (collabs || []).map(c => c.event_id);
 
   let query = supa
