@@ -3831,3 +3831,20 @@ function fcOpenEventStatusModal(ev, mode) {
     } catch (e) { err.textContent = e.message || String(e); btn.disabled = false; btn.textContent = cancel ? "Annuler l'événement" : 'Reporter'; }
   };
 }
+
+// ------------------------------------------------------------
+// MESSAGES DU SITE : plus aucune fenêtre du navigateur du genre « adresse-du-site indique… »
+// ------------------------------------------------------------
+function fcToast(msg) {
+  let t = document.getElementById('fc-toast');
+  if (!t) {
+    t = document.createElement('div'); t.id = 'fc-toast'; t.setAttribute('role', 'status');
+    t.style.cssText = 'position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);z-index:32000;background:#241C14;color:#fff;padding:12px 18px;border-radius:14px;font-size:.9rem;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.35);opacity:0;transition:opacity .2s,transform .2s;max-width:88vw;text-align:center;pointer-events:none';
+    document.body.appendChild(t);
+  }
+  t.textContent = String(msg == null ? '' : msg);
+  requestAnimationFrame(() => { t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)'; });
+  clearTimeout(t._h); t._h = setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(20px)'; }, 2600);
+}
+if (typeof window.showToast !== 'function') window.showToast = fcToast;   // les pages qui ont leur propre showToast gardent le leur
+window.alert = function (m) { try { fcAlert(String(m == null ? '' : m)); } catch (e) { /* jamais de fenêtre native */ } };

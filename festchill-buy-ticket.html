@@ -268,11 +268,18 @@ tr{transition:background .2s}
 .logo::before{content:"F";margin-right:10px;display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#FF6B3D,#C4321F);color:#fff;font-size:1.25rem;font-weight:800;box-shadow:0 6px 16px rgba(196,50,31,.38);transform:rotate(-6deg)}
 .logo em,.logo span{color:#C4321F !important;font-style:normal !important}
 @media(max-width:480px){
-  .logo{font-size:1.2rem !important;margin-right:10px}
-  .logo::before{width:32px;height:32px;font-size:1.05rem;margin-right:8px}
-  nav{flex-wrap:wrap;row-gap:10px}
-  .nav-actions{margin-left:auto}
+  .logo{font-size:1.1rem !important;margin-right:6px}
+  .logo::before{display:none}
+  nav{flex-wrap:nowrap !important;gap:8px}
+  nav .nav-actions{gap:6px;flex-shrink:0}
+  nav .nav-actions .btn{padding:8px 10px !important;font-size:.76rem !important;min-height:36px !important;white-space:nowrap}
 }
+
+/* L'image est maintenant au-dessus du ticket : le titre et la date redeviennent un simple en-tête */
+.tv-hero{margin:0 0 12px !important;min-height:0 !important;padding:0 !important;background:none !important;border-radius:0 !important}
+.tv-hero::before{display:none !important}
+.tv-hero .tv-event{color:inherit !important;text-shadow:none !important}
+.tv-hero .tv-date{color:inherit !important;opacity:.75}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#C4321F">
@@ -884,6 +891,7 @@ tr{transition:background .2s}
   <div class="success-title" id="success-title">Vérification du paiement…</div>
   <div class="success-sub" id="success-sub">Ton ticket apparaîtra ici dès que ton paiement sera confirmé.</div>
 
+  <img id="tv-banner" alt="" style="display:none;width:360px;max-width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:18px 18px 0 0;margin:0 auto -4px;box-shadow:0 10px 26px rgba(0,0,0,.25)">
   <div class="ticket-visual">
     <div class="tv-hero" id="tv-hero"><div class="tv-event" id="s-event">—</div><div class="tv-date" id="s-date">—</div></div>
     <div class="tv-row">
@@ -934,7 +942,7 @@ tr{transition:background .2s}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="supabase-client.js?v=20261012"></script>
+<script src="supabase-client.js?v=20261013"></script>
 <script>
 const FCI = {
   'check': "<svg class=\"icn\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"20 6 9 17 4 12\"/></svg>",
@@ -1593,11 +1601,9 @@ async function checkOrderStatusNow(forceRecon){
     try {
       const { data: grp } = await supa.rpc('fc_group_tickets', { p_order_id: lastPurchase.order_id });
       fcShowGroupTickets(grp || []);
+      if (grp && grp[0] && !lastPurchase.banner_url) { lastPurchase.banner_url = grp[0].banner_url; lastPurchase.location = lastPurchase.location || grp[0].location; }
     } catch (e) {}
-    if (lastPurchase.banner_url) {
-      const hero = document.getElementById('tv-hero');
-      if (hero) hero.style.backgroundImage = "url('" + String(fcHdPhoto(lastPurchase.banner_url, 900)).replace(/'/g, '%27') + "')";
-    }
+    fcSetTicketBanner(lastPurchase.banner_url);
     document.getElementById('success').scrollTop = 0;
     const kl = document.getElementById('keep-link');
     if (kl) { kl.style.display = 'block'; const sh = document.getElementById('keep-share'); if (sh && navigator.share) sh.style.display = ''; }
@@ -1787,7 +1793,13 @@ async function keepLinkAct(kind){
   if (kind === 'wa') { window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener'); return; }
   if (kind === 'share' && navigator.share) { try { await navigator.share({ title: 'Mes tickets Fest&Chill', text, url }); } catch (e) {} return; }
   try { await navigator.clipboard.writeText(url); if (typeof showToast === 'function') showToast('Lien copié'); else alert('Lien copié'); }
-  catch (e) { prompt('Copie ce lien :', url); }
+  catch (e) { fcAlert('Copie ce lien : ' + url); }
+}
+
+function fcSetTicketBanner(url){
+  const img = document.getElementById('tv-banner'); if (!img || !url) return;
+  img.onerror = () => { img.style.display = 'none'; };
+  img.src = fcHdPhoto(url, 900); img.style.display = 'block';
 }
 
 function goReview(){
